@@ -108,6 +108,7 @@ class XYMap:
         self.specs = []                                                     # Spectral Objects
         self.fontsize = 12                                                  # Default Plot Font Size
         self.colormap = tk.StringVar()                                      # Colormap
+        self.fitkeys = matl.fitkeys
         self.loadfiles()
         self.cmapframe = cmapframe                                          # Colormap Frame
         self.specframe = specframe                                          # Spectrum Frame
@@ -129,7 +130,6 @@ class XYMap:
         #self.getPLpixelIntervalMax()                                        # build PL Matrix
         #self.plotPixelMatrix()                                              # Plot PL Matrix 
         self.updatewl()
-        print('test 2')
 
     def buildselectboxes(self, frame, values):
         tk.Label(frame, text="Select Data Set".format(self.DataSpecMax)).grid(row=0, column=1)
@@ -356,6 +356,11 @@ class XYMap:
                         self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrometer Counts')
                     elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                         data = self.SpecDataMatrix[y][x].PLB[self.aqpixstart: self.aqpixend]
+
+                    try:   
+                        self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
+                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.selectwindowboxVari[3]], [self.fitkeys[self.selectwindowboxVari][0]], [self.fitkeys[self.selectwindowboxVari][1]])
+                        '''
                     if self.selectwindowboxVari == 'gaussian':
                         self.fitdata = matl.fitgaussiantospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', 'Gaussian fit'], [self.fitdata[:-1]], [matl.gaussianwind])
@@ -377,8 +382,10 @@ class XYMap:
                     elif self.selectwindowboxVari == 'linear': 
                         self.fitdata = matl.fitlinetospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', 'linear fit'], [self.fitdata[:-1]], [matl.linearwind])
-                    else:
-                        messagebox.showerror("Error", 'No valid function selected for the Plot.')
+                        '''
+                    except Exception as e:
+                        print('fit filed because of {}'.format(str(e)))
+                        #messagebox.showerror("Error", 'No valid function selected for the Plot.')
         else:
             print(self.SpecDataMatrix[y][x])
     
