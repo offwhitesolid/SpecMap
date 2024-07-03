@@ -243,7 +243,7 @@ class XYMap:
         self.selectPixX.grid(row=0, column=1)
         self.selectPixX.insert(0, 0)
         tk.Label(xyframe, text='Y =').grid(row=1, column=0)
-        self.selectPixY = tk.Entry(xyframe, text="0")
+        self.selectPixY = tk.Entry(xyframe)#, text="0")
         self.selectPixY.grid(row=1, column=1)
         self.selectPixY.insert(0, 0)
 
@@ -391,30 +391,11 @@ class XYMap:
                                 if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                     self.PixMatrix[i][j] = np.nan
                                 else:
-                                    self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
-                                    self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitdata[2](*self.SpecDataMatrix[i][j].fitdata[:-1])
-                                    #self.fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                                    #self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
-                                    '''
-                                    if self.selectwindowboxVari == 'gaussian':
-                                        self.SpecDataMatrix[i][j].fitdata = matl.fitgaussiantospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
-                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitdata[1]
-                                    elif self.selectwindowboxVari == 'voigt':
-                                        self.SpecDataMatrix[i][j].fitdata = matl.fitvoigttospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
-                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitdata[1] # maximum of voigt fit
-                                    elif self.selectwindowboxVari == 'lorentz':
-                                        self.SpecDataMatrix[i][j].fitdata = matl.fitlorentztospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
-                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitdata[1] # maximum of lorentz fit
-                                    elif self.selectwindowboxVari == 'double voigt':
-                                        self.SpecDataMatrix[i][j].fitdata = matl.fitdoublevoigttospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
-                                        _, self.PixMatrix[i][j] = matl.getmaxdoublevoigt(*self.SpecDataMatrix[i][j].fitdata[:-1])
-                                    elif self.selectwindowboxVari == 'double lorentz':
-                                        self.SpecDataMatrix[i][j].fitdata = matl.fitdoublelorentztospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
-                                        _, self.PixMatrix[i][j] = matl.getmaxdoublelorentz(*self.SpecDataMatrix[i][j].fitdata[:-1])
-                                    elif self.selectwindowboxVari == 'double gaussian':
-                                        self.SpecDataMatrix[i][j].fitdata = matl.fitdoublegaussiantospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
-                                        _, self.PixMatrix[i][j] = matl.getmaxdoublegaussian(*self.SpecDataMatrix[i][j].fitdata[:-1])
-                                    '''
+                                    try:
+                                        self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
+                                        self.PixMatrix[i][j] = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[i][j].fitdata[:-1])[1]
+                                    except Exception as e:
+                                        print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
 
                         except Exception as e:
                             print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
