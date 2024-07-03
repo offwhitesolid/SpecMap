@@ -391,6 +391,11 @@ class XYMap:
                                 if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                     self.PixMatrix[i][j] = np.nan
                                 else:
+                                    self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
+                                    self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitdata[2](*self.SpecDataMatrix[i][j].fitdata[:-1])
+                                    #self.fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
+                                    #self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
+                                    '''
                                     if self.selectwindowboxVari == 'gaussian':
                                         self.SpecDataMatrix[i][j].fitdata = matl.fitgaussiantospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
                                         self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitdata[1]
@@ -409,6 +414,7 @@ class XYMap:
                                     elif self.selectwindowboxVari == 'double gaussian':
                                         self.SpecDataMatrix[i][j].fitdata = matl.fitdoublegaussiantospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
                                         _, self.PixMatrix[i][j] = matl.getmaxdoublegaussian(*self.SpecDataMatrix[i][j].fitdata[:-1])
+                                    '''
 
                         except Exception as e:
                             print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
