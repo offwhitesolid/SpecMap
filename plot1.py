@@ -61,12 +61,10 @@ class FileProcessorApp:
         self.removecosmicsBool.set(0)
         self.removecosmics = tk.Checkbutton(self.loadframe, text="Remove Cosmics", variable=self.removecosmicsBool)
         self.removecosmics.grid(row=0, column=1)
-        '''
         tk.Label(self.loadframe, text="Cosmic Threshold:").grid(row=1, column=1)
         self.cosmicthreshold = tk.Entry(self.loadframe, width=10)
         self.cosmicthreshold.grid(row=2, column=1)
         self.cosmicthreshold.insert(0, '0.5')
-        '''
 
         # spectrum frame
         #self.specplot = self.plotimage([320, 20], 'Pixel Image')

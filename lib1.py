@@ -356,36 +356,11 @@ class XYMap:
                         self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrometer Counts')
                     elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                         data = self.SpecDataMatrix[y][x].PLB[self.aqpixstart: self.aqpixend]
-
-                    try:   
-                        self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.selectwindowboxVari[3]], [self.fitkeys[self.selectwindowboxVari][0]], [self.fitkeys[self.selectwindowboxVari][1]])
-                        '''
-                    if self.selectwindowboxVari == 'gaussian':
-                        self.fitdata = matl.fitgaussiantospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', 'Gaussian fit'], [self.fitdata[:-1]], [matl.gaussianwind])
-                    elif self.selectwindowboxVari == 'lorentz':
-                        self.fitdata = matl.fitlorentztospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', 'Lorentz fit'], [self.fitdata[:-1]], [matl.lorentzwind])
-                    elif self.selectwindowboxVari == 'voigt':
-                        self.fitdata = matl.fitvoigttospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', 'Voigt fit'], [self.fitdata[:-1]], [matl.voigtwind])
-                    elif self.selectwindowboxVari == 'double voigt':
-                        self.fitdata = matl.fitdoublevoigttospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', 'Double Voigt fit'], [self.fitdata[:-1]], [matl.double_voigtwind])
-                    elif self.selectwindowboxVari == 'double lorentz':
-                        self.fitdata = matl.fitdoublelorentztospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', 'Double Lorentz fit'], [self.fitdata[:-1]], [matl.double_lorentzwind])
-                    elif self.selectwindowboxVari == 'double gaussian':
-                        self.fitdata = matl.fitdoublegaussiantospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', 'Double Gaussian fit'], [self.fitdata[:-1]], [matl.double_gaussianwind])
-                    elif self.selectwindowboxVari == 'linear': 
-                        self.fitdata = matl.fitlinetospec(self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', 'linear fit'], [self.fitdata[:-1]], [matl.linearwind])
-                        '''
+                    try: # fit function to spectrum  
+                        self.fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
+                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
                     except Exception as e:
-                        print('fit filed because of {}'.format(str(e)))
-                        #messagebox.showerror("Error", 'No valid function selected for the Plot.')
+                        print('Fit filed. {}'.format(str(e)))
         else:
             print(self.SpecDataMatrix[y][x])
     
@@ -536,7 +511,7 @@ class XYMap:
     def plotPixelMatrixIntensity(self, cmapticks=6):
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
-        cax = ax.imshow(self.PixMatrix, cmap=self.colormap.get()) # aspect='auto' for cubic image
+        cax = ax.imshow(self.PixMatrix, cmap=self.colormap.get(), aspect='auto') # aspect='auto' for cubic image
         # Add a colorbar to the image
         cbar = fig.colorbar(cax, ax=ax)
         # Set the colorbar label
