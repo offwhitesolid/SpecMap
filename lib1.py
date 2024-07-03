@@ -391,12 +391,8 @@ class XYMap:
                                 if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                     self.PixMatrix[i][j] = np.nan
                                 else:
-                                    try:
-                                        self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
-                                        self.PixMatrix[i][j] = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[i][j].fitdata[:-1])[1]
-                                    except Exception as e:
-                                        print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
-
+                                    self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
+                                    self.PixMatrix[i][j] = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[i][j].fitdata[:-1])[1]
                         except Exception as e:
                             print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
                             #messagebox.showerror("Error", "Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
