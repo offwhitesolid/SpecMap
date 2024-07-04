@@ -40,6 +40,11 @@ class SpectrumData:
         self.PL = []
         self._read_file()
 
+        # init fit data
+        self.fwhm = np.nan
+        self.fitmax = np.nan
+        self.fitdata = [None]
+
     def _read_file(self):
         with open(self.filename, 'r') as file:
             lines = file.readlines()
