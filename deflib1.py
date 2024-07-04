@@ -1,18 +1,42 @@
 import numpy as np
+from scipy.ndimage import median_filter
 
 # comment how cremove_cosmics works
 
-def remove_cosmics(data, threshold=0.5):
-    # Find the median of the data
-    median = np.median(data)
-    # Find the standard deviation of the data
-    std = np.std(data)
-    # Find the cosmic rays
-    cosmic_rays = np.where(data > median + threshold * std)
-    # Relace the cosmic ray with the 
-    # Replace the cosmic rays with the median value
-    data[cosmic_rays] = median
-    return data
+def remove_cosmics(data, max_width=3, threshold=5):
+    """
+    Remove cosmics (outliers) from a 1D numpy array if they span up to a given width.
+    Parameters:
+    -----------
+    data : numpy array
+        Input data array from which cosmics are to be removed.
+    max_width : int, optional
+        Maximum width of cosmic rays (in pixels). Default is 3.
+    threshold : float, optional
+        Threshold value in units of standard deviations. Default is 5.
+    Returns:
+    --------
+    cleaned_data : numpy array
+        Cleaned data array with cosmics removed.
+    """
+
+    # Apply median filtering to smooth out extreme values
+    filtered_data = median_filter(data, size=max_width)
+
+    # Calculate median and standard deviation of filtered data
+    median = np.median(filtered_data)
+    std = np.std(filtered_data)
+
+    # Initialize cleaned data as a copy of original data
+    cleaned_data = data.copy()
+
+    # Loop over the data to identify and remove cosmics
+    for i in range(len(data)):
+        # Check if the absolute deviation is greater than threshold * std
+        if np.abs(data[i] - filtered_data[i]) > threshold * std:
+            # Replace the cosmic ray with the median value
+            cleaned_data[i] = median
+    return cleaned_data
 
 # get grid dx and dy
 def most_freq_element(arr):
