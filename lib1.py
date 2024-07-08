@@ -42,7 +42,8 @@ class SpectrumData:
 
         # init fit data
         self.fwhm = np.nan
-        self.fitmax = np.nan
+        self.fitmaxX = np.nan
+        self.fitmaxY = np.nan
         self.fitdata = [None]
 
     def _read_file(self):
@@ -101,6 +102,14 @@ class SpectrumData:
             pass
         else:
             self.dataokay = True
+
+    # return a specific attribute of this class
+    def get_attribute(self, attr_name:str):
+        try:
+            return getattr(self, attr_name)
+        except AttributeError as e:
+            print(f"Attribute {attr_name} not found in class SpectrumData.")
+
 
 # create XY Map that contains the Pixels 
 class XYMap:
@@ -202,29 +211,37 @@ class XYMap:
     # min and max wl can be inserted here for preceed window
     def buildMinMaxSpec(self, frame):
         # ProcSpecMin input field
-        tk.Label(frame, text="Lowest Wavelength \\ nm\nMinimum: {} nm".format(self.DataSpecMin)).grid(row=0, column=0)
+        tk.Label(frame, text="Lowest wavelength \\ nm\nMinimum: {} nm".format(self.DataSpecMin)).grid(row=0, column=0)
         self.proc_spec_min = tk.Entry(frame)
         self.proc_spec_min.grid(row=1, column=0)
         self.proc_spec_min.insert(0, self.DataSpecMin)
 
         # ProcSpecMax input field
-        tk.Label(frame, text="Highest Wavelength \\ nm\nMaximum: {} nm".format(self.DataSpecMax)).grid(row=2, column=0)
+        tk.Label(frame, text="Highest wavelength \\ nm\nMaximum: {} nm".format(self.DataSpecMax)).grid(row=2, column=0)
         self.proc_spec_max = tk.Entry(frame)
         self.proc_spec_max.grid(row=3, column=0)
         self.proc_spec_max.insert(0, self.DataSpecMax)
 
         # Button to create colormap
-        tk.Label(frame, text="Press Button below \nto update Data Matrix").grid(row=2, column=1)
-        b1 = tk.Button(frame, text="Create Intensity Colormap", command= lambda: self.buildandPlotIntCmap())
+        tk.Label(frame, text="Press button below \nto update data matrix").grid(row=2, column=1)
+        b1 = tk.Button(frame, text="Create intensity colormap", command= lambda: self.buildandPlotIntCmap())
         b1.grid(row=3, column=1)
-        b2 = tk.Button(frame, text="Create Spectral Maximum Colormap", command= lambda: self.buildandPlotSpecCmap())
+        b2 = tk.Button(frame, text="Create spectral maximum colormap", command= lambda: self.buildandPlotSpecCmap())
         b2.grid(row=4, column=1)
+        b3 = tk.Button(frame, text="Update spectral fit maxima", command= lambda: self.updateandPlotSpecCmap('fitmaxX'))
+        b3.grid(row=5, column=1)
 
         # Plot Font size
-        tk.Label(frame, text="Plot Font size".format(self.DataSpecMin)).grid(row=2, column=2)
+        tk.Label(frame, text="Plot font size".format(self.DataSpecMin)).grid(row=2, column=2)
         self.CMFont = tk.Entry(frame)
         self.CMFont.grid(row=3, column=2)
         self.CMFont.insert(0, self.fontsize)
+
+        # scipy fit maxiter
+        tk.Label(frame, text="Max tries for fit").grid(row=4, column=2)
+        self.fitmaxiter = tk.Entry(frame)
+        self.fitmaxiter.grid(row=5, column=2)
+        self.fitmaxiter.insert(0, 15000)
 
         # threshold for colormap
         tk.Label(frame, text="Colormap threshold \\ Counts").grid(row=4, column=0)
@@ -267,9 +284,11 @@ class XYMap:
         self.selectwindowbox = ttk.Combobox(parframe, values=list(self.windowfunctions))
         self.selectwindowbox.set(self.windowfunctions[-1])
         self.selectwindowbox.pack(side=tk.TOP, anchor=tk.W)
-        b3 = tk.Button(parframe, text="Fit Window to Spectrum", command=self.fitwindowtospec)
+        b3 = tk.Button(parframe, text="Fit Window to Spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=True))
         b3.pack(side=tk.TOP, anchor=tk.W)
         self.sepfitfunct = tk.IntVar()
+        b4 = tk.Button(parframe, text="plot existing fit and spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=False))
+        b4.pack(side=tk.TOP, anchor=tk.W)
         self.sepfitfunct.set(0)
         self.sepfitfunctsbut = tk.Checkbutton(parframe, text="Separate Fit Functions", variable=self.sepfitfunct)
         self.sepfitfunctsbut.pack(side=tk.TOP, anchor=tk.W)
@@ -339,10 +358,14 @@ class XYMap:
         self.updatewl()
         self.getPLpixelSpecMax()
         self.readfontsize()
-        self.fittoMatrix()
+        self.fittoMatrix('fitmaxX')
+        self.plotPixelMatrixSpectral()
+    
+    def updateandPlotSpecCmap(self, variable):
+        #self.updatePixelMatrix(variable)
         self.plotPixelMatrixSpectral()
 
-    def fitwindowtospec(self):
+    def fitwindowtospec(self, variable, newfit=False):
         self.updatewl()
         x, y, valid = self.validpixelinput()
         if valid[0] == True and valid[1] == True:
@@ -362,14 +385,25 @@ class XYMap:
                     elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                         data = self.SpecDataMatrix[y][x].PLB[self.aqpixstart: self.aqpixend]
                     try: # fit function to spectrum  
-                        self.fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB)
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
+                        if newfit == True or self.SpecDataMatrix[y][x].fitdata == [None]:
+                            if self.SpecDataMatrix[y][x].fitdata == [None]:
+                                print('No fit data found. Fitting new data.')
+                            try: 
+                                self.maxiter = int(self.fitmaxiter.get())
+                            except:
+                                print('Maxiter must be type int. Using default 15000.')
+                                self.maxiter = 15000
+                            self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
+                            self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[y][x].fitdata[:-1])
+                            #self.SpecDataMatrix[y][x].fitmaxX*=self.DataSpecdL
+                            self.PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
+                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
                     except Exception as e:
                         print('Fit filed. {}'.format(str(e)))
         else:
-            print(self.SpecDataMatrix[y][x])
+            print(self.SpecDataMatrix[y][x])        
     
-    def fittoMatrix(self):
+    def fittoMatrix(self, variable='fitmaxX'):
         # fill matrix with data of the selected enry:
         self.updatecountthresh()
         for i in range(len(self.SpecDataMatrix)):
@@ -396,11 +430,27 @@ class XYMap:
                                 if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                     self.PixMatrix[i][j] = np.nan
                                 else:
-                                    self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB)
-                                    self.PixMatrix[i][j] = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[i][j].fitdata[:-1])[1]
+                                    try:
+                                        self.maxiter = int(self.fitmaxiter.get())
+                                    except:
+                                        print('Maxiter must be int. Using default 15000.')
+                                        self.maxiter = 15000
+                                    self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter)
+                                    self.SpecDataMatrix[i][j].fitmaxY, self.SpecDataMatrix[i][j].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
+                                    #self.SpecDataMatrix[i][j].fitmaxX*=self.DataSpecdL
+                                    self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
                         except Exception as e:
                             print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
                             #messagebox.showerror("Error", "Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+    
+    def updatePixelMatrix(self, variable):
+        for i in range(len(self.SpecDataMatrix)):
+            for j in range(len(self.SpecDataMatrix[i])):
+                try:
+                    self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                except Exception as e:
+                    self.PixMatrix[i][j] = np.nan
+                    print("Update Pixel Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
 
 
     def readfontsize(self):
@@ -450,7 +500,6 @@ class XYMap:
                         data = self.SpecDataMatrix[y][x].PLB
                         self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrum')
                     else:
-                        #messagebox.showerror("Error", 'No valid Data set selected for the Plot.')
                         print('No valid Data set selected for the Plot.')
 
     def PlotSpectrum(self, x, y, label):
@@ -566,11 +615,6 @@ class XYMap:
         plt.tight_layout()
         plt.show()
 
-    def getPLpixel(self, pixel):
-        for i in range(len(self.SpecDataMatrix)):
-            for j in range(len(self.SpecDataMatrix[i])):
-                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].PL[pixel]
-
     def getPLpixelIntervalMaxIndex(self):#getPLpixelSpecMax(self):
         # fill matrix with data of the selected enry:
         self.updatewl()
@@ -588,7 +632,6 @@ class XYMap:
                         elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                             self.PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend])
                     except Exception as e:
-                        #messagebox.showerror("Error", str(e))
                         print(str(e))
                         
     def getPLpixelSpecMax(self):#getPLpixelIntervalMaxIndex(self):
@@ -622,7 +665,6 @@ class XYMap:
                                 self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
                     except Exception as e:
                         print(str(e))
-                        #messagebox.showerror("Error", str(e))
                 else:
                     self.PixMatrix[i][j] = np.nan
 

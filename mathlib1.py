@@ -28,61 +28,61 @@ def linearwind(x, a, b):
 
 # fit window functions to data  
 
-def fitdoublegaussiantospec(start, end, WL, PLB):
+def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
     initialguess = [np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)]
-    fitdata, pcov = curve_fit(double_gaussianwind, x, y, p0=initialguess, maxfev=10000)
+    fitdata, pcov = curve_fit(double_gaussianwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit, pcov
 
-def fitdoublelorentztospec(start, end, WL, PLB):
+def fitdoublelorentztospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
     initialguess = [np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)]
-    fitdata, pcov = curve_fit(double_lorentzwind, x, y, p0=initialguess, maxfev=10000)
+    fitdata, pcov = curve_fit(double_lorentzwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit, pcov
 
-def fitdoublevoigttospec(start, end, WL, PLB):
+def fitdoublevoigttospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
     initialguess = [np.max(y), x[np.argmax(y)], np.std(x), np.std(x), np.max(y), x[np.argmax(y)], np.std(x), np.std(x)]
-    fitdata, pcov = curve_fit(double_voigtwind, x, y, p0=initialguess, maxfev=10000)
+    fitdata, pcov = curve_fit(double_voigtwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, gamma1_fit, amp2_fit, cen2_fit, wid2_fit, gamma2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, gamma1_fit, amp2_fit, cen2_fit, wid2_fit, gamma2_fit, pcov
 
-def fitvoigttospec(start, end, WL, PLB):
+def fitvoigttospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
     initialguess = [np.max(y), x[np.argmax(y)], np.std(x), np.std(x)]
-    fitdata, pcov = curve_fit(voigtwind, x, y, p0=initialguess, maxfev=10000)
+    fitdata, pcov = curve_fit(voigtwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit, gamma_fit = fitdata
     return amp_fit, cen_fit, wid_fit, gamma_fit, pcov
 
-def fitlorentztospec(start, end, WL, PLB):
+def fitlorentztospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
     initialguess = [np.max(y), x[np.argmax(y)], np.std(x)]
-    fitdata, pcov = curve_fit(lorentzwind, x, y, p0=initialguess, maxfev=10000)
+    fitdata, pcov = curve_fit(lorentzwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit = fitdata
     return amp_fit, cen_fit, wid_fit, pcov
 
-def fitgaussiantospec(start, end, WL, PLB):
+def fitgaussiantospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
     initialguess = [np.max(y), x[np.argmax(y)], np.std(x)]
-    fitdata, pcov = curve_fit(gaussianwind, x, y, p0=initialguess, maxfev=10000)
+    fitdata, pcov = curve_fit(gaussianwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit = fitdata
     return amp_fit, cen_fit, wid_fit, pcov
     
-def fitlinetospec(start, end, WL, PLB):
+def fitlinetospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
     a_guess = (np.max(y) - np.min(y)) / (np.max(x) - np.min(x))
     b_guess = np.mean(y) - a_guess * np.mean(x)
     initial_guess = [a_guess, b_guess]
-    fitdata, pconf = curve_fit(linearwind, x, y, p0=initial_guess, maxfev=10000)
+    fitdata, pconf = curve_fit(linearwind, x, y, p0=initial_guess, maxfev=maxfev)
     a, b = fitdata
     return a, b, pconf
 
