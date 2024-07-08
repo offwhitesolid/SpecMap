@@ -395,7 +395,6 @@ class XYMap:
                                 self.maxiter = 15000
                             self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
                             self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[y][x].fitdata[:-1])
-                            #self.SpecDataMatrix[y][x].fitmaxX*=self.DataSpecdL
                             self.PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
                     except Exception as e:
@@ -437,7 +436,6 @@ class XYMap:
                                         self.maxiter = 15000
                                     self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter)
                                     self.SpecDataMatrix[i][j].fitmaxY, self.SpecDataMatrix[i][j].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
-                                    #self.SpecDataMatrix[i][j].fitmaxX*=self.DataSpecdL
                                     self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
                         except Exception as e:
                             print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
