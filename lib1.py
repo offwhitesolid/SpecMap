@@ -13,6 +13,7 @@ from scipy.optimize import curve_fit
 from scipy.special import wofz
 import mathlib1 as matl # type: ignore
 import deflib1 as deflib # type: ignore
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -277,7 +278,7 @@ class XYMap:
         b1 = tk.Button(parframe, text="Plot Spectrum", command=self.PlotPixelSpectrum)
         b1.pack(side=tk.TOP, anchor=tk.W)
         b2 = tk.Button(parframe, text="Create Button Matrix", command= lambda: self.buildButtonMatrix( frame, n, m))
-        b2.pack(side=tk.TOP, anchor=tk.W)
+        b2.pack(side=tk.BOTTOM, anchor=tk.W)
 
         # fit to spectrum
         tk.Label(parframe, text="Select Fit function".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
@@ -393,9 +394,17 @@ class XYMap:
                             except:
                                 print('Maxiter must be type int. Using default 15000.')
                                 self.maxiter = 15000
-                            self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
-                            self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[y][x].fitdata[:-1])
-                            self.PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
+                            # fit data to spectrum in multithreading 
+                            with ThreadPoolExecutor() as executor:
+                            #self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
+                            #self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[y][x].fitdata[:-1])
+                            #self.PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
+                                future = executor.submit(self.fitkeys[self.selectwindowboxVari][1], self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
+                                self.SpecDataMatrix[y][x].fitdata = future.result()
+                                future = executor.submit(self.fitkeys[self.selectwindowboxVari][2], *self.SpecDataMatrix[y][x].fitdata[:-1])
+                                self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = future.result()
+                                self.PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
+
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
                     except Exception as e:
                         print('Fit filed. {}'.format(str(e)))
@@ -748,7 +757,7 @@ class XYMap:
         for i in self.specs:
             index = [int((i.data['x-position']-self.mxcoords[0])//self.gdx), int((i.data['y-position']-self.mycoords[0])//self.gdy)]
             if type(self.SpecDataMatrix[index[1]][index[0]]) == SpectrumData:
-                print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution.')
+                print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(index[0], index[1]))
             else:
                 self.SpecDataMatrix[index[1]][index[0]] = i                
         
