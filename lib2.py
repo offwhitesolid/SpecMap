@@ -14,6 +14,7 @@ from scipy.special import wofz
 import mathlib1 as matl # type: ignore
 import deflib1 as deflib # type: ignore
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -79,11 +80,11 @@ class SpectrumData:
                         #self.WL.append(float(parts[0]))  WL is only read one by XYMap since each SpectrumData has the same WL-axis
                         self.PL.append(int(parts[2]))
                     except Exception as e:
-                        messagebox.showerror("Error", str(e))
+                        messagebox.showerror("Error1", str(e))
         try:
             self.PLB = np.subtract(self.PL, self.BG).tolist() # add PLB = PL-BG
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error2", str(e))
         # write openstate list
         for i in SpectDataFloats:
             if i not in list(self.data.keys()):
@@ -124,8 +125,12 @@ class XYMap:
         self.fontsize = 12                                                  # Default Plot Font Size
         self.colormap = tk.StringVar()                                      # Colormap
         self.fitkeys = matl.fitkeys
-        # load files in hyperthreading
+        # load files in multithreading
+        self.WL = []
+        self.BG = []
+        self.lock=threading.Lock()                                          # To ensure thread safety when accessing shared resources
         self.loadfiles()
+
         self.cmapframe = cmapframe                                          # Colormap Frame
         self.specframe = specframe                                          # Spectrum Frame
         self.DataSpecMin = np.amin(self.WL)                                 # Spectrum Start
@@ -161,7 +166,7 @@ class XYMap:
         try:
             self.countthreshv = int(self.countthresh.get())
         except Exception as e:
-            messagebox.showerror("Error", '{} Insert valid threshold of type int.'.format(str(e)))
+            messagebox.showerror("Error3", '{} Insert valid threshold of type int.'.format(str(e)))
 
     # Spectral Plot Input Update
     def updatewl(self):
@@ -169,7 +174,7 @@ class XYMap:
             self.wlstart = float(self.proc_spec_min.get())
             self.wlend = float(self.proc_spec_max.get())
         except Exception as e:
-            messagebox.showerror("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
+            messagebox.showerror("Error4", '{} Insert valid spectral Borders of type float.'.format(str(e)))
         passt = False
         if self.wlstart > self.wlend:
             tk.messagebox.showerror('ERROR', 'Lowest Wavelength must be smaller than Highest Wavelength! Reconsider Input!')
@@ -465,7 +470,7 @@ class XYMap:
         try:
             self.fontsize =abs(float(self.CMFont.get()))
         except Exception as e:
-            messagebox.showerror("Error", '{} Font Size must be Number.'.format(str(e)))
+            messagebox.showerror("Error5", '{} Font Size must be Number.'.format(str(e)))
 
     def validpixelinput(self):
         x = self.selectPixX.get()
@@ -476,17 +481,17 @@ class XYMap:
             if x < len(self.SpecDataMatrix[0]):
                 valid[0] = True
             else:
-                messagebox.showerror("Error", "No Pixel on X-Position.")
+                messagebox.showerror("Error6", "No Pixel on X-Position.")
         except Exception as e:
-            messagebox.showerror("Error", '{} Insert valid X-Position.'.format(str(e)))
+            messagebox.showerror("Error7", '{} Insert valid X-Position.'.format(str(e)))
         try:
             y = int(y)
             if y < len(self.SpecDataMatrix):
                 valid[1] = True
             else:
-                messagebox.showerror("Error", "No Pixel on Y-Position.")
+                messagebox.showerror("Error8", "No Pixel on Y-Position.")
         except Exception as e:
-            messagebox.showerror("Error", '{} Insert valid Y-Position.'.format(str(e)))
+            messagebox.showerror("Error9", '{} Insert valid Y-Position.'.format(str(e)))
         return(x, y, valid)
 
     def PlotPixelSpectrum(self):
@@ -681,8 +686,6 @@ class XYMap:
         gotWL = False
         gotBG = False
         i = 0
-        self.WL = []
-        self.BG = []
         while gotWL == False or gotBG == False:
             try:
                 with open(self.fnames[i], 'r') as file:
@@ -721,17 +724,34 @@ class XYMap:
         # remove cosmics
         if self.remc == True:
             self.WL = deflib.remove_cosmics(self.WL, self.cosmicthreshold)
-              
+
+        self.process_files_multithreaded()
+
+        '''
         for i in self.fnames:
             specobj = SpectrumData(i, self.WL, self.BG)
             if specobj.dataokay == True:
                 self.specs.append(specobj)
+        '''
+
+    def process_file(self, fname):
+        specobj = SpectrumData(fname, self.WL, self.BG)
+        if specobj.dataokay:
+            return specobj
+        return None
+    
+    def process_files_multithreaded(self):
+        with ThreadPoolExecutor() as executor:
+            results = executor.map(self.process_file, self.fnames)
+            for result in results:
+                if result is not None:
+                    self.specs.append(result)
 
     def autogenmatrix(self):
         self.mxcoords = []
         self.mycoords = []
         if len(self.specs) == 0:
-            messagebox.showerror("Error", 'No valid Data found. Check Data Files.')
+            messagebox.showerror("Error10", 'No valid Data found. Check Data Files.')
         elif len(self.specs) == 1:
             self.mxcoords.append(self.specs[0].data['x-position'])
             self.mycoords.append(self.specs[0].data['y-position'])
