@@ -327,11 +327,11 @@ class XYMap:
             frame.columnconfigure(col, weight=1)
         # Add row axis
         for row in range(n):
-            label = tk.Label(frame, text=str(row), relief=tk.RAISED)
+            label = tk.Label(frame, text=str(row*self.gdx), relief=tk.RAISED)
             label.grid(row=row+1, column=0, sticky=tk.NSEW)
         # Add column axis
         for col in range(m):
-            label = tk.Label(frame, text=str(col), relief=tk.RAISED)
+            label = tk.Label(frame, text=str(col*self.gdy), relief=tk.RAISED)
             label.grid(row=0, column=col+1, sticky=tk.NSEW)
         self.SpecButtons = buttons
         self.buttonframe_updateColor()
@@ -727,7 +727,7 @@ class XYMap:
 
         self.process_files_multithreaded()
 
-        '''
+        ''' old SpectrumData init with no multithreading
         for i in self.fnames:
             specobj = SpectrumData(i, self.WL, self.BG)
             if specobj.dataokay == True:
