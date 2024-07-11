@@ -395,10 +395,15 @@ class XYMap:
                                 print('Maxiter must be type int. Using default 15000.')
                                 self.maxiter = 15000
                             self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
-                            self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[y][x].fitdata[:-1])
+                            #self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[y][x].fitdata[:-1])
+                            # get maximum using mathlib.Newtonmax
+                            self.SpecDataMatrix[y][x].fitmaxX = matl.Newtonmax(self.fitkeys[self.selectwindowboxVari][0], self.SpecDataMatrix[y][x].fitdata[0], tol=1e-6, maxiter=1000)
+                            self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[y][x].fitmaxX, *self.SpecDataMatrix[y][x].fitdata[:-1])
                             self.PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
-
+                        
+                        plt.scatter(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY, color='red')
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
+                        
                     except Exception as e:
                         print('Fit filed. {}'.format(str(e)))
         else:
