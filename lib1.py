@@ -28,7 +28,10 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'magnification']
 
 class SpectrumData:
-    def __init__(self, filename, WL, BG):
+    def __init__(self, filename, WL, BG, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
+        self.removecosmics = removecosmics
+        self.cosmicthreshold = cosmicthreshold
+        self.cosmicpixels = cosmicpixels
         self.WL = WL
         self.BG = BG
         self.filename = filename
@@ -95,6 +98,9 @@ class SpectrumData:
             self.openDstate.append(None)
         self.setOK()
 
+        if self.removecosmics == True:
+            self.PLB = deflib.remove_cosmics(self.PLB, self.cosmicpixels, self.cosmicthreshold)
+
     def setOK(self):
         if False in self.openFstate:
             pass
@@ -113,9 +119,10 @@ class SpectrumData:
 
 # create XY Map that contains the Pixels 
 class XYMap:
-    def __init__(self, fnames, cmapframe, specframe, loadbg=False, removecosmics=False, cosmicthreshold=1):
+    def __init__(self, fnames, cmapframe, specframe, loadbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
         self.remc = removecosmics
         self.cosmicthreshold = cosmicthreshold
+        self.cosmicpixels = cosmicpixels
         self.fnames = fnames
         self.readinkeys = ['WL']
         self.loadeachbg = loadbg
@@ -716,11 +723,11 @@ class XYMap:
             if len(self.BG) > 1:
                 gotBG = True
         # remove cosmics
-        if self.remc == True:
-            self.WL = deflib.remove_cosmics(self.WL, self.cosmicthreshold)
+        #if self.remc == True:
+        #    self.WL = deflib.remove_cosmics(self.WL, self.cosmicthreshold)
               
         for i in self.fnames:
-            specobj = SpectrumData(i, self.WL, self.BG)
+            specobj = SpectrumData(i, self.WL, self.BG, self.cosmicthreshold, self.cosmicpixels, )
             if specobj.dataokay == True:
                 self.specs.append(specobj)
 

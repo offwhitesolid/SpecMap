@@ -64,7 +64,12 @@ class FileProcessorApp:
         tk.Label(self.loadframe, text="Cosmic Threshold:").grid(row=1, column=1)
         self.cosmicthreshold = tk.Entry(self.loadframe, width=10)
         self.cosmicthreshold.grid(row=2, column=1)
-        self.cosmicthreshold.insert(0, '0.5')
+        self.cosmicthreshold.insert(0, '20')
+        tk.Label(self.loadframe, text="Cosmic Width:").grid(row=1, column=2)
+        self.cosmicwidth = tk.Entry(self.loadframe, width=3)
+        self.cosmicwidth.grid(row=2, column=2)
+        self.cosmicwidth.insert(0, '3')
+
 
         # spectrum frame
         #self.specplot = self.plotimage([320, 20], 'Pixel Image')
@@ -108,7 +113,7 @@ class FileProcessorApp:
             self.specframe.place(x=0, y=310)
             self.specframe.pack(fill=tk.BOTH, expand=True)
 
-            self.Nanomap = lib.XYMap(files_processed, self.cmapframe, self.specframe, self.multiple_BG.get(), self.removecosmicsBool.get())
+            self.Nanomap = lib.XYMap(files_processed, self.cmapframe, self.specframe, self.multiple_BG.get(), self.removecosmicsBool.get(), int(self.cosmicthreshold.get()), int(self.cosmicwidth.get())
             print("Success", f"Found and loaded {len(files_processed)} files.")
         else:
             messagebox.showinfo("No Files", "No files found with the specified name.")
