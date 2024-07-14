@@ -115,32 +115,15 @@ def getmaxdoublevoigt(amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2):
     x_max = fminbound(lambda x: -fitted_func(x), np.min(x0), np.max(x0))
     return -fitted_func(x_max), x_max
 
+# return maxima of fitted functions
 def getmaxgaussian(amp, cen, wid):
-    # Define the fitted function
-    fitted_func = lambda x: -gaussianwind(x, amp, cen, wid)
-    # Initial guess for the maximum
-    x0 = cen
-    # Find the maximum of the fitted function
-    x_max = fminbound(lambda x: -fitted_func(x), np.min(x0), np.max(x0))
-    return -fitted_func(x_max), x_max
+    return amp, cen
 
 def getmaxlorentz(amp, cen, wid):
-    # Define the fitted function
-    fitted_func = lambda x: -lorentzwind(x, amp, cen, wid)
-    # Initial guess for the maximum
-    x0 = cen
-    # Find the maximum of the fitted function
-    x_max = fminbound(lambda x: -fitted_func(x), np.min(x0), np.max(x0))
-    return -fitted_func(x_max), x_max
+    return amp, cen
 
 def getmaxvoigt(amp, cen, wid, gamma):
-    # Define the fitted function
-    fitted_func = lambda x: -voigtwind(x, amp, cen, wid, gamma)
-    # Initial guess for the maximum
-    x0 = cen
-    # Find the maximum of the fitted function
-    x_max = fminbound(lambda x: -fitted_func(x), np.min(x0), np.max(x0))
-    return -fitted_func(x_max), x_max
+    return amp, cen
 
 def getmaxlinear(a, b):
     pass

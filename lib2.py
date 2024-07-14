@@ -15,6 +15,10 @@ import mathlib1 as matl # type: ignore
 import deflib1 as deflib # type: ignore
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+from decimal import Decimal, getcontext
+
+# set decimal precision to prevent rounding errors
+getcontext().prec = 8
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -790,13 +794,13 @@ class XYMap:
         self.dxanodup = deflib.remove_duplicates(dxa)
         self.dyanodup = deflib.remove_duplicates(dya)
         if len(self.dxanodup) == 1:
-            self.gdx = dxa[0]
+            self.gdx = Decimal(dxa[0])
         else:
-            self.gdx = deflib.most_freq_element(dxa)
+            self.gdx = Decimal(deflib.most_freq_element(dxa))
         if len(self.dyanodup) == 1:
-            self.gdy = dya[0]
+            self.gdy = Decimal(dya[0])
         else:
-            self.gdy = deflib.most_freq_element(dya)
+            self.gdy = Decimal(deflib.most_freq_element(dya))
         matpixax = []
         matpiyax = []
         PixelMatrix = []
