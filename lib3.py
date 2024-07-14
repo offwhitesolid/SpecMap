@@ -760,9 +760,21 @@ class XYMap:
 
     # set the spectra into the array
     def SpecdataintoMatrix(self):
-        pr = True
+        pr = 0
         for i in self.specs:
+            index = [int((i.data['x-position']-self.mxcoords[0])//self.gdx), int((i.data['y-position']-self.mycoords[0])//self.gdy)]
+            if type(self.SpecDataMatrix[index[1]][index[0]]) == SpectrumData:
+                print(i.data['x-position']-self.mxcoords[0], i.data['x-position'], self.mycoords[0])
+                #print('index occupied at', index, 'from', self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0], self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mxcoords[1])
+                #print('raw positions are', i.data['x-position'], i.data['y-position'], self.mxcoords[0], self.mycoords[0], 'rounded', round(self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0]), round(self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mxcoords[1], 12))
+                print('index', index, 'occupied by', round(self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0], 10)//self.gdx, round(self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mycoords[0], 10)//self.gdx)
+            else:
+                self.SpecDataMatrix[index[1]][index[0]] = i  
+
+            '''
             index = [Decimal(int((i.data['x-position']-self.mxcoords[0])//self.gdx)), Decimal(int((i.data['y-position']-self.mycoords[0])//self.gdy))]
+            print('Index: {}'.format(index))
+            sys.exit()
             if type(self.SpecDataMatrix[index[1]][index[0]]) == SpectrumData:
                 if pr == True:
                     print('gdx, gdy: {}, {}'.format(self.gdx, self.gdy))
@@ -784,7 +796,8 @@ class XYMap:
                 #sys.exit()
                 #print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(index[0], index[1]))
             else:
-                self.SpecDataMatrix[index[1]][index[0]] = i                
+                self.SpecDataMatrix[index[1]][index[0]] = i   
+            '''            
         
     def genmatgrid(self, xar, yar): # returns that must be filled with the SpectrumData Objects
         self.matstart = [np.amin(self.mxcoords), np.amin(self.mycoords)]

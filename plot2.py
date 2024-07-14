@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os, sys
 from PIL import Image, ImageTk
-import lib1 as lib # type: ignore
+import lib3 as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 
