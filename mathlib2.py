@@ -145,6 +145,22 @@ def getmaxvoigt(amp, cen, wid, gamma):
 def getmaxlinear(a, b):
     pass
 
+def gaussian2d(x, y, amp, cenx, ceny, sigmax, sigmay, theta):
+    a = (np.cos(theta)**2) / (2 * sigmax**2) + (np.sin(theta)**2) / (2 * sigmay**2)
+    b = -(np.sin(2 * theta)) / (4 * sigmax**2) + (np.sin(2 * theta)) / (4 * sigmay**2)
+    c = (np.sin(theta)**2) / (2 * sigmax**2) + (np.cos(theta)**2) / (2 * sigmay**2)
+    return amp * np.exp(-(a * (x - cenx)**2 + 2 * b * (x - cenx) * (y - ceny) + c * (y - ceny)**2))
+
+def fitgaussiand2dtomatrix(data):
+    x = np.arange(data.shape[1])
+    y = np.arange(data.shape[0])
+    x, y = np.meshgrid(x, y)
+    initialguess = [np.max(data), np.argmax(data) % data.shape[1], np.argmax(data) // data.shape[1], 1, 1, 0]
+    fitdata, pcov = curve_fit(gaussian2d, (x, y), data.ravel(), p0=initialguess)
+    fwhmx = 2 * np.sqrt(2 * np.log(2)) * fitdata[3]
+    fwhmy = 2 * np.sqrt(2 * np.log(2)) * fitdata[4]
+    return fitdata, pcov, fwhmx, fwhmy
+
 def Newtonmax(f, x0, tol=1e-6, maxiter=1000):
     # Initialize the iteration counter
     iter = 0
@@ -163,7 +179,6 @@ def Newtonmax(f, x0, tol=1e-6, maxiter=1000):
         # Increment the iteration counter
         iter += 1
     return x0
-
 
 # dictionary of window functions and their corresponding fit functions
 # and functions to get the maxima of the fitted functions

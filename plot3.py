@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os, sys
 from PIL import Image, ImageTk
-import lib1 as lib # type: ignore
+import lib5 as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 
@@ -74,21 +74,39 @@ class FileProcessorApp:
         # Process button
         self.process_button = tk.Button(self.open_frame, text="Load data", command=self.process_files)
         self.process_button.pack()
-        self.multiple_BG = tk.IntVar()
+        # space between frames
+        tk.Frame(self.open_frame, height=10).pack()
+
+        # Load frame for background selection and cosmic removal place subframes inside
         self.loadframe = tk.Frame(self.open_frame)
         self.loadframe.pack()
-        self.chkmultiple = tk.Checkbutton(self.loadframe, text="Multiple Backgrounds", variable=self.multiple_BG)
+        # BG selection
+        # add extra frame for background selection onto loadframe
+        self.bgframe = tk.Frame(self.loadframe, borderwidth=2, relief="sunken")
+        self.bgframe.grid(row=0, column=0)
+        self.multiple_BG = tk.IntVar()
+        self.chkmultiple = tk.Checkbutton(self.bgframe, text="Multiple Backgrounds", variable=self.multiple_BG)
         self.chkmultiple.grid(row=0, column=0)
         self.removecosmicsBool = tk.IntVar()
         self.removecosmicsBool.set(0)
-        self.removecosmics = tk.Checkbutton(self.loadframe, text="Remove Cosmics", variable=self.removecosmicsBool)
+        self.linearBG = tk.IntVar()
+        self.linearBGcheck = tk.Checkbutton(self.bgframe, text="Linear Background", variable=self.linearBG)
+        self.linearBGcheck.grid(row=1, column=0)
+        self.linearBG.set(0)
+
+        # Cosmic removal
+        # add extra frame for cosmic removal onto loadframe
+        self.cosmicframe = tk.Frame(self.loadframe, borderwidth=2, relief="sunken")
+        self.cosmicframe.grid(row=0, column=1)
+
+        self.removecosmics = tk.Checkbutton(self.cosmicframe, text="Remove Cosmics", variable=self.removecosmicsBool)
         self.removecosmics.grid(row=0, column=1)
-        tk.Label(self.loadframe, text="Cosmic Threshold:").grid(row=1, column=1)
-        self.cosmicthresholdentry = tk.Entry(self.loadframe, width=10)
+        tk.Label(self.cosmicframe, text="Cosmic Threshold:").grid(row=1, column=1)
+        self.cosmicthresholdentry = tk.Entry(self.cosmicframe, width=10)
         self.cosmicthresholdentry.grid(row=2, column=1)
         self.cosmicthresholdentry.insert(0, '20')
-        tk.Label(self.loadframe, text="Cosmic Width:").grid(row=1, column=2)
-        self.cosmicwidthentry = tk.Entry(self.loadframe, width=3)
+        tk.Label(self.cosmicframe, text="Cosmic Width:").grid(row=1, column=2)
+        self.cosmicwidthentry = tk.Entry(self.cosmicframe, width=3)
         self.cosmicwidthentry.grid(row=2, column=2)
         self.cosmicwidthentry.insert(0, '3')
 
