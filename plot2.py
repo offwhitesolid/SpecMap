@@ -5,14 +5,15 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os, sys
 from PIL import Image, ImageTk
-import lib1 as lib # type: ignore
+import lib3 as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 
 # defautl entries
-defopdir = 'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test8_MoS2_ML_1sec_02mumsteps'
+defopdir = 'E:\\Promotion\\VP\\20240523\\scandata2_121'
+    #'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test8_MoS2_ML_1sec_02mumsteps'
     #'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test3\\Data\\scan1'
-    #'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test1\\scandata2_121'#'E:\\Promotion\\VP\\20240523\\scandata2_121'
+    #'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test1\\scandata2_121'
     #'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test6_Mos2_ML_2sec'
 defopnam = 'spectrum'
 defopend = '.txt'
@@ -47,13 +48,13 @@ class FileProcessorApp:
 
     def createbuttons(self, Notebook):
         # Frame
-        self.open_frame = tk.Frame(Notebook, width=50, height=100, borderwidth=5, relief="ridge")
+        self.open_frame = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
         self.open_frame.pack(anchor='nw')#fill='both', expand=True)
         # Folder selection
         self.folder_label = tk.Label(self.open_frame, text="Select Folder:")
         self.folder_label.pack()
         
-        self.folder_entry = tk.Entry(self.open_frame, width=50)
+        self.folder_entry = tk.Entry(self.open_frame, width=60)
         self.folder_entry.pack()
         self.folder_entry.insert(0, defopdir)
         self.folder_button = tk.Button(self.open_frame, text="Browse", command=self.browse_folder)
@@ -61,13 +62,13 @@ class FileProcessorApp:
         # Filename input
         self.filename_label = tk.Label(self.open_frame, text="Enter Filename:")
         self.filename_label.pack()
-        self.filename_entry = tk.Entry(self.open_frame, width=50)
+        self.filename_entry = tk.Entry(self.open_frame, width=60)
         self.filename_entry.pack()
         self.filename_entry.insert(0, defopnam)
         # File format
         self.fileformat_label = tk.Label(self.open_frame, text="Enter File format:")
         self.fileformat_label.pack()
-        self.fileformat_entry = tk.Entry(self.open_frame, width=50)
+        self.fileformat_entry = tk.Entry(self.open_frame, width=60)
         self.fileformat_entry.pack()
         self.fileformat_entry.insert(0, defopend)
         # Process button
@@ -83,9 +84,13 @@ class FileProcessorApp:
         self.removecosmics = tk.Checkbutton(self.loadframe, text="Remove Cosmics", variable=self.removecosmicsBool)
         self.removecosmics.grid(row=0, column=1)
         tk.Label(self.loadframe, text="Cosmic Threshold:").grid(row=1, column=1)
-        self.cosmicthreshold = tk.Entry(self.loadframe, width=10)
-        self.cosmicthreshold.grid(row=2, column=1)
-        self.cosmicthreshold.insert(0, '0.5')
+        self.cosmicthresholdentry = tk.Entry(self.loadframe, width=10)
+        self.cosmicthresholdentry.grid(row=2, column=1)
+        self.cosmicthresholdentry.insert(0, '20')
+        tk.Label(self.loadframe, text="Cosmic Width:").grid(row=1, column=2)
+        self.cosmicwidthentry = tk.Entry(self.loadframe, width=3)
+        self.cosmicwidthentry.grid(row=2, column=2)
+        self.cosmicwidthentry.insert(0, '3')
 
         # spectrum frame
         #self.specplot = self.plotimage([320, 20], 'Pixel Image')
@@ -127,8 +132,20 @@ class FileProcessorApp:
             self.cmapframe.pack(fill=tk.BOTH)
             self.specframe = tk.Frame(self.noteframes['Process Data'], borderwidth=5, relief="sunken")#, width=400, height=400)
             self.specframe.pack(fill=tk.BOTH, expand=True)
+            
+            # get the cosmic threshold and width
+            try:
+                self.cosmicthreshold = int(self.cosmicthresholdentry.get())
+            except:
+                self.cosmicthreshold = 20
+                self.cosmicthresholdentry.insert(0, '20')
+            try:
+                self.cosmicwidth = int(self.cosmicwidthentry.get())
+            except:
+                self.cosmicwidth = 3
+                self.cosmicwidthentry.insert(0, '3')
 
-            self.Nanomap = lib.XYMap(files_processed, self.cmapframe, self.specframe, self.multiple_BG.get(), self.removecosmicsBool.get())
+            self.Nanomap = lib.XYMap(files_processed, self.cmapframe, self.specframe, self.multiple_BG.get(), self.removecosmicsBool.get(), self.cosmicthreshold, self.cosmicwidth)
             print("Success", f"Found and loaded {len(files_processed)} files.")
         else:
             messagebox.showinfo("No Files", "No files found with the specified name.")

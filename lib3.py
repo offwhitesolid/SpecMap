@@ -13,11 +13,7 @@ from scipy.optimize import curve_fit
 from scipy.special import wofz
 import mathlib1 as matl # type: ignore
 import deflib1 as deflib # type: ignore
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
-from concurrent.futures import ProcessPoolExecutor
-import concurrent.futures
-
+from decimal import Decimal, getcontext
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -33,7 +29,10 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'magnification']
 
 class SpectrumData:
-    def __init__(self, filename, WL, BG):
+    def __init__(self, filename, WL, BG, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
+        self.removecosmics = removecosmics
+        self.cosmicthreshold = cosmicthreshold
+        self.cosmicpixels = cosmicpixels
         self.WL = WL
         self.BG = BG
         self.filename = filename
@@ -83,11 +82,11 @@ class SpectrumData:
                         #self.WL.append(float(parts[0]))  WL is only read one by XYMap since each SpectrumData has the same WL-axis
                         self.PL.append(int(parts[2]))
                     except Exception as e:
-                        messagebox.showerror("Error1", str(e))
+                        messagebox.showerror("Error", str(e))
         try:
             self.PLB = np.subtract(self.PL, self.BG).tolist() # add PLB = PL-BG
         except Exception as e:
-            messagebox.showerror("Error2", str(e))
+            messagebox.showerror("Error", str(e))
         # write openstate list
         for i in SpectDataFloats:
             if i not in list(self.data.keys()):
@@ -99,6 +98,9 @@ class SpectrumData:
         if len(self.PL) == 0:
             self.openDstate.append(None)
         self.setOK()
+
+        if self.removecosmics == True:
+            self.PLB = deflib.remove_cosmics(self.PLB, self.cosmicpixels, self.cosmicthreshold)
 
     def setOK(self):
         if False in self.openFstate:
@@ -118,9 +120,10 @@ class SpectrumData:
 
 # create XY Map that contains the Pixels 
 class XYMap:
-    def __init__(self, fnames, cmapframe, specframe, loadbg=False, removecosmics=False, cosmicthreshold=1):
+    def __init__(self, fnames, cmapframe, specframe, loadbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
         self.remc = removecosmics
         self.cosmicthreshold = cosmicthreshold
+        self.cosmicpixels = cosmicpixels
         self.fnames = fnames
         self.readinkeys = ['WL']
         self.loadeachbg = loadbg
@@ -128,12 +131,8 @@ class XYMap:
         self.fontsize = 12                                                  # Default Plot Font Size
         self.colormap = tk.StringVar()                                      # Colormap
         self.fitkeys = matl.fitkeys
-        # load files in multithreading
-        self.WL = []
-        self.BG = []
-        #self.lock=threading.Lock()                                          # To ensure thread safety when accessing shared resources
+        # load files in hyperthreading
         self.loadfiles()
-
         self.cmapframe = cmapframe                                          # Colormap Frame
         self.specframe = specframe                                          # Spectrum Frame
         self.DataSpecMin = np.amin(self.WL)                                 # Spectrum Start
@@ -169,7 +168,7 @@ class XYMap:
         try:
             self.countthreshv = int(self.countthresh.get())
         except Exception as e:
-            messagebox.showerror("Error3", '{} Insert valid threshold of type int.'.format(str(e)))
+            messagebox.showerror("Error", '{} Insert valid threshold of type int.'.format(str(e)))
 
     # Spectral Plot Input Update
     def updatewl(self):
@@ -177,7 +176,7 @@ class XYMap:
             self.wlstart = float(self.proc_spec_min.get())
             self.wlend = float(self.proc_spec_max.get())
         except Exception as e:
-            messagebox.showerror("Error4", '{} Insert valid spectral Borders of type float.'.format(str(e)))
+            messagebox.showerror("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
         passt = False
         if self.wlstart > self.wlend:
             tk.messagebox.showerror('ERROR', 'Lowest Wavelength must be smaller than Highest Wavelength! Reconsider Input!')
@@ -215,8 +214,8 @@ class XYMap:
             # convert lambdamin and lambdamax into pixels
             self.aqpixstart = int((self.wlstart-self.DataSpecMin)/self.DataSpecdL)
             self.aqpixend = int((self.wlend-self.DataSpecMin)/self.DataSpecdL) #round
-            #print(self.WL[self.aqpixstart], self.WL[self.aqpixend], self.wlstart, self.wlend, self.DataSpecdL)
-            #print(self.aqpixstart, self.aqpixend, int(self.wlend-self.DataSpecMin), self.wlend-self.DataSpecMin, self.DataSpecdL)
+            print(self.WL[self.aqpixstart], self.WL[self.aqpixend], self.wlstart, self.wlend, self.DataSpecdL)
+            print(self.aqpixstart, self.aqpixend, int(self.wlend-self.DataSpecMin), self.wlend-self.DataSpecMin, self.DataSpecdL)
 
     # min and max wl can be inserted here for preceed window
     def buildMinMaxSpec(self, frame):
@@ -368,7 +367,7 @@ class XYMap:
         self.updatewl()
         self.getPLpixelSpecMax()
         self.readfontsize()
-        self.fittoMatrixParralel('fitmaxX')
+        self.fittoMatrix('fitmaxX')
         self.plotPixelMatrixSpectral()
     
     def updateandPlotSpecCmap(self, variable):
@@ -404,81 +403,59 @@ class XYMap:
                                 print('Maxiter must be type int. Using default 15000.')
                                 self.maxiter = 15000
                             self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
-                            self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[y][x].fitdata[:-1])
+                            #self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[y][x].fitdata[:-1])
+                            # get maximum using mathlib.Newtonmax
+                            self.SpecDataMatrix[y][x].fitmaxX = matl.Newtonmax(self.fitkeys[self.selectwindowboxVari][0], self.SpecDataMatrix[y][x].fitdata[0], tol=1e-6, maxiter=1000)
+                            self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[y][x].fitmaxX, *self.SpecDataMatrix[y][x].fitdata[:-1])
                             self.PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
+                        
+                        plt.scatter(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY, color='red')
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
+                        
                     except Exception as e:
                         print('Fit filed. {}'.format(str(e)))
         else:
-            print(self.SpecDataMatrix[y][x])  
-
-    def fittoMatrixParralel(self, variable='fitmaxX'):
+            print(self.SpecDataMatrix[y][x])        
+    
+    def fittoMatrix(self, variable='fitmaxX'):
+        # fill matrix with data of the selected enry:
         self.updatecountthresh()
-        # Determine the number of workers based on your system and task characteristics
-        # For IO-bound tasks, this can be higher than the number of processors
-        self.selectwindowboxVari = self.selectwindowbox.get()
-        self.selectspecboxVari = self.selectspecbox.get()
-        try:
-            self.maxiter = int(self.fitmaxiter.get())
-        except:
-            print('Maxiter must be int. Using default 15000.')
-            self.maxiter = 15000
-        num_workers = 8
-        with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            # Create a list of tasks for each i, j pair
-            tasks = [executor.submit(self.fittoMatrix, i, j, variable) 
-                     for i in range(len(self.SpecDataMatrix)) 
-                     for j in range(len(self.SpecDataMatrix[i]))]
-            # Wait for all tasks to complete
-            for task in as_completed(tasks):
-                pass
-        print('finished')
-        '''
-        threads = []
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
-                # Create a new thread for each fittoMatrix call
-                # If collecting results, pass a shared list and a lock to each thread
-                thread = threading.Thread(target=self.fittoMatrix, args=(i, j, variable))
-                threads.append(thread)
-                thread.start()
-
-        # Wait for all threads to complete
-        for thread in threads:
-            thread.join()
-        '''
-
-    def fittoMatrix(self, i, j, variable='fitmaxX'):
-        if type(self.SpecDataMatrix[i][j]) == SpectrumData:
-            if self.SpecDataMatrix[i][j].dataokay == True:
-                if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
-                    if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                        self.PixMatrix[i][j] = np.nan
-                elif self.speckeys[self.selectspecboxVari] == 'BG': #Background
-                    if np.sum(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                        self.PixMatrix[i][j] = np.nan
-                    else:
-                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
-                elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
-                    if np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                        self.PixMatrix[i][j] = np.nan
-                    else:
-                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
-                elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
-                    if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                        self.PixMatrix[i][j] = np.nan
-                    else:
-                        self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter)
-                        self.SpecDataMatrix[i][j].fitmaxY, self.SpecDataMatrix[i][j].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
-                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                if type(self.SpecDataMatrix[i][j]) == SpectrumData:
+                    if self.SpecDataMatrix[i][j].dataokay == True:
+                        self.selectwindowboxVari = self.selectwindowbox.get()
+                        self.selectspecboxVari = self.selectspecbox.get()
+                        try:
+                            if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
+                                if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
+                                    self.PixMatrix[i][j] = np.nan
+                            elif self.speckeys[self.selectspecboxVari] == 'BG': #Background
+                                if np.sum(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]) < self.countthreshv:
+                                    self.PixMatrix[i][j] = np.nan
+                                else:
+                                    self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
+                            elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
+                                if np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
+                                    self.PixMatrix[i][j] = np.nan
+                                else:
+                                    self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
+                            elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
+                                if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
+                                    self.PixMatrix[i][j] = np.nan
+                                else:
+                                    try:
+                                        self.maxiter = int(self.fitmaxiter.get())
+                                    except:
+                                        print('Maxiter must be int. Using default 15000.')
+                                        self.maxiter = 15000
+                                    self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter)
+                                    self.SpecDataMatrix[i][j].fitmaxY, self.SpecDataMatrix[i][j].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](*self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
+                                    self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                        except Exception as e:
+                            print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+                            #messagebox.showerror("Error", "Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
     
-    def update_spec_data_and_pix_matrix(self, i, j, variable):
-        self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](
-            self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter)
-        self.SpecDataMatrix[i][j].fitmaxY, self.SpecDataMatrix[i][j].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](
-            *self.SpecDataMatrix[i][j].fitdata[:-1])
-        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
-
     def updatePixelMatrix(self, variable):
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
@@ -493,7 +470,7 @@ class XYMap:
         try:
             self.fontsize =abs(float(self.CMFont.get()))
         except Exception as e:
-            messagebox.showerror("Error5", '{} Font Size must be Number.'.format(str(e)))
+            messagebox.showerror("Error", '{} Font Size must be Number.'.format(str(e)))
 
     def validpixelinput(self):
         x = self.selectPixX.get()
@@ -504,17 +481,17 @@ class XYMap:
             if x < len(self.SpecDataMatrix[0]):
                 valid[0] = True
             else:
-                messagebox.showerror("Error6", "No Pixel on X-Position.")
+                messagebox.showerror("Error", "No Pixel on X-Position.")
         except Exception as e:
-            messagebox.showerror("Error7", '{} Insert valid X-Position.'.format(str(e)))
+            messagebox.showerror("Error", '{} Insert valid X-Position.'.format(str(e)))
         try:
             y = int(y)
             if y < len(self.SpecDataMatrix):
                 valid[1] = True
             else:
-                messagebox.showerror("Error8", "No Pixel on Y-Position.")
+                messagebox.showerror("Error", "No Pixel on Y-Position.")
         except Exception as e:
-            messagebox.showerror("Error9", '{} Insert valid Y-Position.'.format(str(e)))
+            messagebox.showerror("Error", '{} Insert valid Y-Position.'.format(str(e)))
         return(x, y, valid)
 
     def PlotPixelSpectrum(self):
@@ -709,6 +686,8 @@ class XYMap:
         gotWL = False
         gotBG = False
         i = 0
+        self.WL = []
+        self.BG = []
         while gotWL == False or gotBG == False:
             try:
                 with open(self.fnames[i], 'r') as file:
@@ -745,77 +724,19 @@ class XYMap:
             if len(self.BG) > 1:
                 gotBG = True
         # remove cosmics
-        if self.remc == True:
-            self.WL = deflib.remove_cosmics(self.WL, self.cosmicthreshold)
-
-        self.process_files_multithreaded4()
-
-        ''' old SpectrumData init with no multithreading
+        #if self.remc == True:
+        #    self.WL = deflib.remove_cosmics(self.WL, self.cosmicthreshold)
+              
         for i in self.fnames:
-            specobj = SpectrumData(i, self.WL, self.BG)
+            specobj = SpectrumData(i, self.WL, self.BG, self.cosmicthreshold, self.cosmicpixels, )
             if specobj.dataokay == True:
                 self.specs.append(specobj)
-        '''
-
-    def process_file(self, fname):
-        specobj = SpectrumData(fname, self.WL, self.BG)
-        if specobj.dataokay:
-            return specobj
-            #self.specs.append(specobj)
-        return None
-    
-    def process_files_multithreaded1(self):
-        with ThreadPoolExecutor() as executor:
-            results = executor.map(self.process_file, self.fnames)
-            for result in results:
-                if result is not None:
-                    self.specs.append(result)
-    
-    def process_files_multithreaded2(self):
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-
-            results = executor.map(self.process_file, self.fnames)
-            for result in results:
-                if result is not None:
-                    self.specs.append(result)    
-
-    def process_files_multithreaded3(self):
-        #lock = threading.Lock()
-        threads = []
-        self.specs = []
-        for fname in self.fnames:
-            thread = threading.Thread(target=self.process_file, args=(fname, ))
-            threads.append(thread)
-            thread.start()
-        for thread in threads:
-            thread.join()
-        # waite until all threads are finished
-        while threading.active_count() > 1:
-            pass
-        print(len(self.specs))
-        print('loaded data')
-    
-    def process_files_multithreaded4(self):
-
-        results = []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_file = {executor.submit(self.process_file, fname): fname for fname in self.fnames}
-            for future in concurrent.futures.as_completed(future_to_file):
-                results.append(future.result())
-        self.specs = results
-
-    def process_files_multithreaded5(self):
-        results = []
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            future_to_file = {executor.submit(self.process_file, fname): fname for fname in self.fnames}
-            for future in concurrent.futures.as_completed(future_to_file):
-                results.append(future.result())
 
     def autogenmatrix(self):
         self.mxcoords = []
         self.mycoords = []
         if len(self.specs) == 0:
-            messagebox.showerror("Error10", 'No valid Data found. Check Data Files.')
+            messagebox.showerror("Error", 'No valid Data found. Check Data Files.')
         elif len(self.specs) == 1:
             self.mxcoords.append(self.specs[0].data['x-position'])
             self.mycoords.append(self.specs[0].data['y-position'])
@@ -839,12 +760,44 @@ class XYMap:
 
     # set the spectra into the array
     def SpecdataintoMatrix(self):
+        pr = 0
         for i in self.specs:
             index = [int((i.data['x-position']-self.mxcoords[0])//self.gdx), int((i.data['y-position']-self.mycoords[0])//self.gdy)]
             if type(self.SpecDataMatrix[index[1]][index[0]]) == SpectrumData:
-                print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(index[0], index[1]))
+                print(i.data['x-position']-self.mxcoords[0], i.data['x-position'], self.mycoords[0])
+                #print('index occupied at', index, 'from', self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0], self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mxcoords[1])
+                #print('raw positions are', i.data['x-position'], i.data['y-position'], self.mxcoords[0], self.mycoords[0], 'rounded', round(self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0]), round(self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mxcoords[1], 12))
+                print('index', index, 'occupied by', round(self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0], 10)//self.gdx, round(self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mycoords[0], 10)//self.gdx)
             else:
-                self.SpecDataMatrix[index[1]][index[0]] = i                
+                self.SpecDataMatrix[index[1]][index[0]] = i  
+
+            '''
+            index = [Decimal(int((i.data['x-position']-self.mxcoords[0])//self.gdx)), Decimal(int((i.data['y-position']-self.mycoords[0])//self.gdy))]
+            print('Index: {}'.format(index))
+            sys.exit()
+            if type(self.SpecDataMatrix[index[1]][index[0]]) == SpectrumData:
+                if pr == True:
+                    print('gdx, gdy: {}, {}'.format(self.gdx, self.gdy))
+                    print('index: {}, {}'.format(index[0], index[1]))
+                    print(index[0]*self.gdx, 1, index[1]*self.gdy)
+                    print(float(index[0])*self.gdx, 1, float(index[1])*self.gdy)
+                    print(round(index[0]*self.gdx, 5), round(index[1]*self.gdy, 5))
+                    gridpos = [round(index[0]*self.gdx, 5), round(index[1]*self.gdy, 5)]
+                    print(gridpos)
+                    print('Matrix already filled at coord {} {}'.format(gridpos[0], gridpos[1]))
+                    # print axis start
+                    print('mx, my =', self.mxcoords[0], self.mycoords[0])
+                    print(self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0], self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mycoords[0])
+                    print(self.SpecDataMatrix[index[1]][index[0]].data['x-position'], self.mxcoords[0], self.SpecDataMatrix[index[1]][index[0]].data['y-position'], self.mycoords[0])
+                    print(type(self.SpecDataMatrix[index[1]][index[0]].data['x-position']), type(self.mxcoords[0]), type(self.SpecDataMatrix[index[1]][index[0]].data['y-position']), type(self.mycoords[0]))
+                    # print coordinates of SpecDataMatrix at index
+                    print(self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0], self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mycoords[0])
+                    pr = False
+                #sys.exit()
+                #print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(index[0], index[1]))
+            else:
+                self.SpecDataMatrix[index[1]][index[0]] = i   
+            '''            
         
     def genmatgrid(self, xar, yar): # returns that must be filled with the SpectrumData Objects
         self.matstart = [np.amin(self.mxcoords), np.amin(self.mycoords)]
@@ -866,10 +819,14 @@ class XYMap:
         PixelMatrix = []
         SpectralMatrix = []
         # size limit for gdx and gdy
-        if self.gdy < 0.01:
-            self.gdy = 0.01
-        if self.gdx < 0.01:
-            self.gdx = 0.01
+        #if self.gdy < 0.01:
+        #    self.gdy = 0.01
+        #if self.gdx < 0.01:
+        #    self.gdx = 0.01
+        # round gdx and gdy to 5 decimals
+        self.gdx = round(self.gdx, 5)
+        self.gdy = round(self.gdy, 5)
+        print('Gridsize: {}, {}'.format(self.gdx, self.gdy))
         for i in range(int((self.matend[0]-self.matstart[0]+self.gdx)/self.gdx)):
             matpixax.append(i*self.gdx+self.matstart[0])
         for i in range(int((self.matend[1]-self.matstart[1]+self.gdy)/self.gdy)):
@@ -881,4 +838,6 @@ class XYMap:
                 pixmat.append(0)
             SpectralMatrix.append(fillmat)
             PixelMatrix.append(pixmat)
+        print('Axis X', matpixax)
+        print('Axis Y', matpiyax)
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)

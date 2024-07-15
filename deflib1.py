@@ -7,40 +7,87 @@ from tkinter import ttk
 
 Notebooks = ['Load Data', 'Process Data', 'Export Data']
 
+
 def remove_cosmics(data, max_width=3, threshold=5):
-    """
-    Remove cosmics (outliers) from a 1D numpy array if they span up to a given width.
-    Parameters:
-    -----------
-    data : numpy array
-        Input data array from which cosmics are to be removed.
-    max_width : int, optional
-        Maximum width of cosmic rays (in pixels). Default is 3.
-    threshold : float, optional
-        Threshold value in units of standard deviations. Default is 5.
-    Returns:
-    --------
-    cleaned_data : numpy array
-        Cleaned data array with cosmics removed.
-    """
+    # Calculate the difference array
+    c = max_width
+    abl = np.diff(data[c:-c])
+    # Find indices where elements of abl are greater than b
+    indicesp =  np.where(abl > threshold)[0]
+    indicesm = np.where(abl < -threshold)[0]
+    print(indicesp, indicesm)
+    indices = np.concatenate((indicesp, indicesm))
+    print(indices)
+    indices = filter_peaks_start_end(remove_pairs_within_distance(indices, c), len(abl), c)
+    print('filterd', indices)
+    cosmiccl = clasifycosmics(abl, indices, max_width, threshold)
+    print('clasified', cosmiccl)
+    # reconvert into the original indices
+    # Perform element-wise addition
+    cosmiccl = [np.add(arr, c) for arr in cosmiccl]
+    # single_cosmics (cosmiccl[0]):
+    # interpolate between data[-1] and data [1]
+    data = interpolate_cosmics(data, cosmiccl[0], 0, 2)
+    # threashold_cosmics (cosmiccl[1]):
+    # interpolate between data[-c] and data [c]
+    data = interpolate_cosmics(data, cosmiccl[1], -c, c)
+    return data
 
-    # Apply median filtering to smooth out extreme values
-    filtered_data = median_filter(data, size=max_width)
+# c = max_width, indices = indices, abl = abl, thresh = threshold
+# clasisfy the cosmic rays into single peaks [0], threashold peaks [1] and big peaks [2]
+def clasifycosmics(abl, indices, max_width, thresh):
+    singcs = []
+    threcs = []
+    bigcs = []
+    print('max_width', max_width, 'thresh', thresh)
+    for i in indices:
+        if abs(abl[i]+abl[i+1]) < thresh:
+            print('single', abl[i], abl[i+1])
+            singcs.append(i)
+        elif abs(np.sum(abl[i-max_width:i+max_width])) < thresh:
+            print('threashold', abs(np.sum(abl[i-max_width:i+max_width])))
+            threcs.append(i)
+        else:
+            print('big', abs(np.sum(abl[i-max_width:i+max_width])))
+            bigcs.append(i)
+    return [singcs, threcs, bigcs]
 
-    # Calculate median and standard deviation of filtered data
-    median = np.median(filtered_data)
-    std = np.std(filtered_data)
+def interpolate_cosmics(data, cosmic_indices, start_index, stop_index):
+    print('cosmic_indices', cosmic_indices, 'start_index', start_index, 'stop_index', stop_index)
+    # Interpolate the cosmic rays
+    for i in cosmic_indices:
+        # Interpolate the cosmic ray
+        data[i+start_index:i+stop_index] = np.linspace(data[i+start_index], data[i+stop_index], stop_index - start_index)
+    return data
+            
+# peaks = cosmic indices, lenabl = len(abl), c = max_width
+def filter_peaks_start_end(peaks, lenabl, c):
+    # Calculate the length of abl
+    # Filter peaks based on the conditions
+    filtered_peaks = [peak for peak in peaks if (peak >= c and peak <= lenabl - c)]
+    return filtered_peaks
 
-    # Initialize cleaned data as a copy of original data
-    cleaned_data = data.copy()
-
-    # Loop over the data to identify and remove cosmics
-    for i in range(len(data)):
-        # Check if the absolute deviation is greater than threshold * std
-        if np.abs(data[i] - filtered_data[i]) > threshold * std:
-            # Replace the cosmic ray with the median value
-            cleaned_data[i] = median
-    return cleaned_data
+# a = derivative, c = max width of the peak
+def remove_pairs_within_distance(a, c):
+    # Convert input list to a NumPy array
+    n = len(a)
+    # Sort the array to ensure we only check adjacent pairs
+    sorted_indices = np.argsort(a)
+    a_sorted = a[sorted_indices]
+    # List to store indices to remove
+    remove_indices = set()
+    # Iterate through the sorted array and find pairs
+    i = 0
+    while i < n - 1:
+        if abs(a_sorted[i + 1] - a_sorted[i]) <= c:
+            # Add the index of the second element of the pair to remove list
+            remove_indices.add(sorted_indices[i + 1])
+            # Skip the next element as it forms a pair with the current element
+            i += 1
+        i += 1
+    # Remove the elements
+    a = np.delete(a, list(remove_indices))
+    return a.tolist()
 
 # get grid dx and dy
 def most_freq_element(arr):

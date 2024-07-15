@@ -13,6 +13,7 @@ from scipy.optimize import curve_fit
 from scipy.special import wofz
 import mathlib1 as matl # type: ignore
 import deflib1 as deflib # type: ignore
+from decimal import Decimal, getcontext
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -28,7 +29,10 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'magnification']
 
 class SpectrumData:
-    def __init__(self, filename, WL, BG):
+    def __init__(self, filename, WL, BG, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
+        self.removecosmics = removecosmics
+        self.cosmicthreshold = cosmicthreshold
+        self.cosmicpixels = cosmicpixels
         self.WL = WL
         self.BG = BG
         self.filename = filename
@@ -95,6 +99,9 @@ class SpectrumData:
             self.openDstate.append(None)
         self.setOK()
 
+        if self.removecosmics == True:
+            self.PLB = deflib.remove_cosmics(self.PLB, self.cosmicpixels, self.cosmicthreshold)
+
     def setOK(self):
         if False in self.openFstate:
             pass
@@ -113,9 +120,10 @@ class SpectrumData:
 
 # create XY Map that contains the Pixels 
 class XYMap:
-    def __init__(self, fnames, cmapframe, specframe, loadbg=False, removecosmics=False, cosmicthreshold=1):
+    def __init__(self, fnames, cmapframe, specframe, loadbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
         self.remc = removecosmics
         self.cosmicthreshold = cosmicthreshold
+        self.cosmicpixels = cosmicpixels
         self.fnames = fnames
         self.readinkeys = ['WL']
         self.loadeachbg = loadbg
@@ -716,11 +724,11 @@ class XYMap:
             if len(self.BG) > 1:
                 gotBG = True
         # remove cosmics
-        if self.remc == True:
-            self.WL = deflib.remove_cosmics(self.WL, self.cosmicthreshold)
+        #if self.remc == True:
+        #    self.WL = deflib.remove_cosmics(self.WL, self.cosmicthreshold)
               
         for i in self.fnames:
-            specobj = SpectrumData(i, self.WL, self.BG)
+            specobj = SpectrumData(i, self.WL, self.BG, self.cosmicthreshold, self.cosmicpixels, )
             if specobj.dataokay == True:
                 self.specs.append(specobj)
 
@@ -752,10 +760,29 @@ class XYMap:
 
     # set the spectra into the array
     def SpecdataintoMatrix(self):
+        pr = True
         for i in self.specs:
-            index = [int((i.data['x-position']-self.mxcoords[0])//self.gdx), int((i.data['y-position']-self.mycoords[0])//self.gdy)]
+            index = [Decimal(int((i.data['x-position']-self.mxcoords[0])//self.gdx)), Decimal(int((i.data['y-position']-self.mycoords[0])//self.gdy))]
             if type(self.SpecDataMatrix[index[1]][index[0]]) == SpectrumData:
-                print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(index[0], index[1]))
+                if pr == True:
+                    print('gdx, gdy: {}, {}'.format(self.gdx, self.gdy))
+                    print('index: {}, {}'.format(index[0], index[1]))
+                    print(index[0]*self.gdx, 1, index[1]*self.gdy)
+                    print(float(index[0])*self.gdx, 1, float(index[1])*self.gdy)
+                    print(round(index[0]*self.gdx, 5), round(index[1]*self.gdy, 5))
+                    gridpos = [round(index[0]*self.gdx, 5), round(index[1]*self.gdy, 5)]
+                    print(gridpos)
+                    print('Matrix already filled at coord {} {}'.format(gridpos[0], gridpos[1]))
+                    # print axis start
+                    print('mx, my =', self.mxcoords[0], self.mycoords[0])
+                    print(self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0], self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mycoords[0])
+                    print(self.SpecDataMatrix[index[1]][index[0]].data['x-position'], self.mxcoords[0], self.SpecDataMatrix[index[1]][index[0]].data['y-position'], self.mycoords[0])
+                    print(type(self.SpecDataMatrix[index[1]][index[0]].data['x-position']), type(self.mxcoords[0]), type(self.SpecDataMatrix[index[1]][index[0]].data['y-position']), type(self.mycoords[0]))
+                    # print coordinates of SpecDataMatrix at index
+                    print(self.SpecDataMatrix[index[1]][index[0]].data['x-position']-self.mxcoords[0], self.SpecDataMatrix[index[1]][index[0]].data['y-position']-self.mycoords[0])
+                    pr = False
+                #sys.exit()
+                #print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(index[0], index[1]))
             else:
                 self.SpecDataMatrix[index[1]][index[0]] = i                
         
@@ -779,10 +806,14 @@ class XYMap:
         PixelMatrix = []
         SpectralMatrix = []
         # size limit for gdx and gdy
-        if self.gdy < 0.01:
-            self.gdy = 0.01
-        if self.gdx < 0.01:
-            self.gdx = 0.01
+        #if self.gdy < 0.01:
+        #    self.gdy = 0.01
+        #if self.gdx < 0.01:
+        #    self.gdx = 0.01
+        # round gdx and gdy to 5 decimals
+        self.gdx = round(self.gdx, 5)
+        self.gdy = round(self.gdy, 5)
+        print('Gridsize: {}, {}'.format(self.gdx, self.gdy))
         for i in range(int((self.matend[0]-self.matstart[0]+self.gdx)/self.gdx)):
             matpixax.append(i*self.gdx+self.matstart[0])
         for i in range(int((self.matend[1]-self.matstart[1]+self.gdy)/self.gdy)):
@@ -794,4 +825,6 @@ class XYMap:
                 pixmat.append(0)
             SpectralMatrix.append(fillmat)
             PixelMatrix.append(pixmat)
+        print('Axis X', matpixax)
+        print('Axis Y', matpiyax)
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
