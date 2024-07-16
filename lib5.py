@@ -790,11 +790,6 @@ class XYMap:
         matpiyax = []
         PixelMatrix = []
         SpectralMatrix = []
-        # size limit for gdx and gdy
-        if self.gdy < 0.01:
-            self.gdy = 0.01
-        if self.gdx < 0.01:
-            self.gdx = 0.01
         for i in range(int((self.matend[0]-self.matstart[0]+self.gdx)/self.gdx)):
             matpixax.append(i*self.gdx+self.matstart[0])
         for i in range(int((self.matend[1]-self.matstart[1]+self.gdy)/self.gdy)):
