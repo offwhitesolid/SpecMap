@@ -28,12 +28,17 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'magnification']
 
 class SpectrumData:
-    def __init__(self, filename, WL, BG, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
+    def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
+        self.loadeachbg = loadeachbg
+        self.linearbg = linearbg
         self.removecosmics = removecosmics
         self.cosmicthreshold = cosmicthreshold
         self.cosmicpixels = cosmicpixels
         self.WL = WL
-        self.BG = BG
+        if self.loadeachbg == True:
+            self.BG = []
+        else:
+            self.BG = BG
         self.filename = filename
         self.readinkeys = ['BG', 'PL'] # WL is defined in XYMap
         self.openFstate = [] # open floats state from metadata
@@ -78,10 +83,17 @@ class SpectrumData:
                         startreaddata = True
                 elif startreaddata == True:
                     try:
-                        #self.WL.append(float(parts[0]))  WL is only read one by XYMap since each SpectrumData has the same WL-axis
+                        if self.loadeachbg == True:
+                            self.BG.append(int(parts[1]))
+                        #self.WL.append(float(parts[0]))  WL is only read once by XYMap since each SpectrumData has the same WL-axis
                         self.PL.append(int(parts[2]))
                     except Exception as e:
                         messagebox.showerror("Error", str(e))
+        if self.loadeachbg == True and self.linearbg == True:
+            av = np.mean(self.BG)
+            for i in range(len(self.BG)):
+                self.BG[i] = av
+
         try:
             self.PLB = np.subtract(self.PL, self.BG).tolist() # add PLB = PL-BG
         except Exception as e:
@@ -119,8 +131,9 @@ class SpectrumData:
 
 # create XY Map that contains the Pixels 
 class XYMap:
-    def __init__(self, fnames, cmapframe, specframe, loadbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
+    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
         self.remc = removecosmics
+        self.linearbg = linearbg
         self.cosmicthreshold = cosmicthreshold
         self.cosmicpixels = cosmicpixels
         self.fnames = fnames
@@ -328,11 +341,11 @@ class XYMap:
             frame.columnconfigure(col, weight=1)
         # Add row axis
         for row in range(n):
-            label = tk.Label(frame, text=str(row*self.gdx), relief=tk.RAISED)
+            label = tk.Label(frame, text=str(round(row*self.gdx, 10)), relief=tk.RAISED)
             label.grid(row=row+1, column=0, sticky=tk.NSEW)
         # Add column axis
         for col in range(m):
-            label = tk.Label(frame, text=str(col*self.gdy), relief=tk.RAISED)
+            label = tk.Label(frame, text=str(round(col*self.gdy, 10)), relief=tk.RAISED)
             label.grid(row=0, column=col+1, sticky=tk.NSEW)
         self.SpecButtons = buttons
         self.buttonframe_updateColor()
@@ -560,7 +573,7 @@ class XYMap:
     def plotPixelMatrixIntensity(self, cmapticks=6):
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
-        cax = ax.imshow(self.PixMatrix, cmap=self.colormap.get(), aspect='auto') # aspect='auto' for cubic image
+        cax = ax.imshow(self.PixMatrix, cmap=self.colormap.get()) # aspect='auto' for cubic image
         # Add a colorbar to the image
         cbar = fig.colorbar(cax, ax=ax)
         # Set the colorbar label
@@ -692,7 +705,7 @@ class XYMap:
                 with open(self.fnames[i], 'r') as file:
                     lines = file.readlines()
             except Exception as e:
-                messagebox.showerror("Error", 'Error While trying to read WL axis. No WL found in {} Files. {}'.format(i, str(e)))
+                print('Error While trying to read WL axis. No WL found in {} Files. {}'.format(i, str(e)))
             # Process lines to store variables
             startreaddata = False 
             for line in lines:
@@ -712,22 +725,26 @@ class XYMap:
                                 self.WL.append(float(parts[0]))
                             except Exception as e:
                                 print('Error While trying to read WL axis from {}. {}'.format(self.fnames[i], str(e)))
-                        if gotBG == False or self.loadeachbg == True:
+                        if gotBG == False or self.loadeachbg == False:
                             try:
                                 self.BG.append(float(parts[1]))
                             except Exception as e:
                                 print('Error While trying to read WL axis from {}. {}'.format(self.fnames[i], str(e)))
+
             i += 1
             if len(self.WL) > 1:
                 gotWL = True
             if len(self.BG) > 1:
                 gotBG = True
-        # remove cosmics
-        #if self.remc == True:
-        #    self.WL = deflib.remove_cosmics(self.WL, self.cosmicthreshold)
-              
+        
+        if self.loadeachbg == False:
+            if self.linearbg == True:
+                av = np.mean(self.BG)
+                for i in range(len(self.BG)):
+                    self.BG[i] = av
+
         for i in self.fnames:
-            specobj = SpectrumData(i, self.WL, self.BG, self.cosmicthreshold, self.cosmicpixels, )
+            specobj = SpectrumData(i, self.WL, self.BG, self.loadeachbg, self.linearbg, self.cosmicthreshold, self.cosmicpixels)
             if specobj.dataokay == True:
                 self.specs.append(specobj)
 

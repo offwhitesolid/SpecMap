@@ -163,7 +163,7 @@ class FileProcessorApp:
                 self.cosmicwidth = 3
                 self.cosmicwidthentry.insert(0, '3')
 
-            self.Nanomap = lib.XYMap(files_processed, self.cmapframe, self.specframe, self.multiple_BG.get(), self.removecosmicsBool.get(), self.cosmicthreshold, self.cosmicwidth)
+            self.Nanomap = lib.XYMap(files_processed, self.cmapframe, self.specframe, self.multiple_BG.get(), self.linearBG.get(), self.removecosmicsBool.get(), self.cosmicthreshold, self.cosmicwidth)
             print("Success", f"Found and loaded {len(files_processed)} files.")
         else:
             messagebox.showinfo("No Files", "No files found with the specified name.")
