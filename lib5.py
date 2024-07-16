@@ -11,7 +11,7 @@ NavigationToolbar2Tk)
 import matplotlib.patches as mpatches
 from scipy.optimize import curve_fit
 from scipy.special import wofz
-import mathlib1 as matl # type: ignore
+import mathlib2 as matl # type: ignore
 import deflib1 as deflib # type: ignore
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
@@ -161,10 +161,12 @@ class XYMap:
         self.aqpixend = -1                                                  # evaluate window end dL
         self.SpecButtons = self.build_button_frame(self.specframe)         # build Spec GUI
         self.buildMinMaxSpec(self.cmapframe)                                # build CMAP grid GUI
+        self.build_PixMatrix_frame(self.cmapframe)                          # build Pixel Matrix GUI
         self.buildselectboxes(self.cmapframe, list(self.speckeys.keys()))
         #self.getPLpixelIntervalMax()                                        # build PL Matrix
         #self.plotPixelMatrix()                                              # Plot PL Matrix 
         self.updatewl()
+        
 
     def buildselectboxes(self, frame, values):
         tk.Label(frame, text="Select Data Set".format(self.DataSpecMax)).grid(row=0, column=1)
@@ -269,6 +271,24 @@ class XYMap:
         self.countthresh = tk.Entry(frame)
         self.countthresh.grid(row=5, column=0)
         self.countthresh.insert(0, 0)
+
+    def build_PixMatrix_frame(self, parframe):
+        frame = tk.Frame(parframe, border=5, relief="sunken")
+        frame.grid(row=0, column=4)
+        tk.Label(frame, text="Process Pixel Matrix".format(self.DataSpecMin)).grid(row=0, column=0)
+
+        b1= tk.Button(frame, text="fit 2D Gaussian to Matrix", command= lambda: self.fit2dgausstopixmatrix())
+        b1.grid(row=1, column=0)
+
+    def fit2dgausstopixmatrix(self):
+        try: 
+            self.maxiter = int(self.fitmaxiter.get())
+        except:
+            print('Maxiter must be type int. Using default 15000.')
+            self.maxiter = 15000
+        fitdata, pcov, fwhmx, fwhmy = matl.fitgaussiand2dtomatrix(self.PixMatrix, maxfev=self.maxiter)
+        print(fitdata, pcov, fwhmx, fwhmy)
+
 
     # Matrix with Pixels to obtain spectrum
     def build_button_frame(self, parframe, width=600, height=600):
