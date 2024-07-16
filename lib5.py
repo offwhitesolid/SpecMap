@@ -286,8 +286,13 @@ class XYMap:
         except:
             print('Maxiter must be type int. Using default 15000.')
             self.maxiter = 15000
-        fitdata, pcov, fwhmx, fwhmy = matl.fitgaussiand2dtomatrix(self.PixMatrix, maxfev=self.maxiter)
-        print(fitdata, pcov, fwhmx, fwhmy)
+        try:
+            matl.fitgaussiand2dtomatrix(self.PixMatrix, True, self.gdx, self.gdy, maxfev=self.maxiter)
+            #fitdata, pcov, fwhmx, fwhmy = matl.fitgaussiand2dtomatrix(self.PixMatrix, maxfev=self.maxiter)
+            #print(fitdata, pcov, fwhmx, fwhmy)
+        except:
+            print('2D Gaussian Fit failed.')
+        
 
 
     # Matrix with Pixels to obtain spectrum

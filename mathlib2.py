@@ -3,6 +3,8 @@ from scipy.optimize import curve_fit
 from scipy.special import wofz
 from scipy.optimize import fminbound
 
+import matplotlib.pyplot as plt
+
 # window functions
 
 def double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2):
@@ -164,6 +166,44 @@ def fitgaussiand2dtomatrix(inpdata, maxfev=10000):
     fwhmx = 2 * np.sqrt(2 * np.log(2)) * fitdata[3]
     fwhmy = 2 * np.sqrt(2 * np.log(2)) * fitdata[4]
     return fitdata, pcov, fwhmx, fwhmy
+
+def twoD_Gaussian(coords, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
+    x, y = coords
+    x, y = x - xo, y - yo
+    a = (np.cos(theta)**2) / (2 * sigma_x**2) + (np.sin(theta)**2) / (2 * sigma_y**2)
+    b = -(np.sin(2 * theta)) / (4 * sigma_x**2) + (np.sin(2 * theta)) / (4 * sigma_y**2)
+    c = (np.sin(theta)**2) / (2 * sigma_x**2) + (np.cos(theta)**2) / (2 * sigma_y**2)
+    g = amplitude * np.exp(-(a * x**2 + 2 * b * x * y + c * y**2)) + offset
+    return g.ravel()
+
+def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, maxfev=10000):
+    data = np.array(inpdata)
+    x = np.arange(data.shape[1])
+    y = np.arange(data.shape[0])
+    x, y = np.meshgrid(x, y)
+    initialguess = [np.max(data), np.argmax(data) % data.shape[1], np.argmax(data) // data.shape[1], 1, 1, 0, 0]
+    popt, pcov = curve_fit(twoD_Gaussian, (x, y), data.ravel(), p0=initialguess, maxfev=maxfev)
+    #fwhmx = 2 * np.sqrt(2 * np.log(2)) * fitdata[3]
+    #fwhmy = 2 * np.sqrt(2 * np.log(2)) * fitdata[4]
+    data_fited = twoD_Gaussian((x, y), *popt).reshape(data.shape)
+    fwhmx = np.sqrt(2 * np.log(2)) * popt[3] * gdx * 2 * 2
+    fwhmy = np.sqrt(2 * np.log(2)) * popt[4] * gdy * 2 * 2
+    print('FWHM X = {}, FWHM Y = {}'.format(fwhmx, fwhmy))
+    # print when the fited function falls below 1/e of the maximum
+    beamx = np.where(data_fited > np.max(data_fited) / np.e)[1]*gdx
+    beamy = np.where(data_fited > np.max(data_fited) / np.e)[0]*gdx
+    print('Beam X = {} mum, Beam Y = {} mum'.format(np.amax(beamx)-np.amin(beamx), np.amax(beamy)-np.amin(beamy)))
+
+    # plot data_fited
+    if plotfit == True:
+        plt.imshow(data_fited)
+        plt.colorbar()
+        plt.show()
+
+
+
+    #return fitdata, pcov
+
 
 def Newtonmax(f, x0, tol=1e-6, maxiter=10000):
     # Initialize the iteration counter
