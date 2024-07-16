@@ -145,23 +145,27 @@ def getmaxvoigt(amp, cen, wid, gamma):
 def getmaxlinear(a, b):
     pass
 
-def gaussian2d(x, y, amp, cenx, ceny, sigmax, sigmay, theta):
+def gaussian2d(coords, *params):
+    x, y = coords
+    amp, cenx, ceny, sigmax, sigmay, theta = params
     a = (np.cos(theta)**2) / (2 * sigmax**2) + (np.sin(theta)**2) / (2 * sigmay**2)
     b = -(np.sin(2 * theta)) / (4 * sigmax**2) + (np.sin(2 * theta)) / (4 * sigmay**2)
     c = (np.sin(theta)**2) / (2 * sigmax**2) + (np.cos(theta)**2) / (2 * sigmay**2)
     return amp * np.exp(-(a * (x - cenx)**2 + 2 * b * (x - cenx) * (y - ceny) + c * (y - ceny)**2))
 
-def fitgaussiand2dtomatrix(data):
+def fitgaussiand2dtomatrix(inpdata, maxfev=10000):
+    data = np.array(inpdata)
     x = np.arange(data.shape[1])
     y = np.arange(data.shape[0])
     x, y = np.meshgrid(x, y)
+    # Include an initial guess for theta as well, e.g., 0
     initialguess = [np.max(data), np.argmax(data) % data.shape[1], np.argmax(data) // data.shape[1], 1, 1, 0]
-    fitdata, pcov = curve_fit(gaussian2d, (x, y), data.ravel(), p0=initialguess)
+    fitdata, pcov = curve_fit(gaussian2d, (x, y), data.ravel(), p0=initialguess, maxfev=maxfev)
     fwhmx = 2 * np.sqrt(2 * np.log(2)) * fitdata[3]
     fwhmy = 2 * np.sqrt(2 * np.log(2)) * fitdata[4]
     return fitdata, pcov, fwhmx, fwhmy
 
-def Newtonmax(f, x0, tol=1e-6, maxiter=1000):
+def Newtonmax(f, x0, tol=1e-6, maxiter=10000):
     # Initialize the iteration counter
     iter = 0
     # Initialize the error
