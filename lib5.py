@@ -287,7 +287,7 @@ class XYMap:
             print('Maxiter must be type int. Using default 15000.')
             self.maxiter = 15000
         try:
-            matl.fitgaussiand2dtomatrix(self.PixMatrix, True, self.gdx, self.gdy, maxfev=self.maxiter)
+            matl.fitgaussiand2dtomatrix(self.PixMatrix, True, self.gdx, self.gdy, self.colormap.get(), maxfev=self.maxiter)
             #fitdata, pcov, fwhmx, fwhmy = matl.fitgaussiand2dtomatrix(self.PixMatrix, maxfev=self.maxiter)
             #print(fitdata, pcov, fwhmx, fwhmy)
         except:
