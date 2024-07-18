@@ -178,11 +178,24 @@ def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
     data_fited = gaussian2d((x, y), *popt).reshape(data.shape)
     fwhmx = np.sqrt(2 * np.log(2)) * popt[3] * gdx * 2 
     fwhmy = np.sqrt(2 * np.log(2)) * popt[4] * gdy * 2 
-    print('FWHM X = {}, FWHM Y = {}'.format(fwhmx, fwhmy))
+    print('FWHM X = {} mum, FWHM Y = {} mum'.format(round(fwhmx, 2), round(fwhmy, 2)))
     # print when the fited function falls below 1/e of the maximum
     #beamx = np.where(data_fited > np.max(data_fited) / np.e)[1]*gdx
     #beamy = np.where(data_fited > np.max(data_fited) / np.e)[0]*gdx
     #print('Beam X = {} mum, Beam Y = {} mum'.format(np.amax(beamx)-np.amin(beamx), np.amax(beamy)-np.amin(beamy)))
+
+    #calculate beam waist
+    x0 = popt[1] * gdx
+    sigma_x = popt[3] * gdx
+    amplitude = popt[0]
+    y0 = popt[2] * gdy
+    sigma_y = popt[4] * gdy
+    bwx_start = x0 - sigma_x*np.sqrt(2)
+    bwx_end = x0 + sigma_x*np.sqrt(2)
+    bwy_start = y0 - sigma_y*np.sqrt(2)
+    bwy_end = y0 + sigma_y*np.sqrt(2)
+    print('Beam Waist X = {} mum, Beam Waist Y = {} mum'.format(bwx_end-bwx_start, bwy_end-bwy_start))
+    
 
     # plot data_fited
     if plotfit == True:
@@ -213,28 +226,6 @@ def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
         plt.show()
 
     #return fitdata, pcov
-
-def fitbesseld2tomatrix(inpdata, plotfit, gdx, gdy, maxfev=10000):
-    data = np.array(inpdata)
-    x = np.arange(data.shape[1])
-    y = np.arange(data.shape[0])
-    x, y = np.meshgrid(x, y)
-    initialguess = [np.max(data), 1, np.argmax(data) % data.shape[1], np.argmax(data) // data.shape[1]]
-    popt, pcov = curve_fit(bessel2d, (x, y), data.ravel(), p0=initialguess, maxfev=maxfev)
-    data_fited = bessel2d((x, y), *popt).reshape(data.shape)
-
-    # plot data_fited
-    if plotfit == True:
-        ax, fig = plt.subplots()
-        plt.imshow(data_fited)
-        plt.colorbar()
-        plt.show()
-        #plt.imshow(data_fited)
-        #plt.colorbar()
-        #plt.show()
-
-    #return fitdata, pcov
-
 
 def Newtonmax(f, x0, tol=1e-6, maxiter=10000):
     # Initialize the iteration counter
