@@ -1,5 +1,5 @@
 import numpy as np
-import os
+import os, sys
 from scipy.optimize import curve_fit
 from scipy.special import jv
 import matplotlib.pyplot as plt
@@ -16,7 +16,7 @@ def gaussian2d(coords, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
     g = amplitude * np.exp(-(a * x**2 + 2 * b * x * y + c * y**2)) + offset
     return g.ravel()
 
-def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, pos, maxfev=10000):
+def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, pos, savedir, maxfev=10000):
     data = np.array(inpdata)
     x = np.arange(data.shape[1])
     y = np.arange(data.shape[0])
@@ -60,8 +60,10 @@ def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, pos, maxfev=100
         ax.yaxis.set_major_locator(MaxNLocator(nbins=6))  # Adjust the number of bins to fit the plot size
 
         #plt.show()
-        plt.savefig('images/{}_fit.png'.format(pos))
+        plt.savefig('{}/{}_fit.png'.format(savedir, pos))
+        plt.show()
         plt.close()
+        sys.exit()
 
     #calculate beam waist
     x0 = popt[1] * gdx
@@ -89,9 +91,10 @@ def fit2dgausstopixmatrix(data, gdx, gdy, pos=0):
 
 filedir = 'C:\\Users\\mol95ww\\Desktop\\Evaluation\\data\\2024\\qdot_100fach\\Laser_in_zpos'
 fend = '.asc'
+savedir = 'C:\\Users\\mol95ww\\Desktop\\Promotion\\Reports\\2024\\240723\\images'
 
-gdx = 1/10.65
-gdy = 1/10.65
+gdx = 1/18.0
+gdy = 1/18.0
 
 with open('waist.txt', 'w') as f:
     f.write('z-pos [mum]\tbwx[mum]\tbwy[mum]\n')
@@ -127,6 +130,7 @@ for file in files:
     # plot the image
     plt.imshow(data, cmap='viridis')
     plt.colorbar()
-    plt.savefig('images/{}.png'.format(file.split('.')[0]))
+    plt.show()
+    plt.savefig('{}/{}.png'.format(savedir, file.split('.')[0]))
     plt.close()
     fit2dgausstopixmatrix(data, gdx, gdy, pos=file.split('.')[0])
