@@ -151,7 +151,7 @@ def getmaxlinear(a, b):
 
 # 2D Pixmatrix Fit functions
 # 2d gaussian function
-def gaussian2d(coords, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
+def gaussian2drot(coords, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
     x, y = coords
     x, y = x - xo, y - yo
     a = (np.cos(theta)**2) / (2 * sigma_x**2) + (np.sin(theta)**2) / (2 * sigma_y**2)
@@ -160,22 +160,30 @@ def gaussian2d(coords, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
     g = amplitude * np.exp(-(a * x**2 + 2 * b * x * y + c * y**2)) + offset
     return g.ravel()
 
+# 2d gaussian function
+def gaussian2d(coords, amplitude, xo, yo, sigma_x, sigma_y, offset):
+    x, y = coords
+    x, y = x - xo, y - yo
+    scale = amplitude / (2 * np.pi * sigma_x * sigma_y)
+    g = scale * np.exp(-(x**2 / (2 * sigma_x**2) + y**2 / (2 * sigma_y**2))) + offset
+    return g.ravel()
+
 # 2d bessel function
 def bessel2d(xy, A, B, x0, y0):
     x, y = xy
     r = np.sqrt((x - x0)**2 + (y - y0)**2)
     return A * jv(0, B*r) 
 
-def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
+def fitgaussiand2dtomatrixrot(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
     data = np.array(inpdata)
     x = np.arange(data.shape[1])
     y = np.arange(data.shape[0])
     x, y = np.meshgrid(x, y)
     initialguess = [np.max(data), np.argmax(data) % data.shape[1], np.argmax(data) // data.shape[1], 1, 1, 0, 0]
-    popt, pcov = curve_fit(gaussian2d, (x, y), data.ravel(), p0=initialguess, maxfev=maxfev)
+    popt, pcov = curve_fit(gaussian2drot, (x, y), data.ravel(), p0=initialguess, maxfev=maxfev)
     #fwhmx = 2 * np.sqrt(2 * np.log(2)) * fitdata[3]
     #fwhmy = 2 * np.sqrt(2 * np.log(2)) * fitdata[4]
-    data_fited = gaussian2d((x, y), *popt).reshape(data.shape)
+    data_fited = gaussian2drot((x, y), *popt).reshape(data.shape)
     fwhmx = np.sqrt(2 * np.log(2)) * popt[3] * gdx * 2 
     fwhmy = np.sqrt(2 * np.log(2)) * popt[4] * gdy * 2 
     print('FWHM X = {} mum, FWHM Y = {} mum'.format(round(fwhmx, 2), round(fwhmy, 2)))
@@ -195,37 +203,75 @@ def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
     bwy_start = y0 - sigma_y*np.sqrt(2)
     bwy_end = y0 + sigma_y*np.sqrt(2)
     print('Beam Waist X = {} mum, Beam Waist Y = {} mum'.format(bwx_end-bwx_start, bwy_end-bwy_start))
-    
 
     # plot data_fited
     if plotfit == True:
-        fig, ax = plt.subplots()  # Note: Corrected order, it's fig, ax not ax, fig
+        fig, ax = plt.subplots()
         plt.imshow(data_fited, cmap=colormap)
         plt.colorbar()
 
         # Get current ticks
         current_xticks = np.arange(data.shape[1])
         current_yticks = np.arange(data.shape[0])
-
         # Multiply ticks by constants
-        new_xticks = np.multiply(current_xticks, gdx).round(5)
-        new_yticks = np.multiply(current_yticks, gdy).round(5)
-
+        new_xticks = np.multiply(current_xticks, gdx).round(3)
+        new_yticks = np.multiply(current_yticks, gdy).round(3)
         # Set new ticks
         ax.set_xticks(current_xticks)  # Set the ticks to be at the indices of the current ticks
         ax.set_yticks(current_yticks)
-
         # Set tick labels to the new values
         ax.set_xticklabels(new_xticks)
         ax.set_yticklabels(new_yticks)
-
         # Set the axis labels auto adjust
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_major_locator(MaxNLocator(nbins=6))  # Adjust the number of bins to fit the plot size
-
         plt.show()
 
-    #return fitdata, pcov
+def fitgaussian2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
+    data = np.array(inpdata)
+    x = np.arange(data.shape[1])
+    y = np.arange(data.shape[0])
+    x, y = np.meshgrid(x, y)
+    initialguess = [np.max(data), np.argmax(data) % data.shape[1], np.argmax(data) // data.shape[1], 1, 1, 0]
+    popt, pcov = curve_fit(gaussian2d, (x, y), data.ravel(), p0=initialguess, maxfev=maxfev)
+
+    data_fited = gaussian2d((x, y), *popt).reshape(data.shape)
+    fwhmx = np.sqrt(2 * np.log(2)) * popt[3] * gdx * 2 
+    fwhmy = np.sqrt(2 * np.log(2)) * popt[4] * gdy * 2 
+    print('FWHM X = {} mum, FWHM Y = {} mum'.format(round(fwhmx, 2), round(fwhmy, 2)))
+
+    if plotfit == True:
+        fig, ax = plt.subplots()  
+        plt.imshow(data_fited, cmap=colormap)
+        # Get current ticks
+        current_xticks = np.arange(data.shape[1])
+        current_yticks = np.arange(data.shape[0])
+        # Multiply ticks by constants
+        new_xticks = np.multiply(current_xticks, gdx).round(3)
+        new_yticks = np.multiply(current_yticks, gdy).round(3)
+        # Set new ticks
+        ax.set_xticks(current_xticks)  # Set the ticks to be at the indices of the current ticks
+        ax.set_yticks(current_yticks)
+        # Set tick labels to the new values
+        ax.set_xticklabels(new_xticks)
+        ax.set_yticklabels(new_yticks)
+        # Set the axis labels auto adjust
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=6))  # Adjust the number of bins to fit the plot size
+        plt.show()
+
+
+    #calculate beam waist
+    x0 = popt[1] * gdx
+    sigma_x = popt[3] * gdx
+    amplitude = popt[0]
+    y0 = popt[2] * gdy
+    sigma_y = popt[4] * gdy
+    bwx_start = x0 - sigma_x*np.sqrt(2)
+    bwx_end = x0 + sigma_x*np.sqrt(2)
+    bwy_start = y0 - sigma_y*np.sqrt(2)
+    bwy_end = y0 + sigma_y*np.sqrt(2)
+    print('Beam Waist X = {} mum, Beam Waist Y = {} mum'.format(bwx_end-bwx_start, bwy_end-bwy_start))
 
 def Newtonmax(f, x0, tol=1e-6, maxiter=10000):
     # Initialize the iteration counter

@@ -274,12 +274,14 @@ class XYMap:
 
     def build_PixMatrix_frame(self, parframe):
         frame = tk.Frame(parframe, border=5, relief="sunken")
-        frame.grid(row=0, column=4)
+        frame.grid(row=0, column=4, rowspan=6, sticky=tk.NW)
         tk.Label(frame, text="Process Pixel Matrix".format(self.DataSpecMin)).grid(row=0, column=0)
 
-        b1= tk.Button(frame, text="fit 2D Gaussian to Matrix", command= lambda: self.fit2dgausstopixmatrix())
+        b1= tk.Button(frame, text="fit rotated 2D Gaussian to Matrix", command= lambda: self.fit2drotgausstopixmatrix())
         b1.grid(row=1, column=0)
-
+        b2= tk.Button(frame, text="fit 2D Gaussian to Matrix", command= lambda: self.fit2dgausstopixmatrix())
+        b2.grid(row=2, column=0)
+    
     def fit2dgausstopixmatrix(self):
         try: 
             self.maxiter = int(self.fitmaxiter.get())
@@ -287,11 +289,22 @@ class XYMap:
             print('Maxiter must be type int. Using default 15000.')
             self.maxiter = 15000
         try:
-            matl.fitgaussiand2dtomatrix(self.PixMatrix, True, self.gdx, self.gdy, self.colormap.get(), maxfev=self.maxiter)
-            #fitdata, pcov, fwhmx, fwhmy = matl.fitgaussiand2dtomatrix(self.PixMatrix, maxfev=self.maxiter)
-            #print(fitdata, pcov, fwhmx, fwhmy)
+            matl.fitgaussian2dtomatrix(self.PixMatrix, True, self.gdx, self.gdy, self.colormap.get(), maxfev=self.maxiter)
         except:
             print('2D Gaussian Fit failed.')
+            
+    def fit2drotgausstopixmatrix(self):
+        try: 
+            self.maxiter = int(self.fitmaxiter.get())
+        except:
+            print('Maxiter must be type int. Using default 15000.')
+            self.maxiter = 15000
+        try:
+            matl.fitgaussiand2dtomatrixrot(self.PixMatrix, True, self.gdx, self.gdy, self.colormap.get(), maxfev=self.maxiter)
+            #fitdata, pcov, fwhmx, fwhmy = matl.fitgaussiand2dtomatrix(self.PixMatrix, maxfev=self.maxiter)
+            #print(fitdata, pcov, fwhmx, fwhmy)
+        except Exception as Error:
+            print('2D rotational Gaussian Fit failed.', Error)
         
 
 
