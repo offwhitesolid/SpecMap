@@ -202,3 +202,16 @@ def loadclaraimage(file):
         data.append(y)
         y = []  
     return np.asarray(data)
+
+def closest_indices(X, Y, px, py):
+    X = np.asarray(X)
+    Y = np.asarray(Y)
+    # Calculate the absolute differences between px and all elements in X
+    diff_x = np.abs(X - px)
+    # Calculate the absolute differences between py and all elements in Y
+    diff_y = np.abs(Y - py)
+    # Find the index of the minimum difference in X
+    i = np.argmin(diff_x)
+    # Find the index of the minimum difference in Y
+    j = np.argmin(diff_y)
+    return i, j

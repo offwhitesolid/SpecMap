@@ -168,6 +168,7 @@ class XYMap:
         self.updatewl()
 
         print(self.gdx, self.gdy)
+        print(self.PixAxX, self.PixAxY)
         
 
     def buildselectboxes(self, frame, values):
@@ -816,17 +817,28 @@ class XYMap:
 
     # set the spectra into the array
     def SpecdataintoMatrix(self):
+        # old sorting function 
+        '''
         for i in self.specs:
             index = [int((i.data['x-position']-self.mxcoords[0])//self.gdx), int((i.data['y-position']-self.mycoords[0])//self.gdy)]
             if type(self.SpecDataMatrix[index[1]][index[0]]) == SpectrumData:
                 print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(index[0], index[1]))
             else:
                 # check if position is within gdx and gdy distance of the grid
-                if abs((i.data['x-position']-self.mxcoords[0]-index[0]*self.gdx) < self.gdx/2) and abs((i.data['y-position']-self.mycoords[0]-index[1]*self.gdy) < self.gdy/2):
+                if abs((i.data['x-position']-self.mxcoords[0]-index[0]*self.gdx) <= self.gdx/2) and abs((i.data['y-position']-self.mycoords[0]-index[1]*self.gdy) <= self.gdy/2):
                     self.SpecDataMatrix[index[1]][index[0]] = i                
                 else:
                     print('Pixel not in grid. {} {}'.format(index[0], index[1]))
-
+        '''
+        # new sorting function
+        for i in self.specs:
+            x = i.data['x-position']
+            y = i.data['y-position']
+            xind, yind = deflib.closest_indices(self.PixAxX, self.PixAxX, x, y)
+            if type(self.SpecDataMatrix[yind][xind]) == SpectrumData:
+                print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(xind, yind))
+            else:
+                self.SpecDataMatrix[xind][yind] = i
         
     def genmatgrid(self, xar, yar): # returns that must be filled with the SpectrumData Objects
         self.matstart = [np.amin(self.mxcoords), np.amin(self.mycoords)]
@@ -850,9 +862,9 @@ class XYMap:
         PixelMatrix = []
         SpectralMatrix = []
         for i in range(int((self.matend[0]-self.matstart[0]+self.gdx)/self.gdx)):
-            matpixax.append(i*self.gdx+self.matstart[0])
+            matpixax.append(round(i*self.gdx+self.matstart[0], 10))
         for i in range(int((self.matend[1]-self.matstart[1]+self.gdy)/self.gdy)):
-            matpiyax.append(i*self.gdy+self.matstart[1])
+            matpiyax.append(round(i*self.gdy+self.matstart[1], 10))
             fillmat = []
             pixmat = []
             for j in matpixax:
