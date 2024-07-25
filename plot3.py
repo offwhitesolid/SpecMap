@@ -8,6 +8,7 @@ from PIL import Image, ImageTk
 import lib5 as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
+import claralib1 as claralib
 
 # defautl entries
 defopdir = 'E:\\Promotion\\VP\\20240523\\scandata2_121'
@@ -26,7 +27,7 @@ class FileProcessorApp:
         self.root.title("File Processor")
         self.createmenue()
         self.windownotebook(deflib.Notebooks)
-        self.createbuttons(self.noteframes['Load Data'])
+        self.createbuttons(self.nodeframes['Load Data'])
 
     def createmenue(self):
         # Create the menu bar
@@ -39,40 +40,42 @@ class FileProcessorApp:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=tk.BOTH, expand=True)
         # Create the frames for the notebook
-        self.noteframes = {}
+        self.nodeframes = {}
         for i in range(len(notebookentries)):
             # add a new frame to the notebook and store it by its name in the frames dictionary
             frame = ttk.Frame(self.notebook)
             self.notebook.add(frame, text=notebookentries[i])
-            self.noteframes[notebookentries[i]] = frame
+            self.nodeframes[notebookentries[i]] = frame
 
     def createbuttons(self, Notebook):
-        # Frame
+        # Specmap Load Frame
         self.open_frame = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
         self.open_frame.pack(anchor='nw')#fill='both', expand=True)
         # Folder selection
-        self.folder_label = tk.Label(self.open_frame, text="Select Folder:")
+        self.SpecMapLoad_label = tk.Label(self.open_frame, text="Select folder with spectra for Hyperspectral processing")
+        self.SpecMapLoad_label.pack()
+        self.folder_label = tk.Label(self.open_frame, text="Select Folder")
         self.folder_label.pack()
         
         self.folder_entry = tk.Entry(self.open_frame, width=60)
         self.folder_entry.pack()
         self.folder_entry.insert(0, defopdir)
-        self.folder_button = tk.Button(self.open_frame, text="Browse", command=self.browse_folder)
+        self.folder_button = tk.Button(self.open_frame, text="Browse", command=lambda: deflib.browse_folder(self.folder_entry))
         self.folder_button.pack()
         # Filename input
-        self.filename_label = tk.Label(self.open_frame, text="Enter Filename:")
+        self.filename_label = tk.Label(self.open_frame, text="Enter Filename")
         self.filename_label.pack()
         self.filename_entry = tk.Entry(self.open_frame, width=60)
         self.filename_entry.pack()
         self.filename_entry.insert(0, defopnam)
         # File format
-        self.fileformat_label = tk.Label(self.open_frame, text="Enter File format:")
+        self.fileformat_label = tk.Label(self.open_frame, text="Enter File format")
         self.fileformat_label.pack()
         self.fileformat_entry = tk.Entry(self.open_frame, width=60)
         self.fileformat_entry.pack()
         self.fileformat_entry.insert(0, defopend)
         # Process button
-        self.process_button = tk.Button(self.open_frame, text="Load data", command=self.process_files)
+        self.process_button = tk.Button(self.open_frame, text="Load data", command=self.spec_loadfiles)
         self.process_button.pack()
         # space between frames
         tk.Frame(self.open_frame, height=10).pack()
@@ -109,18 +112,33 @@ class FileProcessorApp:
         self.cosmicwidthentry = tk.Entry(self.cosmicframe, width=3)
         self.cosmicwidthentry.grid(row=2, column=2)
         self.cosmicwidthentry.insert(0, '3')
+    
+        # space between frames
+        tk.Frame(Notebook, height=10).pack()
 
-        # spectrum frame
-        #self.specplot = self.plotimage([320, 20], 'Pixel Image')
-        #self.specplot.openimage("random_image.png", [50, 50])
+        # Clara load frame  
+        self.claraloadframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
+        self.claraloadframe.pack(anchor='nw')#fill='both', expand=True)
+        # Folder selection
+        self.clara_label = tk.Label(self.claraloadframe, text="Select folder with spectra for Clara processing")
+        self.clara_label.pack()
+        self.clara_file_label = tk.Label(self.claraloadframe, text="Select File")
+        self.clara_file_label.pack()
 
-    def browse_folder(self):
-        folder_selected = filedialog.askdirectory()
-        if folder_selected:
-            self.folder_entry.delete(0, tk.END)
-            self.folder_entry.insert(0, folder_selected)
+        # Clara process frame
+        self.cl_file_entrystr = tk.StringVar()
+        self.cl_file_entry = tk.Entry(self.claraloadframe, textvariable=self.cl_file_entrystr, width=60)
+        self.cl_file_entry.pack()
+        self.cl_file_entry.insert(0, defopdir)
+        self.cl_process_button = tk.Button(self.claraloadframe, text="Load data", command=self.cl_loadfiles)
+        self.cl_process_button.pack(side=tk.RIGHT, anchor='center')
+        spacer = tk.Frame(self.claraloadframe, width=10)
+        spacer.pack(side=tk.RIGHT, anchor='center')
+        # Process button
+        self.cl_folder_button = tk.Button(self.claraloadframe, text="Browse", command= lambda: deflib.select_file(self.cl_file_entrystr))
+        self.cl_folder_button.pack(side=tk.RIGHT, anchor='center')
 
-    def process_files(self):
+    def spec_loadfiles(self):
         folder = self.folder_entry.get()
         filename = self.filename_entry.get()
         fileend = self.fileformat_entry.get()
@@ -146,9 +164,9 @@ class FileProcessorApp:
                 del Nanomap
             except:
                 pass
-            self.cmapframe = tk.Frame(self.noteframes['Process Data'], width=100, height=50, borderwidth=5, relief="raised")
+            self.cmapframe = tk.Frame(self.nodeframes['Hyperspectra'], width=100, height=50, borderwidth=5, relief="raised")
             self.cmapframe.pack(fill=tk.BOTH)
-            self.specframe = tk.Frame(self.noteframes['Process Data'], borderwidth=5, relief="sunken")#, width=400, height=400)
+            self.specframe = tk.Frame(self.nodeframes['Hyperspectra'], borderwidth=5, relief="sunken")#, width=400, height=400)
             self.specframe.pack(fill=tk.BOTH, expand=True)
             
             # get the cosmic threshold and width
@@ -171,6 +189,16 @@ class FileProcessorApp:
     def filter_substring(self, a, b):
         return [element for element in a if b in element]
     
+    def cl_loadfiles(self):
+        file = self.cl_file_entry.get()
+        if not file:
+            messagebox.showerror("Error", "Please select a file")
+            return
+        try:
+            self.claraimage = claralib.imageprocessor(self.nodeframes['Clara Image'], file, deflib.loadclaraimage, None, 0.568, 0.568)
+        except Exception as error:
+            messagebox.showerror("Error", "Could not load Clara image. {}".format(error))
+
 if __name__ == "__main__":
     # Create the main window
     root = tk.Tk()

@@ -35,7 +35,7 @@ def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, pos, savedir, m
     #print('Beam X = {} mum, Beam Y = {} mum'.format(np.amax(beamx)-np.amin(beamx), np.amax(beamy)-np.amin(beamy)))
     # plot data_fited
     if plotfit == True:
-        fig, ax = plt.subplots()  # Note: Corrected order, it's fig, ax not ax, fig
+        fig, ax = plt.subplots()
         plt.imshow(data_fited, cmap=colormap)
         plt.colorbar()
 
@@ -93,8 +93,8 @@ filedir = 'C:\\Users\\mol95ww\\Desktop\\Evaluation\\data\\2024\\qdot_100fach\\La
 fend = '.asc'
 savedir = 'C:\\Users\\mol95ww\\Desktop\\Promotion\\Reports\\2024\\240723\\images'
 
-gdx = 1/18.0
-gdy = 1/18.0
+gdx = 0.0556
+gdy = 0.0556
 
 with open('waist.txt', 'w') as f:
     f.write('z-pos [mum]\tbwx[mum]\tbwy[mum]\n')

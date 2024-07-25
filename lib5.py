@@ -166,6 +166,8 @@ class XYMap:
         #self.getPLpixelIntervalMax()                                        # build PL Matrix
         #self.plotPixelMatrix()                                              # Plot PL Matrix 
         self.updatewl()
+
+        print(self.gdx, self.gdy)
         
 
     def buildselectboxes(self, frame, values):
@@ -841,6 +843,8 @@ class XYMap:
             self.gdy = dya[0]
         else:
             self.gdy = deflib.most_freq_element(dya)
+        self.gdx = round(self.gdx, 10)
+        self.gdy = round(self.gdy, 10)
         matpixax = []
         matpiyax = []
         PixelMatrix = []

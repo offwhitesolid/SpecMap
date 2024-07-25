@@ -2,10 +2,11 @@ import numpy as np
 from scipy.ndimage import median_filter
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 
 # comment how cremove_cosmics works
 
-Notebooks = ['Load Data', 'Process Data', 'Export Data']
+Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export Data']
 
 
 def remove_cosmics(data, max_width=3, threshold=5):
@@ -171,4 +172,33 @@ def create_menu(root, menu_bar):
     menu_bar.add_cascade(label="View", menu=view_menu)
     view_menu.add_command(label="Toggle View", command=view_toggle)
 
+def select_file(entry_var):
+    file_path = filedialog.askopenfilename()
+    if file_path:
+        entry_var.set(file_path)
 
+def browse_folder(folder_entry):
+    folder_selected = filedialog.askdirectory()
+    if folder_selected:
+        folder_entry.delete(0, tk.END)
+        folder_entry.insert(0, folder_selected)
+    
+def loadclaraimage(file):
+    with open(file) as f:
+        for i in range(34):
+            f.readline()
+        fload = f.readlines()
+    x = []
+    y = []
+    data = []
+    for i in fload:
+        isplit = i.split('\n')[0].split('\t')
+        x.append(float(isplit[0]))
+        for j in range(1, len(isplit)):
+            if isplit[j] == '':
+                pass
+            else:
+                y.append(float(isplit[j]))
+        data.append(y)
+        y = []  
+    return np.asarray(data)

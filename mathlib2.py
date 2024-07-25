@@ -202,7 +202,7 @@ def fitgaussiand2dtomatrixrot(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000
     bwx_end = x0 + sigma_x*np.sqrt(2)
     bwy_start = y0 - sigma_y*np.sqrt(2)
     bwy_end = y0 + sigma_y*np.sqrt(2)
-    print('Beam Waist X = {} mum, Beam Waist Y = {} mum'.format(bwx_end-bwx_start, bwy_end-bwy_start))
+    print('Beam Waist X = {} mum, Beam Waist Y = {} mum'.format(abs(bwx_end-bwx_start), abs(bwy_end-bwy_start)))
 
     # plot data_fited
     if plotfit == True:
@@ -271,7 +271,7 @@ def fitgaussian2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
     bwx_end = x0 + sigma_x*np.sqrt(2)
     bwy_start = y0 - sigma_y*np.sqrt(2)
     bwy_end = y0 + sigma_y*np.sqrt(2)
-    print('Beam Waist X = {} mum, Beam Waist Y = {} mum'.format(bwx_end-bwx_start, bwy_end-bwy_start))
+    print('Beam Waist X = {} mum, Beam Waist Y = {} mum'.format(abs(bwx_end-bwx_start), abs(bwy_end-bwy_start)))
 
 def Newtonmax(f, x0, tol=1e-6, maxiter=10000):
     # Initialize the iteration counter
