@@ -3,38 +3,19 @@ from scipy.ndimage import median_filter
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from scipy.ndimage import median_filter
+import pandas as pd
+from scipy.interpolate import UnivariateSpline
 
 # comment how cremove_cosmics works
 
 Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export Data']
 
 
-def remove_cosmics(data, max_width=3, threshold=5):
-    # Calculate the difference array
-    c = max_width
-    abl = np.diff(data[c:-c])
-    # Find indices where elements of abl are greater than b
-    indicesp =  np.where(abl > threshold)[0]
-    indicesm = np.where(abl < -threshold)[0]
-    print(indicesp, indicesm)
-    indices = np.concatenate((indicesp, indicesm))
-    print(indices)
-    indices = filter_peaks_start_end(remove_pairs_within_distance(indices, c), len(abl), c)
-    print('filterd', indices)
-    cosmiccl = clasifycosmics(abl, indices, max_width, threshold)
-    print('clasified', cosmiccl)
-    # reconvert into the original indices
-    # Perform element-wise addition
-    cosmiccl = [np.add(arr, c) for arr in cosmiccl]
-    # single_cosmics (cosmiccl[0]):
-    # interpolate between data[-1] and data [1]
-    data = interpolate_cosmics(data, cosmiccl[0], 0, 2)
-    # threashold_cosmics (cosmiccl[1]):
-    # interpolate between data[-c] and data [c]
-    data = interpolate_cosmics(data, cosmiccl[1], -c, c)
-    return data
 
-def remove_cosmics1(data, thresh, width):
+
+# Linear interpolation provides a simple and fast method for filling in missing values.
+def remove_cosmics_linear(data, thresh, width):
     # Calculate the finite differences (first derivative)
     diff = np.diff(data)
     
@@ -57,61 +38,73 @@ def remove_cosmics1(data, thresh, width):
     
     return interpolated_data
 
-# c = max_width, indices = indices, abl = abl, thresh = threshold
-# clasisfy the cosmic rays into single peaks [0], threashold peaks [1] and big peaks [2]
-def clasifycosmics(abl, indices, max_width, thresh):
-    singcs = []
-    threcs = []
-    bigcs = []
-    print('max_width', max_width, 'thresh', thresh)
-    for i in indices:
-        if abs(abl[i]+abl[i+1]) < thresh:
-            print('single', abl[i], abl[i+1])
-            singcs.append(i)
-        elif abs(np.sum(abl[i-max_width:i+max_width])) < thresh:
-            print('threashold', abs(np.sum(abl[i-max_width:i+max_width])))
-            threcs.append(i)
-        else:
-            print('big', abs(np.sum(abl[i-max_width:i+max_width])))
-            bigcs.append(i)
-    return [singcs, threcs, bigcs]
+#Median filtering is good for robust outlier removal.
+def remove_cosmics_median_filter(data, thresh, width):
+    # Apply a median filter with size `width`
+    filtered_data = median_filter(data, size=width)
+    
+    # Replace cosmic rays with median values
+    diff = np.abs(data - filtered_data)
+    cosmic_indices = np.where(diff > thresh)[0]
+    interpolated_data = np.copy(data)
+    interpolated_data[cosmic_indices] = filtered_data[cosmic_indices]
+    
+    return interpolated_data
 
-def interpolate_cosmics(data, cosmic_indices, start_index, stop_index):
-    print('cosmic_indices', cosmic_indices, 'start_index', start_index, 'stop_index', stop_index)
-    # Interpolate the cosmic rays
-    for i in cosmic_indices:
-        # Interpolate the cosmic ray
-        data[i+start_index:i+stop_index] = np.linspace(data[i+start_index], data[i+stop_index], stop_index - start_index)
-    return data
-            
-# peaks = cosmic indices, lenabl = len(abl), c = max_width
-def filter_peaks_start_end(peaks, lenabl, c):
-    # Calculate the length of abl
-    # Filter peaks based on the conditions
-    filtered_peaks = [peak for peak in peaks if (peak >= c and peak <= lenabl - c)]
-    return filtered_peaks
+#Rolling mean is good for preserving the overall trend of the data.            
+def remove_cosmics_rolling_mean(data, thresh, width):
+    # Compute the rolling mean
+    rolling_mean = pd.Series(data).rolling(window=width, center=True).mean().to_numpy()
+    
+    # Replace cosmic rays with rolling mean values
+    diff = np.abs(data - rolling_mean)
+    cosmic_indices = np.where(diff > thresh)[0]
+    interpolated_data = np.copy(data)
+    interpolated_data[cosmic_indices] = rolling_mean[cosmic_indices]
+    
+    return interpolated_data
 
-# a = derivative, c = max width of the peak
-def remove_pairs_within_distance(a, c):
-    # Convert input list to a NumPy array
-    n = len(a)
-    # Sort the array to ensure we only check adjacent pairs
-    sorted_indices = np.argsort(a)
-    a_sorted = a[sorted_indices]
-    # List to store indices to remove
-    remove_indices = set()
-    # Iterate through the sorted array and find pairs
-    i = 0
-    while i < n - 1:
-        if abs(a_sorted[i + 1] - a_sorted[i]) <= c:
-            # Add the index of the second element of the pair to remove list
-            remove_indices.add(sorted_indices[i + 1])
-            # Skip the next element as it forms a pair with the current element
-            i += 1
-        i += 1
-    # Remove the elements
-    a = np.delete(a, list(remove_indices))
-    return a.tolist()
+#Spline interpolation is good for preserving the overall trend of the data.
+def remove_cosmics_spline(data, thresh, width):
+    # Create an array of indices
+    x = np.arange(len(data))
+    
+    # Identify cosmic indices
+    diff = np.diff(data)
+    cosmic_indices = np.where(np.abs(diff) > thresh)[0]
+    
+    # Create a spline interpolation of the data
+    spline = UnivariateSpline(x, data, s=width)
+    
+    # Replace cosmic rays with spline values
+    interpolated_data = np.copy(data)
+    for idx in cosmic_indices:
+        end_range = min(idx + width, len(data) - 1)
+        interpolated_data[idx:end_range+1] = spline(x[idx:end_range+1])
+    
+    return interpolated_data
+
+#Nearest neighbor interpolation is good for preserving the overall trend of the data.
+def remove_cosmics_nearest_neighbor(data, thresh, width):
+    # Identify where the absolute value of the difference is greater than the threshold
+    diff = np.diff(data)
+    cosmic_indices = np.where(np.abs(diff) > thresh)[0]
+    
+    # Copy the data to avoid modifying the original array
+    interpolated_data = np.copy(data)
+    
+    for start in cosmic_indices:
+        end_range = min(start + width, len(data) - 1)
+        
+        # Identify the end of the cosmic within the given width
+        for end in range(start + 1, end_range + 1):
+            if np.abs(data[end] - data[start]) < thresh:
+                break
+        
+        # Replace cosmic rays with the nearest neighbor value
+        interpolated_data[start:end+1] = data[end]
+    
+    return interpolated_data
 
 # get grid dx and dy
 def most_freq_element(arr):
@@ -238,3 +231,12 @@ def closest_indices(X, Y, px, py):
     # Find the index of the minimum difference in Y
     j = np.argmin(diff_y)
     return i, j
+
+cosmicfuncts = {'Linear Interpolation': remove_cosmics_linear, 
+                'Median Filter': remove_cosmics_median_filter, 
+                #'Rolling Mean': remove_cosmics_rolling_mean, 
+                #'Spline Interpolation': remove_cosmics_spline,
+                'Nearest Neighbor': remove_cosmics_nearest_neighbor
+                } 
+# Rolling Mean showed not to be good for cosmic removal
+# Spline Interpolation showed not to be good for cosmic removal and took like forever to perform

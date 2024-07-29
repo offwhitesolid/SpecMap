@@ -57,22 +57,22 @@ class FileProcessorApp:
         self.folder_label = tk.Label(self.open_frame, text="Select Folder")
         self.folder_label.pack()
         
-        self.folder_entry = tk.Entry(self.open_frame, width=60)
-        self.folder_entry.pack()
+        self.folder_entry = tk.Entry(self.open_frame)
+        self.folder_entry.pack(fill=tk.X)
         self.folder_entry.insert(0, defopdir)
         self.folder_button = tk.Button(self.open_frame, text="Browse", command=lambda: deflib.browse_folder(self.folder_entry))
         self.folder_button.pack()
         # Filename input
         self.filename_label = tk.Label(self.open_frame, text="Enter Filename")
         self.filename_label.pack()
-        self.filename_entry = tk.Entry(self.open_frame, width=60)
-        self.filename_entry.pack()
+        self.filename_entry = tk.Entry(self.open_frame)
+        self.filename_entry.pack(fill=tk.X)
         self.filename_entry.insert(0, defopnam)
         # File format
         self.fileformat_label = tk.Label(self.open_frame, text="Enter File format")
         self.fileformat_label.pack()
-        self.fileformat_entry = tk.Entry(self.open_frame, width=60)
-        self.fileformat_entry.pack()
+        self.fileformat_entry = tk.Entry(self.open_frame)
+        self.fileformat_entry.pack(fill=tk.X)
         self.fileformat_entry.insert(0, defopend)
         # Process button
         self.process_button = tk.Button(self.open_frame, text="Load data", command=self.spec_loadfiles)
@@ -91,11 +91,11 @@ class FileProcessorApp:
         self.chkmultiple = tk.Checkbutton(self.bgframe, text="Multiple Backgrounds", variable=self.multiple_BG)
         self.chkmultiple.grid(row=0, column=0)
         self.removecosmicsBool = tk.IntVar()
-        self.removecosmicsBool.set(0)
+        self.removecosmicsBool.set(1)
         self.linearBG = tk.IntVar()
         self.linearBGcheck = tk.Checkbutton(self.bgframe, text="Linear Background", variable=self.linearBG)
         self.linearBGcheck.grid(row=1, column=0)
-        self.linearBG.set(0)
+        self.linearBG.set(1)
 
         # Cosmic removal
         # add extra frame for cosmic removal onto loadframe
@@ -103,15 +103,19 @@ class FileProcessorApp:
         self.cosmicframe.grid(row=0, column=1)
 
         self.removecosmics = tk.Checkbutton(self.cosmicframe, text="Remove Cosmics", variable=self.removecosmicsBool)
-        self.removecosmics.grid(row=0, column=1)
-        tk.Label(self.cosmicframe, text="Cosmic Threshold:").grid(row=1, column=1)
+        self.removecosmics.grid(row=0, column=0)
+        tk.Label(self.cosmicframe, text="Cosmic Removal function:").grid(row=1, column=0)
+        self.cosmicremoval = ttk.Combobox(self.cosmicframe, values=list(deflib.cosmicfuncts.keys()), width=20)
+        self.cosmicremoval.grid(row=1, column=1)
+        self.cosmicremoval.set(list(deflib.cosmicfuncts.keys())[0])
+        tk.Label(self.cosmicframe, text="Cosmic Threshold:").grid(row=2, column=0)
         self.cosmicthresholdentry = tk.Entry(self.cosmicframe, width=10)
-        self.cosmicthresholdentry.grid(row=2, column=1)
-        self.cosmicthresholdentry.insert(0, '20')
-        tk.Label(self.cosmicframe, text="Cosmic Width:").grid(row=1, column=2)
-        self.cosmicwidthentry = tk.Entry(self.cosmicframe, width=3)
-        self.cosmicwidthentry.grid(row=2, column=2)
-        self.cosmicwidthentry.insert(0, '3')
+        self.cosmicthresholdentry.grid(row=3, column=0)
+        self.cosmicthresholdentry.insert(0, '50')
+        tk.Label(self.cosmicframe, text="Cosmic Width:").grid(row=2, column=1)
+        self.cosmicwidthentry = tk.Entry(self.cosmicframe, width=10)
+        self.cosmicwidthentry.grid(row=3, column=1)
+        self.cosmicwidthentry.insert(0, '10')
     
         # space between frames
         tk.Frame(Notebook, height=10).pack()
@@ -181,7 +185,7 @@ class FileProcessorApp:
                 self.cosmicwidth = 3
                 self.cosmicwidthentry.insert(0, '3')
 
-            self.Nanomap = lib.XYMap(files_processed, self.cmapframe, self.specframe, self.multiple_BG.get(), self.linearBG.get(), self.removecosmicsBool.get(), self.cosmicthreshold, self.cosmicwidth)
+            self.Nanomap = lib.XYMap(files_processed, self.cmapframe, self.specframe, self.multiple_BG.get(), self.linearBG.get(), self.removecosmicsBool.get(), self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get())
             print("Success", f"Found and loaded {len(files_processed)} files.")
         else:
             messagebox.showinfo("No Files", "No files found with the specified name.")

@@ -28,7 +28,8 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'magnification']
 
 class SpectrumData:
-    def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
+    def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, removecosmicmethod=list(deflib.cosmicfuncts.keys())[0]):
+        self.removecosmicsmethod = removecosmicmethod
         self.loadeachbg = loadeachbg
         self.linearbg = linearbg
         self.removecosmics = removecosmics
@@ -111,7 +112,10 @@ class SpectrumData:
         self.setOK()
 
         if self.removecosmics == True:
-            self.PLB = deflib.remove_cosmics1(self.PLB, self.cosmicthreshold, self.cosmicpixels)
+            try:
+                self.PLB = deflib.cosmicfuncts[self.removecosmicsmethod](self.PLB, self.cosmicthreshold, self.cosmicpixels)
+            except Exception as e:
+                print('Cosmic removal failed. {}'.format(str(e)))
 
     def setOK(self):
         if False in self.openFstate:
@@ -131,7 +135,8 @@ class SpectrumData:
 
 # create XY Map that contains the Pixels 
 class XYMap:
-    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
+    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0]):
+        self.remcosmicfunc = cosmicmethod
         self.removecosmics = removecosmics
         self.linearbg = linearbg
         self.cosmicthreshold = cosmicthreshold
@@ -166,10 +171,6 @@ class XYMap:
         #self.getPLpixelIntervalMax()                                        # build PL Matrix
         #self.plotPixelMatrix()                                              # Plot PL Matrix 
         self.updatewl()
-
-        print(self.gdx, self.gdy)
-        print(self.PixAxX, self.PixAxY)
-        
 
     def buildselectboxes(self, frame, values):
         tk.Label(frame, text="Select Data Set".format(self.DataSpecMax)).grid(row=0, column=1)
@@ -231,8 +232,6 @@ class XYMap:
             # convert lambdamin and lambdamax into pixels
             self.aqpixstart = int((self.wlstart-self.DataSpecMin)/self.DataSpecdL)
             self.aqpixend = int((self.wlend-self.DataSpecMin)/self.DataSpecdL) #round
-            print(self.WL[self.aqpixstart], self.WL[self.aqpixend], self.wlstart, self.wlend, self.DataSpecdL)
-            print(self.aqpixstart, self.aqpixend, int(self.wlend-self.DataSpecMin), self.wlend-self.DataSpecMin, self.DataSpecdL)
 
     # min and max wl can be inserted here for preceed window
     def buildMinMaxSpec(self, frame):
@@ -785,7 +784,7 @@ class XYMap:
                     self.BG[i] = av
 
         for i in self.fnames:
-            specobj = SpectrumData(i, self.WL, self.BG, self.loadeachbg, self.linearbg, self.removecosmics,  self.cosmicthreshold, self.cosmicpixels)
+            specobj = SpectrumData(i, self.WL, self.BG, self.loadeachbg, self.linearbg, self.removecosmics,  self.cosmicthreshold, self.cosmicpixels, self.remcosmicfunc)
             if specobj.dataokay == True:
                 self.specs.append(specobj)
 
