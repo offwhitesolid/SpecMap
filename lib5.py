@@ -111,7 +111,7 @@ class SpectrumData:
         self.setOK()
 
         if self.removecosmics == True:
-            self.PLB = deflib.remove_cosmics1(self.PLB, self.cosmicpixels, self.cosmicthreshold)
+            self.PLB = deflib.remove_cosmics1(self.PLB, self.cosmicthreshold, self.cosmicpixels)
 
     def setOK(self):
         if False in self.openFstate:

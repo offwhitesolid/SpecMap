@@ -57,36 +57,6 @@ def remove_cosmics1(data, thresh, width):
     
     return interpolated_data
 
-def remove_cosmics2(data, thresh, width):
-    # Calculate the finite differences (first derivative)
-    diff = np.diff(data)
-    
-    # Identify where the absolute value of the difference is greater than the threshold
-    cosmic_starts = np.where(np.abs(diff) > thresh)[0]
-    
-    # Copy the data to avoid modifying the original array
-    interpolated_data = np.copy(data)
-    
-    i = 0
-    while i < len(cosmic_starts):
-        start = cosmic_starts[i]
-        end = start
-        # Extend the end to include all cosmics within the given width
-        while i < len(cosmic_starts) - 1 and cosmic_starts[i + 1] - start <= width:
-            i += 1
-            end = cosmic_starts[i] + 1
-        
-        # Ensure the end index is within the bounds of the data
-        end = min(end, len(data) - 1)
-        
-        # Perform linear interpolation between start and end
-        if end > start:
-            interpolated_data[start:end + 1] = np.linspace(data[start], data[end], end - start + 1)
-        
-        i += 1
-
-    return interpolated_data
-
 # c = max_width, indices = indices, abl = abl, thresh = threshold
 # clasisfy the cosmic rays into single peaks [0], threashold peaks [1] and big peaks [2]
 def clasifycosmics(abl, indices, max_width, thresh):
