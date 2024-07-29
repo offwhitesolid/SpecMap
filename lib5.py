@@ -111,7 +111,7 @@ class SpectrumData:
         self.setOK()
 
         if self.removecosmics == True:
-            self.PLB = deflib.remove_cosmics(self.PLB, self.cosmicpixels, self.cosmicthreshold)
+            self.PLB = deflib.remove_cosmics1(self.PLB, self.cosmicpixels, self.cosmicthreshold)
 
     def setOK(self):
         if False in self.openFstate:
@@ -132,7 +132,7 @@ class SpectrumData:
 # create XY Map that contains the Pixels 
 class XYMap:
     def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3):
-        self.remc = removecosmics
+        self.removecosmics = removecosmics
         self.linearbg = linearbg
         self.cosmicthreshold = cosmicthreshold
         self.cosmicpixels = cosmicpixels
@@ -785,7 +785,7 @@ class XYMap:
                     self.BG[i] = av
 
         for i in self.fnames:
-            specobj = SpectrumData(i, self.WL, self.BG, self.loadeachbg, self.linearbg, self.cosmicthreshold, self.cosmicpixels)
+            specobj = SpectrumData(i, self.WL, self.BG, self.loadeachbg, self.linearbg, self.removecosmics,  self.cosmicthreshold, self.cosmicpixels)
             if specobj.dataokay == True:
                 self.specs.append(specobj)
 
@@ -834,11 +834,13 @@ class XYMap:
         for i in self.specs:
             x = i.data['x-position']
             y = i.data['y-position']
-            xind, yind = deflib.closest_indices(self.PixAxX, self.PixAxX, x, y)
+            xind, yind = deflib.closest_indices(self.PixAxX, self.PixAxY, x, y)
             if type(self.SpecDataMatrix[yind][xind]) == SpectrumData:
                 print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(xind, yind))
             else:
-                self.SpecDataMatrix[xind][yind] = i
+                #self.SpecDataMatrix[xind][yind] = i
+                self.SpecDataMatrix[yind][xind] = i
+        #'''
         
     def genmatgrid(self, xar, yar): # returns that must be filled with the SpectrumData Objects
         self.matstart = [np.amin(self.mxcoords), np.amin(self.mycoords)]
