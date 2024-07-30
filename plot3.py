@@ -10,15 +10,8 @@ import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib
 
-# defautl entries
-defopdir = 'E:\\Promotion\\VP\\20240523\\scandata2_121'
-    #'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test8_MoS2_ML_1sec_02mumsteps'
-    #'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test3\\Data\\scan1'
-    #'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test1\\scandata2_121'
-    #'C:\\Users\\s368855\\Desktop\\PLEM\\Setup\\data\\test6_Mos2_ML_2sec'
-defopnam = 'spectrum'
-defopend = '.txt'
-windowsize = [900, 900]
+# default values for GUI
+defaults = deflib.initdefaults()
 
 print('Starting...')
 class FileProcessorApp:
@@ -59,7 +52,7 @@ class FileProcessorApp:
         
         self.folder_entry = tk.Entry(self.open_frame)
         self.folder_entry.pack(fill=tk.X)
-        self.folder_entry.insert(0, defopdir)
+        self.folder_entry.insert(0, defaults['data_file'])
         self.folder_button = tk.Button(self.open_frame, text="Browse", command=lambda: deflib.browse_folder(self.folder_entry))
         self.folder_button.pack()
         # Filename input
@@ -67,13 +60,13 @@ class FileProcessorApp:
         self.filename_label.pack()
         self.filename_entry = tk.Entry(self.open_frame)
         self.filename_entry.pack(fill=tk.X)
-        self.filename_entry.insert(0, defopnam)
+        self.filename_entry.insert(0, defaults['filename'])
         # File format
         self.fileformat_label = tk.Label(self.open_frame, text="Enter File format")
         self.fileformat_label.pack()
         self.fileformat_entry = tk.Entry(self.open_frame)
         self.fileformat_entry.pack(fill=tk.X)
-        self.fileformat_entry.insert(0, defopend)
+        self.fileformat_entry.insert(0, defaults['file_extension'])
         # Process button
         self.process_button = tk.Button(self.open_frame, text="Load data", command=self.spec_loadfiles)
         self.process_button.pack()
@@ -88,20 +81,23 @@ class FileProcessorApp:
         self.bgframe = tk.Frame(self.loadframe, borderwidth=2, relief="sunken")
         self.bgframe.grid(row=0, column=0)
         self.multiple_BG = tk.IntVar()
+        self.multiple_BG.set(defaults['multiple_Background'])
         self.chkmultiple = tk.Checkbutton(self.bgframe, text="Multiple Backgrounds", variable=self.multiple_BG)
         self.chkmultiple.grid(row=0, column=0)
-        self.removecosmicsBool = tk.IntVar()
-        self.removecosmicsBool.set(1)
+
         self.linearBG = tk.IntVar()
+        self.linearBG.set(defaults['linear_Background'])
         self.linearBGcheck = tk.Checkbutton(self.bgframe, text="Linear Background", variable=self.linearBG)
         self.linearBGcheck.grid(row=1, column=0)
-        self.linearBG.set(1)
+        self.linearBG.set(defaults['linear_Background'])
 
         # Cosmic removal
         # add extra frame for cosmic removal onto loadframe
         self.cosmicframe = tk.Frame(self.loadframe, borderwidth=2, relief="sunken")
         self.cosmicframe.grid(row=0, column=1)
 
+        self.removecosmicsBool = tk.IntVar()
+        self.removecosmicsBool.set(defaults['remove_cosmics'])
         self.removecosmics = tk.Checkbutton(self.cosmicframe, text="Remove Cosmics", variable=self.removecosmicsBool)
         self.removecosmics.grid(row=0, column=0)
         tk.Label(self.cosmicframe, text="Cosmic Removal function:").grid(row=1, column=0)
@@ -111,11 +107,11 @@ class FileProcessorApp:
         tk.Label(self.cosmicframe, text="Cosmic Threshold:").grid(row=2, column=0)
         self.cosmicthresholdentry = tk.Entry(self.cosmicframe, width=10)
         self.cosmicthresholdentry.grid(row=3, column=0)
-        self.cosmicthresholdentry.insert(0, '50')
+        self.cosmicthresholdentry.insert(0, defaults['cosmic_threshold'])
         tk.Label(self.cosmicframe, text="Cosmic Width:").grid(row=2, column=1)
         self.cosmicwidthentry = tk.Entry(self.cosmicframe, width=10)
         self.cosmicwidthentry.grid(row=3, column=1)
-        self.cosmicwidthentry.insert(0, '10')
+        self.cosmicwidthentry.insert(0, defaults['cosmic_width'])
     
         # space between frames
         tk.Frame(Notebook, height=10).pack()
@@ -133,7 +129,7 @@ class FileProcessorApp:
         self.cl_file_entrystr = tk.StringVar()
         self.cl_file_entry = tk.Entry(self.claraloadframe, textvariable=self.cl_file_entrystr, width=60)
         self.cl_file_entry.pack()
-        self.cl_file_entry.insert(0, defopdir)
+        self.cl_file_entry.insert(0, defaults['clara_image'])
         self.cl_process_button = tk.Button(self.claraloadframe, text="Load data", command=self.cl_loadfiles)
         self.cl_process_button.pack(side=tk.RIGHT, anchor='center')
         spacer = tk.Frame(self.claraloadframe, width=10)
@@ -185,7 +181,12 @@ class FileProcessorApp:
                 self.cosmicwidth = 3
                 self.cosmicwidthentry.insert(0, '3')
 
-            self.Nanomap = lib.XYMap(files_processed, self.cmapframe, self.specframe, self.multiple_BG.get(), self.linearBG.get(), self.removecosmicsBool.get(), self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get())
+            self.Nanomap = lib.XYMap(
+                files_processed, self.cmapframe, self.specframe, 
+                self.multiple_BG.get(), self.linearBG.get(), self.removecosmicsBool.get(), 
+                self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get(),
+                )
+                
             print("Success", f"Found and loaded {len(files_processed)} files.")
         else:
             messagebox.showinfo("No Files", "No files found with the specified name.")
@@ -206,7 +207,7 @@ class FileProcessorApp:
 if __name__ == "__main__":
     # Create the main window
     root = tk.Tk()
-    root.geometry('{}x{}'.format(windowsize[0], windowsize[1]))
+    root.geometry('{}x{}'.format(int(defaults['windowsize_X']), int(defaults['windowsize_Y'])))
     frame = tk.Frame(root)
     app = FileProcessorApp(root)
 

@@ -13,6 +13,17 @@ import os
 Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export Data']
 DEFAULTS_FILE = 'defaults.txt'
 
+# load defaults
+def initdefaults():
+    loadeddefaults = load_defaults()
+    reqdefaults = defaults.copy()
+    for i in loadeddefaults.keys():
+        try:
+            reqdefaults[i] = loadeddefaults[i]
+        except:
+            pass
+    return reqdefaults
+
 def save_defaults(variables):
     """Save default values to a file."""
     with open(DEFAULTS_FILE, 'w') as file:
@@ -273,6 +284,9 @@ speckeys = {'Wavelength axis': 'WL',
             'Spectrum (PL-BG)': 'PLB'}
 
 defaults={
+    # General inits
+    'windowsize_X': 900,
+    'windowsize_Y': 900,
     # Load Data Notebook
     # Select Folder Frame
     'data_file': 'C:/Users/mol95ww/Desktop/Evaluation/data/VP/test7_MoS2_ML_2sec/test7_MoS2_ML_2sec',
@@ -285,9 +299,9 @@ defaults={
     'remove_cosmics': False,
     'cosmic_threshold': 100,
     'cosmic_width': 10,
-    'cosmic_method': cosmicfuncts.keys()[0],
+    'cosmic_method': 'Linear Interpolation',
     # Clara Image Frame
-    'clara_image': 'C:\Users\mol95ww\Desktop\Evaluation\data\2024\qdot_100fach\Laser_in_zpos\145_0.asc',
+    'clara_image': 'C:/Users/mol95ww/Desktop/Evaluation/data/2024/qdot_100fach/Laser_in_zpos/145_0.asc',
 
     # Hyperspectra Notebook
     # cmap frame
@@ -307,4 +321,35 @@ defaults={
     'selected pixel Y': 0,
     'selected fit function': 'voigt',
 
+}
+
+defaulttypes = {
+    # General inits
+    'windowsize_X': int,
+    'windowsize_Y': int,
+    # Load Data Notebook
+    'data_file': str,
+    'filename': str,
+    'file_extension': str,
+    'multiple_Background': bool,
+    'linear_Background': bool,
+    'remove_cosmics': bool,
+    'cosmic_threshold': int,
+    'cosmic_width': int,
+    'cosmic_method': str,
+    'clara_image': str,
+    # Hyperspectra Notebook
+    'lowest_wavelength': float,
+    'highest_wavelength': float,
+    'colormap_threshold': int,
+    'fontsize': int,
+    'maxfev': int,
+    'Wavelength axis': str,
+    'Background (BG)': str,
+    'Counts (PL)': str,
+    'Spectrum (PL-BG)': str,
+    'data_set': str,
+    'selected pixel X': int,
+    'selected pixel Y': int,
+    'selected fit function': str,
 }
