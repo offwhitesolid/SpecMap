@@ -6,13 +6,39 @@ from tkinter import filedialog
 from scipy.ndimage import median_filter
 import pandas as pd
 from scipy.interpolate import UnivariateSpline
+import os
 
 # comment how cremove_cosmics works
 
 Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export Data']
+DEFAULTS_FILE = 'defaults.txt'
 
+def save_defaults(variables):
+    """Save default values to a file."""
+    with open(DEFAULTS_FILE, 'w') as file:
+        for name, value in variables.items():
+            file.write(f'{name} = {value}\n')
 
-
+def load_defaults():
+    """Load default values from a file."""
+    variables = {}
+    if os.path.exists(DEFAULTS_FILE):
+        with open(DEFAULTS_FILE, 'r') as file:
+            for line in file:
+                # Split each line into name and value
+                if '=' in line:
+                    name, value = line.split('=', 1)
+                    name = name.strip()
+                    value = value.strip()
+                    # Handle basic types
+                    if value.isdigit():
+                        value = int(value)
+                    elif value.replace('.', '', 1).isdigit():
+                        value = float(value)
+                    elif value.lower() in ('true', 'false'):
+                        value = value.lower() == 'true'
+                    variables[name] = value
+    return variables
 
 # Linear interpolation provides a simple and fast method for filling in missing values.
 def remove_cosmics_linear(data, thresh, width):
@@ -240,3 +266,45 @@ cosmicfuncts = {'Linear Interpolation': remove_cosmics_linear,
                 } 
 # Rolling Mean showed not to be good for cosmic removal
 # Spline Interpolation showed not to be good for cosmic removal and took like forever to perform
+
+speckeys = {'Wavelength axis': 'WL', 
+            'Background (BG)': 'BG',
+            'Counts (PL)': 'PL', 
+            'Spectrum (PL-BG)': 'PLB'}
+
+defaults={
+    # Load Data Notebook
+    # Select Folder Frame
+    'data_file': 'C:/Users/mol95ww/Desktop/Evaluation/data/VP/test7_MoS2_ML_2sec/test7_MoS2_ML_2sec',
+    'filename': 'spectrum', 
+    'file_extension': '.txt',
+    # Background Subtraction Frame
+    'multiple_Background': False,
+    'linear_Background': True,
+    # Cosmic Ray Removal Frame
+    'remove_cosmics': False,
+    'cosmic_threshold': 100,
+    'cosmic_width': 10,
+    'cosmic_method': cosmicfuncts.keys()[0],
+    # Clara Image Frame
+    'clara_image': 'C:\Users\mol95ww\Desktop\Evaluation\data\2024\qdot_100fach\Laser_in_zpos\145_0.asc',
+
+    # Hyperspectra Notebook
+    # cmap frame
+    'lowest_wavelength': 600, 
+    'highest_wavelength': 700,
+    'colormap_threshold': 100000,
+    'fontsize': 12,
+    'maxfev': 2000,
+    #speckeys
+    'Wavelength axis': 'WL', 
+    'Background (BG)': 'BG',
+    'Counts (PL)': 'PL', 
+    'Spectrum (PL-BG)': 'PLB',
+    'data_set': 'Spectrum (PL-BG)',
+    # buttonframe
+    'selected pixel X': 0,
+    'selected pixel Y': 0,
+    'selected fit function': 'voigt',
+
+}
