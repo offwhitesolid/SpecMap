@@ -285,6 +285,8 @@ speckeys = {'Wavelength axis': 'WL',
 
 defaults={
     # General inits
+    'Matrix_grid_dx': None,
+    'Matrix_grid_dy': None,
     'windowsize_X': 900,
     'windowsize_Y': 900,
     # Load Data Notebook

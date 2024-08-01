@@ -22,3 +22,5 @@ selected_pixel_x = 34
 selected_pixel_y = 23
 selected_fit_function = voigt
 seperate_fits = True
+Matrix_grid_dx = None
+Matrix_grid_dx = None
