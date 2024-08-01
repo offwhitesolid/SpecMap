@@ -15,7 +15,8 @@ defaults = deflib.initdefaults()
 
 print('Starting...')
 class FileProcessorApp:
-    def __init__(self, root):
+    def __init__(self, root, defaults):
+        self.defaults = defaults
         self.root = root
         self.root.title("File Processor")
         self.createmenue()
@@ -139,6 +140,7 @@ class FileProcessorApp:
         self.cl_folder_button.pack(side=tk.RIGHT, anchor='center')
 
     def spec_loadfiles(self):
+        self.defaults = deflib.initdefaults()
         folder = self.folder_entry.get()
         filename = self.filename_entry.get()
         fileend = self.fileformat_entry.get()
@@ -184,7 +186,8 @@ class FileProcessorApp:
             self.Nanomap = lib.XYMap(
                 files_processed, self.cmapframe, self.specframe, 
                 self.multiple_BG.get(), self.linearBG.get(), self.removecosmicsBool.get(), 
-                self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get(),
+                self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get(), 
+                self.defaults,
                 )
                 
             print("Success", f"Found and loaded {len(files_processed)} files.")
@@ -209,7 +212,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.geometry('{}x{}'.format(int(defaults['windowsize_X']), int(defaults['windowsize_Y'])))
     frame = tk.Frame(root)
-    app = FileProcessorApp(root)
+    app = FileProcessorApp(root, defaults)
 
     # Run the application
     root.mainloop()

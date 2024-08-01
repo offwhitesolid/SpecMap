@@ -19,9 +19,9 @@ def initdefaults():
     reqdefaults = defaults.copy()
     for i in loadeddefaults.keys():
         try:
-            reqdefaults[i] = loadeddefaults[i]
-        except:
-            pass
+            reqdefaults[i] = defaulttypes[i](loadeddefaults[i])
+        except Exception as Error:
+            print(f'Error: {Error} while loading Entries. Using default value: {reqdefaults[i]}')
     return reqdefaults
 
 def save_defaults(variables):
@@ -308,7 +308,7 @@ defaults={
     'lowest_wavelength': 600, 
     'highest_wavelength': 700,
     'colormap_threshold': 100000,
-    'fontsize': 12,
+    'fontsize': 13,
     'maxfev': 2000,
     #speckeys
     'Wavelength axis': 'WL', 
@@ -317,10 +317,10 @@ defaults={
     'Spectrum (PL-BG)': 'PLB',
     'data_set': 'Spectrum (PL-BG)',
     # buttonframe
-    'selected pixel X': 0,
-    'selected pixel Y': 0,
-    'selected fit function': 'voigt',
-
+    'selected_pixel_x': 0,
+    'selected_pixel_y': 0,
+    'selected_fit_function': 'voigt',
+    'seperate_fits': False,
 }
 
 defaulttypes = {
@@ -349,7 +349,8 @@ defaulttypes = {
     'Counts (PL)': str,
     'Spectrum (PL-BG)': str,
     'data_set': str,
-    'selected pixel X': int,
-    'selected pixel Y': int,
-    'selected fit function': str,
+    'selected_pixel_x': int,
+    'selected_pixel_y': int,
+    'selected_fit_function': str,
+    'seperate_fits': bool,
 }

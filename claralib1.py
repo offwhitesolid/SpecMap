@@ -49,12 +49,3 @@ class imageprocessor():
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_major_locator(MaxNLocator(nbins=6))  # Adjust the number of bins to fit the plot size
     
-        
-
-
-
-
-
-
-        
-    

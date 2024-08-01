@@ -30,8 +30,11 @@ def voigtwind(x, amp, cen, wid, gamma):
 def linearwind(x, a, b):
     return np.multiply(a, x) + b
 
-# fit window functions to data  
+def bessewind(x, A, B, x0, y0):
+    r = np.sqrt((x - x0)**2 + (y - y0)**2)
+    return A * jv(0, B*r)
 
+# fit window functions to data  
 def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
@@ -143,12 +146,6 @@ def gaussian2d(coords, amplitude, xo, yo, sigma_x, sigma_y, offset):
     scale = amplitude / (2 * np.pi * sigma_x * sigma_y)
     g = scale * np.exp(-(x**2 / (2 * sigma_x**2) + y**2 / (2 * sigma_y**2))) + offset
     return g.ravel()
-
-# 2d bessel function
-def bessel2d(xy, A, B, x0, y0):
-    x, y = xy
-    r = np.sqrt((x - x0)**2 + (y - y0)**2)
-    return A * jv(0, B*r) 
 
 def fitgaussiand2dtomatrixrot(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
     data = np.array(inpdata)

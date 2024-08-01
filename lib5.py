@@ -136,6 +136,7 @@ class SpectrumData:
 # create XY Map that contains the Pixels 
 class XYMap:
     def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults):
+        self.defentries = defentries
         self.remcosmicfunc = cosmicmethod
         self.removecosmics = removecosmics
         self.linearbg = linearbg
@@ -145,7 +146,7 @@ class XYMap:
         self.readinkeys = ['WL']
         self.loadeachbg = loadbg
         self.specs = []                                                     # Spectral Objects
-        self.fontsize = 12                                                  # Default Plot Font Size
+        self.fontsize = self.defentries['fontsize']                         # Default Plot Font Size
         self.colormap = tk.StringVar()                                      # Colormap
         self.fitkeys = matl.fitkeys
         # load files in hyperthreading
@@ -239,13 +240,13 @@ class XYMap:
         tk.Label(frame, text="Lowest wavelength \\ nm\nMinimum: {} nm".format(self.DataSpecMin)).grid(row=0, column=0)
         self.proc_spec_min = tk.Entry(frame)
         self.proc_spec_min.grid(row=1, column=0)
-        self.proc_spec_min.insert(0, self.DataSpecMin)
+        self.proc_spec_min.insert(0, self.defentries['lowest_wavelength'])
 
         # ProcSpecMax input field
         tk.Label(frame, text="Highest wavelength \\ nm\nMaximum: {} nm".format(self.DataSpecMax)).grid(row=2, column=0)
         self.proc_spec_max = tk.Entry(frame)
         self.proc_spec_max.grid(row=3, column=0)
-        self.proc_spec_max.insert(0, self.DataSpecMax)
+        self.proc_spec_max.insert(0, self.defentries['highest_wavelength'])
 
         # Button to create colormap
         tk.Label(frame, text="Press button below \nto update data matrix").grid(row=2, column=1)
@@ -266,13 +267,13 @@ class XYMap:
         tk.Label(frame, text="Max tries for fit").grid(row=4, column=2)
         self.fitmaxiter = tk.Entry(frame)
         self.fitmaxiter.grid(row=5, column=2)
-        self.fitmaxiter.insert(0, 1000)
+        self.fitmaxiter.insert(0, self.defentries['maxfev'])
 
         # threshold for colormap
         tk.Label(frame, text="Colormap threshold \\ Counts").grid(row=4, column=0)
         self.countthresh = tk.Entry(frame)
         self.countthresh.grid(row=5, column=0)
-        self.countthresh.insert(0, 0)
+        self.countthresh.insert(0, self.defentries['colormap_threshold'])
 
     def build_PixMatrix_frame(self, parframe):
         frame = tk.Frame(parframe, border=5, relief="sunken")
@@ -328,11 +329,11 @@ class XYMap:
         tk.Label(xyframe, text='X =').grid(row=0, column=0)
         self.selectPixX = tk.Entry(xyframe)
         self.selectPixX.grid(row=0, column=1)
-        self.selectPixX.insert(0, 0)
+        self.selectPixX.insert(0, self.defentries['selected_pixel_x'])
         tk.Label(xyframe, text='Y =').grid(row=1, column=0)
         self.selectPixY = tk.Entry(xyframe)#, text="0")
         self.selectPixY.grid(row=1, column=1)
-        self.selectPixY.insert(0, 0)
+        self.selectPixY.insert(0, self.defentries['selected_pixel_y'])
 
         tk.Label(parframe, text="Select Data Set".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
         self.selectspecpixbox = ttk.Combobox(parframe, values=list(self.speckeys.keys()))
@@ -347,7 +348,7 @@ class XYMap:
         # fit to spectrum
         tk.Label(parframe, text="Select Fit function".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
         self.selectwindowbox = ttk.Combobox(parframe, values=list(self.windowfunctions))
-        self.selectwindowbox.set(self.windowfunctions[-1])
+        self.selectwindowbox.set(self.defentries['selected_fit_function'])
         self.selectwindowbox.pack(side=tk.TOP, anchor=tk.W)
         b3 = tk.Button(parframe, text="Fit Window to Spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=True))
         b3.pack(side=tk.TOP, anchor=tk.W)
