@@ -460,7 +460,8 @@ class XYMap:
                                 print('Maxiter must be type int. Using default 1000.')
                                 self.maxiter = 1000
                             self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
-                            self.SpecDataMatrix[y][x].fitmaxY, self.SpecDataMatrix[y][x].fitmaxX = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixstart, *self.SpecDataMatrix[y][x].fitdata[:-1])
+                            self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixstart, *self.SpecDataMatrix[y][x].fitdata[:-1])
+                            #self.SpecDataMatrix[y][x].fitmaxX *= self.DataSpecdL # convert spectrometer pixel to nm
                             # get maximum using mathlib.Newtonmax
                             #self.SpecDataMatrix[y][x].fitmaxX = matl.Newtonmax(self.fitkeys[self.selectwindowboxVari][0], self.SpecDataMatrix[y][x].fitdata[0], tol=1e-6, maxiter=1000)
                             #self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[y][x].fitmaxX, *self.SpecDataMatrix[y][x].fitdata[:-1])
