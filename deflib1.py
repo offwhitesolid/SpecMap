@@ -6,11 +6,11 @@ from tkinter import filedialog
 from scipy.ndimage import median_filter
 import pandas as pd
 from scipy.interpolate import UnivariateSpline
-import os
+import os, csv
 
 # comment how cremove_cosmics works
 
-Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export Data']
+Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export']
 DEFAULTS_FILE = 'defaults.txt'
 
 # load defaults

@@ -9,6 +9,7 @@ import lib5 as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib
+import export1 as xplib
 
 # default values for GUI
 defaults = deflib.initdefaults()
@@ -189,6 +190,7 @@ class FileProcessorApp:
                 self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get(), 
                 self.defaults,
                 )
+            self.Exporter = xplib.Exportframe(self.nodeframes['Export'], self.Nanomap)
                 
             print("Success", f"Found and loaded {len(files_processed)} files.")
         else:
