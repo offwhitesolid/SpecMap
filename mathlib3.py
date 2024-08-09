@@ -30,10 +30,6 @@ def voigtwind(x, amp, cen, wid, gamma):
 def linearwind(x, a, b):
     return np.multiply(a, x) + b
 
-def bessewind(x, A, B, x0, y0):
-    r = np.sqrt((x - x0)**2 + (y - y0)**2)
-    return A * jv(0, B*r)
-
 # fit window functions to data  
 def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]

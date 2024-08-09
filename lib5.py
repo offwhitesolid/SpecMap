@@ -316,7 +316,12 @@ class XYMap:
 
 
     # Matrix with Pixels to obtain spectrum
-    def build_button_frame(self, parframe, width=600, height=600):
+    def build_button_frame(self, placeframe, width=600, height=600):
+        # create new subframe
+        parframe = tk.Frame(placeframe)
+        parframe.pack(side=tk.TOP, anchor=tk.W, fill=tk.Y)
+
+        # create input GUI, ButtonMatrix is created in buildButtonMatrix in seperate frame
         n = len(self.PixMatrix)
         m = len(self.PixMatrix[0])
         frame = tk.Frame(parframe)
@@ -365,6 +370,10 @@ class XYMap:
         
         # fram = Tkinter frame, n = len(self.PixMatrix), m = len(self.PixMatrix[0])
     def buildButtonMatrix(self, frame, n, m):
+        # create new subframe
+        butmatframe = tk.Frame(frame)
+        butmatframe.pack(side=tk.TOP, anchor=tk.W, fill=tk.BOTH, expand=True)
+
         # create buttons
         buttons = []
         self.vvars = []
@@ -373,24 +382,24 @@ class XYMap:
             row_vars = []
             for col in range(m):
                 var = [col, row]
-                button = tk.Button(frame, bg="red", command=lambda v=var: self.button_click(v))
+                button = tk.Button(butmatframe, bg="red", command=lambda v=var: self.button_click(v))
                 button.grid(row=row+1, column=col+1, sticky=tk.NSEW)
                 row_buttons.append(button)
                 row_vars.append(var)
             buttons.append(row_buttons)
             self.vvars.append(row_vars)
-        # Configure row and column weights to make buttons fill the frame
+        # Configure row and column weights to make buttons fill the butmatframe
         for row in range(1, n+1):
-            frame.rowconfigure(row, weight=1)
+            butmatframe.rowconfigure(row, weight=1)
         for col in range(1, m+1):
-            frame.columnconfigure(col, weight=1)
+            butmatframe.columnconfigure(col, weight=1)
         # Add row axis
         for row in range(n):
-            label = tk.Label(frame, text=str(round(row*self.gdx, 10)), relief=tk.RAISED)
+            label = tk.Label(butmatframe, text=str(round(row*self.gdx, 10)), relief=tk.RAISED)
             label.grid(row=row+1, column=0, sticky=tk.NSEW)
         # Add column axis
         for col in range(m):
-            label = tk.Label(frame, text=str(round(col*self.gdy, 10)), relief=tk.RAISED)
+            label = tk.Label(butmatframe, text=str(round(col*self.gdy, 10)), relief=tk.RAISED)
             label.grid(row=0, column=col+1, sticky=tk.NSEW)
         self.SpecButtons = buttons
         self.buttonframe_updateColor()
@@ -533,13 +542,13 @@ class XYMap:
                                 #messagebox.showerror("Error", "Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
                             
     
-    def updatePixelMatrix(self, variable):
+    def updatePixelMatrix(self, variable, nonecase=np.nan):
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 try:
                     self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
                 except Exception as e:
-                    self.PixMatrix[i][j] = np.nan
+                    self.PixMatrix[i][j] = nonecase
                     print("Update Pixel Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
 
 
@@ -723,6 +732,8 @@ class XYMap:
                             self.PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend])
                     except Exception as e:
                         print(str(e))
+                if self.PixMatrix[i][j] == np.nan:
+                    self.PixMatrix[i][j] = 0
                         
     def getPLpixelSpecMax(self):#getPLpixelIntervalMaxIndex(self):
         # fill matrix with data of the selected enry:
@@ -847,7 +858,8 @@ class XYMap:
             y = i.data['y-position']
             xind, yind = deflib.closest_indices(self.PixAxX, self.PixAxY, x, y)
             if type(self.SpecDataMatrix[yind][xind]) == SpectrumData:
-                print('Matrix to small for pixel resolution. Point neglected. Retry with higher resolution. {} {}'.format(xind, yind))
+                print('Point neglected of index {} {}. Its pos is {} {}. Occupiing pos is {} {}'.format(
+                    xind, yind, x, y, self.SpecDataMatrix[yind][xind].data['x-position'], self.SpecDataMatrix[yind][xind].data['y-position']))
             else:
                 #self.SpecDataMatrix[xind][yind] = i
                 self.SpecDataMatrix[yind][xind] = i
