@@ -192,7 +192,7 @@ class FileProcessorApp:
                 )
             self.Exporter = xplib.Exportframe(self.nodeframes['Export'], self.Nanomap)
                 
-            print("Success", f"Found and loaded {len(files_processed)} files.")
+            print("Success", "Found and loaded {} files.".format(len(files_processed)))
         else:
             messagebox.showinfo("No Files", "No files found with the specified name.")
 

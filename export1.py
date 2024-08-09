@@ -1,6 +1,7 @@
 # add Frame to export PixMatrix
 import csv
 import tkinter as tk
+from tkinter import filedialog
 
 class Exportframe():
     def __init__(self, Notebook, Nanomap) -> None:
@@ -17,11 +18,34 @@ class Exportframe():
     def buildframe(self):
         self.export_frame = tk.Frame(self.Notebook, borderwidth=5, relief="ridge")
         self.export_frame.grid(row=0, column=1, sticky='nsew')
-        self.export_button = tk.Button(self.export_frame, text='Export Pixel Matrix to PixMatrix.csv', command=lambda: self.export_to_csv(self.Nanomap.PixMatrix, 'PixMatrix.csv'))
-        self.export_button.grid(row=0, column=0)
+        self.export_label = tk.Label(self.export_frame, text='Export Pixel Matrix to CSV')
+        self.export_label.grid(row=0, column=0)
+        self.exportnameentry = tk.Entry(self.export_frame)
+        self.exportnameentry.insert(0, 'PixMatrix.csv')
+        self.exportnameentry.grid(row=1, column=0)    
+        self.export_button = tk.Button(self.export_frame, text='Export Pixel Matrix to .csv format', command=lambda: self.export_to_csv(self.Nanomap.PixMatrix))
+        self.export_button.grid(row=2, column=0)
+
+        # Open a "Save As" dialog to save the file
+        self.save_button = tk.Button(self.export_frame, text='Save As', command=self.save_file)
+        self.save_button.grid(row=3, column=0)
+    
+    def save_file(self):
+        file_path = filedialog.asksaveasfilename(
+        defaultextension=".csv",  # Default file extension
+        filetypes=[("Text files", "*.csv"), ("All files", "*.*")],  # File types to filter
+        title="Export PixelMatrix to .csv"  # Title of the dialog
+        )
+        return file_path
+
     
     # export a matrix like the PixMatrix to a csv file
-    def export_to_csv(self, matrix, filename):
+    def export_to_csv(self, matrix):
+        try:
+            filename = self.exportnameentry.get()
+        except:
+            filename = 'PixMatrix.csv'
+
         with open(filename, 'w', newline='') as file:
             writer = csv.writer(file)
             # first row is the header, gdx, gdy, and some further information

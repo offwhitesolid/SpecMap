@@ -130,7 +130,7 @@ class SpectrumData:
         try:
             return getattr(self, attr_name)
         except AttributeError as e:
-            print(f"Attribute {attr_name} not found in class SpectrumData.")
+            print("Attribute {} not found in class SpectrumData.".format(attr_name))
 
 
 # create XY Map that contains the Pixels 
