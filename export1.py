@@ -39,7 +39,8 @@ class Exportframe():
         filetypes=[("Text files", "*.csv"), ("All files", "*.*")],  # File types to filter
         title="Export PixelMatrix to .csv")  # Title of the dialog
         #self.export_to_csv(self.Nanomap.PixMatrix, file_path)
-        self.write_to_csv(self.Nanomap.PixMatrix, file_path)
+        if file_path != '':
+            self.write_to_csv(self.Nanomap.PixMatrix, file_path)
     
     # export a matrix like the PixMatrix to a csv file
     def export_to_csv(self, matrix, filename='PixMatrix.csv'):
@@ -60,6 +61,9 @@ class Exportframe():
         """
         with open(filename, 'w') as file:
             file.write('Matrix Data\n')
+            for i in self.metadadict.keys():
+                file.write('{} = {}\n'.format(i, str(self.metadadict[i])))
             for row in data:
-                line = '\t'.join(map(str, row))
-                file.write(line + '\n')
+                for i in range(len(row)-1):
+                    file.write(str(row[i]) + '\t')
+                file.write(str(row[-1]) + '\n')
