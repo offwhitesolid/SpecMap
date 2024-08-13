@@ -675,6 +675,10 @@ class XYMap:
         # Set the font size of the ticks on both axes
         ax.tick_params(axis='both', which='major', labelsize=self.fontsize)
         plt.tight_layout()
+
+        # click event
+        cid = fig.canvas.mpl_connect('button_press_event', deflib.on_click)
+
         plt.show()
 
     def plotPixelMatrixSpectral(self):
@@ -712,6 +716,10 @@ class XYMap:
         ax.tick_params(axis='both', which='major', labelsize=self.fontsize)
         # Create a legend
         plt.tight_layout()
+
+        # click event
+        cid = fig.canvas.mpl_connect('button_press_event', deflib.on_click)
+
         plt.show()
 
     def getPLpixelIntervalMaxIndex(self):#getPLpixelSpecMax(self):
