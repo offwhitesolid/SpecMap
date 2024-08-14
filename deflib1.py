@@ -256,15 +256,6 @@ def loadclaraimage(file):
         y = []  
     return np.asarray(data)
 
-# Function to handle click events of the image
-def on_click(event):
-    # Check if the click was within the axes
-    if event.inaxes:
-        # Get the coordinates of the click in pixel space
-        x = int(event.xdata)
-        y = int(event.ydata)
-        print(f"Clicked pixel: ({x}, {y}) - Value: {image[y, x]}")
-
 def closest_indices(X, Y, px, py):
     X = np.asarray(X)
     Y = np.asarray(Y)

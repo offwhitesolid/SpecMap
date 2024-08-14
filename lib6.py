@@ -339,6 +339,9 @@ class XYMap:
         self.selectPixY = tk.Entry(xyframe)#, text="0")
         self.selectPixY.grid(row=1, column=1)
         self.selectPixY.insert(0, self.defentries['selected_pixel_y'])
+        # inside xyframe
+        self.newselx = 0
+        self.newsely = 0
 
         tk.Label(parframe, text="Select Data Set".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
         self.selectspecpixbox = ttk.Combobox(parframe, values=list(self.speckeys.keys()))
@@ -406,10 +409,9 @@ class XYMap:
         #return buttons
 
     def button_click(self, var):
-        self.selectPixX.delete(0, tk.END)
-        self.selectPixX.insert(0, var[0])
-        self.selectPixY.delete(0, tk.END)
-        self.selectPixY.insert(0, var[1])
+        self.newselx = var[0]
+        self.newsely = var[1]
+        self.updateselectionentries()
     
     def buttonframe_updateColor(self):
         for i in range(len(self.SpecDataMatrix)):
@@ -421,6 +423,12 @@ class XYMap:
                         self.SpecButtons[i][j].config(bg="red")
                 else:
                     self.SpecButtons[i][j].config(bg="red")
+
+    def updateselectionentries(self):
+        self.selectPixX.delete(0, tk.END)
+        self.selectPixX.insert(0, self.newselx)
+        self.selectPixY.delete(0, tk.END)
+        self.selectPixY.insert(0, self.newsely)
 
     # Max Counts Colormap
     def buildandPlotIntCmap(self):
@@ -580,6 +588,15 @@ class XYMap:
             messagebox.showerror("Error", '{} Insert valid Y-Position.'.format(str(e)))
         return(x, y, valid)
 
+    # Function to handle click events of the image
+    def on_click(self, event, image):
+        # Check if the click was within the axes
+        if event.inaxes:
+            # Get the coordinates of the click in pixel space
+            self.newselx = int(event.xdata)
+            self.newsely = int(event.ydata)
+            print("Clicked pixel: ({0}, {1}) - Value: {2}".format(self.newselx, self.newsely, image[self.newsely][self.newselx]))
+
     def PlotPixelSpectrum(self):
         x, y, valid = self.validpixelinput()        
         if valid[0] == True and valid[1] == True:
@@ -677,7 +694,8 @@ class XYMap:
         plt.tight_layout()
 
         # click event
-        cid = fig.canvas.mpl_connect('button_press_event', deflib.on_click)
+        cid = fig.canvas.mpl_connect('button_press_event', lambda event: deflib.on_click(event, self.PixMatrix))
+        self.updateselectionentries()
 
         plt.show()
 
@@ -718,7 +736,8 @@ class XYMap:
         plt.tight_layout()
 
         # click event
-        cid = fig.canvas.mpl_connect('button_press_event', deflib.on_click)
+        cid = fig.canvas.mpl_connect('button_press_event', lambda event: deflib.on_click(event, self.PixMatrix))
+        self.updateselectionentries()
 
         plt.show()
 
