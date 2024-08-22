@@ -46,7 +46,7 @@ git clone REPO_URL
 Example:
 bash
 Code kopieren
-git clone https://github.com/ username/repo-name.git (without space)
+git clone https://github.com/username/repo-name.git
 This will download the repository to your local machine.
 Step 3: Open the Repository in Visual Studio Code
 Launch Visual Studio Code:
