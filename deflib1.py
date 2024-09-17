@@ -307,7 +307,7 @@ defaults={
 
     # Hyperspectra Notebook
     # cmap frame
-    'lowest_wavelength': 600, 
+    'lowest_wavelength': 500, 
     'highest_wavelength': 700,
     'colormap_threshold': 100000,
     'fontsize': 13,

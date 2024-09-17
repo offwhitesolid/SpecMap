@@ -76,6 +76,6 @@ That's it! You've successfully cloned a GitHub repository, edited it locally, an
 
 Python: 
 install python 3.12 and the packages
-numpy, pandas, matplotlib using pip install
+numpy, pandas, matplotlib, scipy using pip install
 
 Igor: 
