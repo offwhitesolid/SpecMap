@@ -4,6 +4,7 @@ from scipy.special import wofz
 from scipy.optimize import fminbound
 from scipy.special import jv
 from matplotlib.ticker import MaxNLocator
+from scipy.signal import find_peaks
 
 import matplotlib.pyplot as plt
 
@@ -29,6 +30,92 @@ def voigtwind(x, amp, cen, wid, gamma):
 
 def linearwind(x, a, b):
     return np.multiply(a, x) + b
+
+# estimate initial parameters for fitting functions
+
+def estimate_voigt_params(x, y):
+    """
+    Estimate good starting values for fitting a Voigt profile.
+    
+    Parameters:
+    - x: Array of x values.
+    - y: Array of y values.
+    
+    Returns:
+    - amp_init: Estimated amplitude of the Voigt peak.
+    - cen_init: Estimated center (location) of the Voigt peak.
+    - wid_init: Estimated width (FWHM) of the Voigt peak.
+    - gamma_init: Estimated Lorentzian width (gamma), set to a small value initially.
+    """
+    # Estimate amplitude as the max value of y
+    amp_init = np.max(y)
+    
+    # Estimate center as the x value where y is maximum
+    cen_init = x[np.argmax(y)]
+    
+    # Estimate FWHM (Full Width at Half Maximum)
+    half_max = amp_init / 2
+    
+    # Find where y crosses half_max to calculate the width
+    left_idx = np.where(y > half_max)[0][0]  # First index where y > half max
+    right_idx = np.where(y > half_max)[0][-1]  # Last index where y > half max
+    fwhm = x[right_idx] - x[left_idx]  # Approximate FWHM as width
+    
+    # Set initial width (wid) as the FWHM
+    wid_init = fwhm
+    
+    # Set an initial small value for gamma
+    gamma_init = 0.1  # You can adjust this based on data
+    
+    return amp_init, cen_init, wid_init, gamma_init
+
+def estimate_double_voigt_params(x, y):
+    """
+    Estimate good starting values for fitting a double Voigt profile.
+    
+    Parameters:
+    - x: Array of x values.
+    - y: Array of y values.
+    
+    Returns:
+    - amp_init: List of estimated amplitudes for the two Voigt peaks.
+    - cen_init: List of estimated centers (locations) for the two Voigt peaks.
+    - wid_init: List of estimated widths (FWHM) for the two Voigt peaks.
+    - gamma_init: List of estimated Lorentzian widths (gamma) for both peaks.
+    """
+    # Find two prominent peaks in the data
+    peaks, _ = find_peaks(y, height=0.1, distance=10)  # Adjust height and distance if needed
+    
+    if len(peaks) < 2:
+        raise ValueError("Less than two peaks found in the data. Make sure the data contains two distinct peaks.")
+
+    # Sort the peaks by prominence (highest peaks first)
+    sorted_peaks = peaks[np.argsort(y[peaks])][::-1]  # Sort peaks by height, highest first
+    
+    amp_init = []
+    cen_init = []
+    wid_init = []
+    gamma_init = []
+
+    # Estimate parameters for each peak
+    for peak_idx in sorted_peaks[:2]:  # Only consider the top 2 peaks
+        amp = y[peak_idx]  # Amplitude is the peak height
+        cen = x[peak_idx]  # Center is the x-value at the peak
+
+        # Estimate FWHM (Full Width at Half Maximum)
+        half_max = amp / 2
+        left_idx = np.where(y > half_max)[0][0]  # First index where y > half max
+        right_idx = np.where(y > half_max)[0][-1]  # Last index where y > half max
+        fwhm = x[right_idx] - x[left_idx]  # Approximate FWHM as width
+
+        # Set initial values for this peak
+        amp_init.append(amp)
+        cen_init.append(cen)
+        wid_init.append(fwhm)
+        gamma_init.append(0.1)  # Small initial value for gamma
+    
+    return amp_init[0], amp_init[1], cen_init[0], cen_init[1], wid_init[0], wid_init[1], gamma_init[0], gamma_init[1]
+
 
 # fit window functions to data  
 def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000):
@@ -58,7 +145,8 @@ def fitdoublevoigttospec(start, end, WL, PLB, maxfev=10000):
 def fitvoigttospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = [np.max(y), x[np.argmax(y)], np.std(x), np.std(x)]
+    #initialguess = [np.max(y), x[np.argmax(y)], np.std(x)*2, np.std(x)]
+    initialguess = estimate_voigt_params(x, y)
     fitdata, pcov = curve_fit(voigtwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit, gamma_fit = fitdata
     return amp_fit, cen_fit, wid_fit, gamma_fit, pcov
@@ -66,7 +154,7 @@ def fitvoigttospec(start, end, WL, PLB, maxfev=10000):
 def fitlorentztospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = [np.max(y), x[np.argmax(y)], np.std(x)]
+    initialguess = [np.max(y), x[np.argmax(y)], np.std(x)*2.4]
     fitdata, pcov = curve_fit(lorentzwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit = fitdata
     return amp_fit, cen_fit, wid_fit, pcov
