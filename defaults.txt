@@ -1,4 +1,4 @@
-data_file = E:/Promotion/2024/data/HSI20240909_I03
+data_file = E:/Promotion/2024/data/HSI20240909_I01
 filename = HSI
 file_extension = .txt
 multiple_Background = False
@@ -9,8 +9,8 @@ cosmic_width = 10
 cosmic_method = Linear Interpolation
 clara_image = C:/Users/mol95ww/Desktop/Evaluation/data/2024/qdot_100fach/Laser_in_zpos/145_0.asc
 lowest_wavelength = 500
-highest_wavelength = 740.215
-colormap_threshold = 1000
+highest_wavelength = 570
+colormap_threshold = 30000
 fontsize = 12
 maxfev = 5000
 Wavelength axis = WL

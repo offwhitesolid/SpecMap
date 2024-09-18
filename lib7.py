@@ -515,12 +515,12 @@ class XYMap:
                                     if np.sum(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                         self.PixMatrix[i][j] = np.nan
                                     else:
-                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
+                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend][np.where(np.amax(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend])[0][0])]+self.aqpixstart]
                                 elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
                                     if np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                         self.PixMatrix[i][j] = np.nan
                                     else:
-                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
+                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend][np.where(np.amax(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend])[0][0])]+self.aqpixstart]
                                 elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                         self.PixMatrix[i][j] = np.nan
@@ -779,22 +779,22 @@ class XYMap:
                             if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                 self.PixMatrix[i][j] = np.nan
                             else:
-                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
+                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                         elif self.speckeys[self.selectspecboxVari] == 'BG': #Background
                             if np.sum(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                 self.PixMatrix[i][j] = np.nan
                             else:
-                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
+                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                         elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
                             if np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                 self.PixMatrix[i][j] = np.nan
                             else:
-                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
+                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                         elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                             if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                 self.PixMatrix[i][j] = np.nan
                             else:
-                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend].index(np.amax(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]))+self.aqpixstart]
+                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                     except Exception as e:
                         print('Error in getPLpixelSpecMax', str(e))
                 else:
