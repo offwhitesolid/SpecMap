@@ -296,7 +296,7 @@ class XYMap:
             print('Maxiter must be type int. Using default 1000.')
             self.maxiter = 1000
         try:
-            matl.fitgaussian2dtomatrix(self.PixMatrix, True, self.gdx, self.gdy, self.colormap.get(), maxfev=self.maxiter)
+            matl.fitgaussian2dtomatrix(self.Intmatrix, True, self.gdx, self.gdy, self.colormap.get(), maxfev=self.maxiter)
         except:
             print('2D Gaussian Fit failed.')
             
@@ -307,8 +307,8 @@ class XYMap:
             print('Maxiter must be type int. Using default 1000.')
             self.maxiter = 1000
         try:
-            matl.fitgaussiand2dtomatrixrot(self.PixMatrix, True, self.gdx, self.gdy, self.colormap.get(), maxfev=self.maxiter)
-            #fitdata, pcov, fwhmx, fwhmy = matl.fitgaussiand2dtomatrix(self.PixMatrix, maxfev=self.maxiter)
+            matl.fitgaussiand2dtomatrixrot(self.Intmatrix, True, self.gdx, self.gdy, self.colormap.get(), maxfev=self.maxiter)
+            #fitdata, pcov, fwhmx, fwhmy = matl.fitgaussiand2dtomatrix(self.Intmatrix, maxfev=self.maxiter)
             #print(fitdata, pcov, fwhmx, fwhmy)
         except Exception as Error:
             print('2D rotational Gaussian Fit failed.', Error)
@@ -371,7 +371,7 @@ class XYMap:
         #buttons = self.buildButtonMatrix(frame, n, m)
         return buttons
         
-        # fram = Tkinter frame, n = len(self.PixMatrix), m = len(self.PixMatrix[0])
+        # fram = Tkinter frame, n = len(self.Intmatrix), m = len(self.Intmatrix[0])
     def buildButtonMatrix(self, frame, n, m):
         # create new subframe
         butmatframe = tk.Frame(frame)
@@ -476,13 +476,15 @@ class XYMap:
                             except:
                                 print('Maxiter must be type int. Using default 1000.')
                                 self.maxiter = 1000
+                            print('obtain fitdata')
                             self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
+                            print('obtain xmax, ymax')
                             self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixstart, *self.SpecDataMatrix[y][x].fitdata[:-1])
                             #self.SpecDataMatrix[y][x].fitmaxX *= self.DataSpecdL # convert spectrometer pixel to nm
                             # get maximum using mathlib.Newtonmax
                             #self.SpecDataMatrix[y][x].fitmaxX = matl.Newtonmax(self.fitkeys[self.selectwindowboxVari][0], self.SpecDataMatrix[y][x].fitdata[0], tol=1e-6, maxiter=1000)
                             #self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[y][x].fitmaxX, *self.SpecDataMatrix[y][x].fitdata[:-1])
-                            self.PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
+                            self.Intmatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
                         
                             #plt.scatter(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY, color='red')
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
@@ -510,20 +512,20 @@ class XYMap:
                             try:
                                 if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
                                     if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.PixMatrix[i][j] = np.nan
+                                        self.Intmatrix[i][j] = np.nan
                                 elif self.speckeys[self.selectspecboxVari] == 'BG': #Background
                                     if np.sum(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.PixMatrix[i][j] = np.nan
+                                        self.Intmatrix[i][j] = np.nan
                                     else:
-                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend][np.where(np.amax(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend])[0][0])]+self.aqpixstart]
+                                        self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend][np.where(np.amax(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend])[0][0])]+self.aqpixstart]
                                 elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
                                     if np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.PixMatrix[i][j] = np.nan
+                                        self.Intmatrix[i][j] = np.nan
                                     else:
-                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend][np.where(np.amax(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend])[0][0])]+self.aqpixstart]
+                                        self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend][np.where(np.amax(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend])[0][0])]+self.aqpixstart]
                                 elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.PixMatrix[i][j] = np.nan
+                                        self.Intmatrix[i][j] = np.nan
                                     else:
                                         try:
                                             self.maxiter = int(self.fitmaxiter.get())
@@ -538,7 +540,7 @@ class XYMap:
                                     # check if maximum is within the window
                                     if self.SpecDataMatrix[i][j].fitmaxX >= self.aqpixstart and self.SpecDataMatrix[i][j].fitmaxX <= self.aqpixend:
                                         worked = True
-                                        self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                                        self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
                             except Exception as e:
                                 try:
                                     if adjmin == True:
@@ -558,9 +560,9 @@ class XYMap:
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 try:
-                    self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                    self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
                 except Exception as e:
-                    self.PixMatrix[i][j] = nonecase
+                    self.Intmatrix[i][j] = nonecase
                     print("Update Pixel Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
 
 
@@ -668,13 +670,13 @@ class XYMap:
     def plotPixelMatrixIntensity(self, cmapticks=6):
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
-        cax = ax.imshow(self.PixMatrix, cmap=self.colormap.get()) # aspect='auto' for cubic image
+        cax = ax.imshow(self.Intmatrix, cmap=self.colormap.get()) # aspect='auto' for cubic image
         # Add a colorbar to the image
         cbar = fig.colorbar(cax, ax=ax)
         # Set the colorbar label
         cbar.set_label('Spectrometer Counts', fontsize=self.fontsize)
         # Set the ticks of the colormap
-        #cbar_ticks=np.linspace(np.amin(self.PixMatrix), np.amax(self.PixMatrix), cmapticks)
+        #cbar_ticks=np.linspace(np.amin(self.Intmatrix), np.amax(self.Intmatrix), cmapticks)
         #cbar.set_ticks(cbar_ticks)
         # Set the font size of the colorbar ticks
         cbar.ax.tick_params(labelsize=self.fontsize)
@@ -698,7 +700,7 @@ class XYMap:
         plt.tight_layout()
 
         # click event
-        cid = fig.canvas.mpl_connect('button_press_event', lambda event: deflib.on_click(event, self.PixMatrix))
+        cid = fig.canvas.mpl_connect('button_press_event', lambda event: deflib.on_click(event, self.Intmatrix))
         self.updateselectionentries()
 
         plt.show()
@@ -706,7 +708,7 @@ class XYMap:
     def plotPixelMatrixSpectral(self):
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
-        cax = ax.imshow(self.PixMatrix, cmap=self.colormap.get())#'viridis')
+        cax = ax.imshow(self.Intmatrix, cmap=self.colormap.get())#'viridis')
         # Add a colorbar to the image
         cbar = fig.colorbar(cax, ax=ax)
         # Set the colorbar label
@@ -740,7 +742,7 @@ class XYMap:
         plt.tight_layout()
 
         # click event
-        cid = fig.canvas.mpl_connect('button_press_event', lambda event: deflib.on_click(event, self.PixMatrix))
+        cid = fig.canvas.mpl_connect('button_press_event', lambda event: deflib.on_click(event, self.Intmatrix))
         self.updateselectionentries()
 
         plt.show()
@@ -754,17 +756,17 @@ class XYMap:
                     try:
                         self.selectspecboxVari = self.selectspecbox.get()
                         if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
-                            self.PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend])
+                            self.Intmatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend])
                         elif self.speckeys[self.selectspecboxVari] == 'BG': #Background
-                            self.PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend])
+                            self.Intmatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend])
                         elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
-                            self.PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend])
+                            self.Intmatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend])
                         elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
-                            self.PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend])
+                            self.Intmatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend])
                     except Exception as e:
                         print(str(e))
-                if self.PixMatrix[i][j] == np.nan:
-                    self.PixMatrix[i][j] = 0
+                if self.Intmatrix[i][j] == np.nan:
+                    self.Intmatrix[i][j] = 0
                         
     def getPLpixelSpecMax(self):#getPLpixelIntervalMaxIndex(self):
         # fill matrix with data of the selected enry:
@@ -777,28 +779,28 @@ class XYMap:
                         self.selectspecboxVari = self.selectspecbox.get()
                         if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
                             if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                self.PixMatrix[i][j] = np.nan
+                                self.Intmatrix[i][j] = np.nan
                             else:
-                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
+                                self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                         elif self.speckeys[self.selectspecboxVari] == 'BG': #Background
                             if np.sum(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                self.PixMatrix[i][j] = np.nan
+                                self.Intmatrix[i][j] = np.nan
                             else:
-                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
+                                self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                         elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
                             if np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                self.PixMatrix[i][j] = np.nan
+                                self.Intmatrix[i][j] = np.nan
                             else:
-                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
+                                self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                         elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                             if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                self.PixMatrix[i][j] = np.nan
+                                self.Intmatrix[i][j] = np.nan
                             else:
-                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
+                                self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                     except Exception as e:
                         print('Error in getPLpixelSpecMax', str(e))
                 else:
-                    self.PixMatrix[i][j] = np.nan
+                    self.Intmatrix[i][j] = np.nan
 
     def loadfiles(self):
         # read WL axis once for all files (must be same for all datafiles)
@@ -867,6 +869,7 @@ class XYMap:
             self.PixAxY = [0]
             self.SpecDataMatrix = [[self.specs[0]]]
             self.PixMatrix = [[0]]
+            self.Intmatrix = [[0]]
             self.gdx = 0
             self.gdy = 0
         else:
@@ -879,6 +882,7 @@ class XYMap:
             self.mxcoords = sorted(self.mxcoords)
             self.mycoords = sorted(self.mycoords)
             self.PixMatrix, self.SpecDataMatrix, self.PixAxX, self.PixAxY = self.genmatgrid(self.mxcoords, self.mycoords)
+            self.Intmatrix = self.PixMatrix[:]
             self.SpecdataintoMatrix()
 
     # set the spectra into the array
@@ -928,3 +932,12 @@ class XYMap:
             SpectralMatrix.append(fillmat)
             PixelMatrix.append(pixmat)
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
+    
+    def writetopixmatrix(self, matrix, nanzero=False):
+        for i in range(len(matrix)):
+            for j in range(len(matrix[i])):
+                if nanzero == True:
+                    if np.isnan(matrix[i][j]):
+                        self.PixMatrix[i][j] = 0
+                    else:
+                        self.PixMatrix[i][j] = matrix[i][j]

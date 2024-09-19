@@ -114,14 +114,124 @@ def estimate_double_voigt_params(x, y):
         wid_init.append(fwhm)
         gamma_init.append(0.1)  # Small initial value for gamma
     
-    return amp_init[0], amp_init[1], cen_init[0], cen_init[1], wid_init[0], wid_init[1], gamma_init[0], gamma_init[1]
+    return amp_init[0], cen_init[0], wid_init[0], gamma_init[0], amp_init[1], cen_init[1], wid_init[1], gamma_init[1]
 
+def estimate_double_gaussian_params(x, y):
+    """
+    Estimate good starting values for fitting a double Gaussian function.
+    
+    Parameters:
+    - x: Array of x values.
+    - y: Array of y values.
+    
+    Returns:
+    - A1_init, mu1_init, sigma1_init: Estimated parameters for the first Gaussian.
+    - A2_init, mu2_init, sigma2_init: Estimated parameters for the second Gaussian.
+    """
+    # Find two prominent peaks in the data
+    peaks, _ = find_peaks(y, height=0.1, distance=len(x) // 5)  # Adjust parameters as necessary
+
+    if len(peaks) < 2:
+        raise ValueError("Less than two peaks found in the data. Ensure the data has two distinct peaks.")
+
+    # Sort the peaks by height (prominence), highest peaks first
+    sorted_peaks = peaks[np.argsort(y[peaks])][::-1]
+
+    # Initialize arrays for the parameters
+    amp_init = []
+    cen_init = []
+    sigma_init = []
+
+    # Estimate parameters for each peak (top 2 peaks)
+    for peak_idx in sorted_peaks[:2]:
+        # Amplitude is the height at the peak
+        A = y[peak_idx]
+        
+        # Center is the x-value at the peak
+        mu = x[peak_idx]
+
+        # Estimate FWHM by finding where the peak crosses half its maximum
+        half_max = A / 2
+        left_idx = np.where(y[:peak_idx] < half_max)[0][-1]  # Left crossing
+        right_idx = np.where(y[peak_idx:] < half_max)[0][0] + peak_idx  # Right crossing
+
+        fwhm = x[right_idx] - x[left_idx]
+        
+        # Estimate sigma from FWHM (Gaussian relationship: FWHM ≈ 2.355 * sigma)
+        sigma = fwhm / 2.355
+
+        # Append initial estimates
+        amp_init.append(A)
+        cen_init.append(mu)
+        sigma_init.append(sigma)
+
+    # Return initial parameters for both Gaussians
+    A1_init, mu1_init, sigma1_init = amp_init[0], cen_init[0], sigma_init[0]
+    A2_init, mu2_init, sigma2_init = amp_init[1], cen_init[1], sigma_init[1]
+    
+    return A1_init, mu1_init, sigma1_init, A2_init, mu2_init, sigma2_init
+
+def estimate_double_lorentz_params(x, y):
+    """
+    Estimate good starting values for fitting a double Lorentzian function.
+    
+    Parameters:
+    - x: Array of x values.
+    - y: Array of y values.
+    
+    Returns:
+    - A1_init, mu1_init, gamma1_init: Estimated parameters for the first Lorentzian.
+    - A2_init, mu2_init, gamma2_init: Estimated parameters for the second Lorentzian.
+    """
+    # Find two prominent peaks in the data
+    peaks, _ = find_peaks(y, height=0.1, distance=len(x) // 5)  # Adjust parameters if necessary
+
+    if len(peaks) < 2:
+        raise ValueError("Less than two peaks found in the data. Ensure the data has two distinct peaks.")
+
+    # Sort peaks by height (prominence), highest peaks first
+    sorted_peaks = peaks[np.argsort(y[peaks])][::-1]
+
+    # Initialize arrays for the parameters
+    amp_init = []
+    cen_init = []
+    gamma_init = []
+
+    # Estimate parameters for each peak (top 2 peaks)
+    for peak_idx in sorted_peaks[:2]:
+        # Amplitude is the height at the peak
+        A = y[peak_idx]
+        
+        # Center is the x-value at the peak
+        mu = x[peak_idx]
+
+        # Estimate HWHM by finding where the peak crosses half its maximum
+        half_max = A / 2
+        left_idx = np.where(y[:peak_idx] < half_max)[0][-1]  # Left crossing
+        right_idx = np.where(y[peak_idx:] < half_max)[0][0] + peak_idx  # Right crossing
+
+        fwhm = x[right_idx] - x[left_idx]
+        
+        # For Lorentzian, the HWHM is directly related to gamma
+        gamma = fwhm / 2
+
+        # Append initial estimates
+        amp_init.append(A)
+        cen_init.append(mu)
+        gamma_init.append(gamma)
+
+    # Return initial parameters for both Lorentzians
+    A1_init, mu1_init, gamma1_init = amp_init[0], cen_init[0], gamma_init[0]
+    A2_init, mu2_init, gamma2_init = amp_init[1], cen_init[1], gamma_init[1]
+    
+    return A1_init, mu1_init, gamma1_init, A2_init, mu2_init, gamma2_init
 
 # fit window functions to data  
 def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = [np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)]
+    initialguess = estimate_double_gaussian_params(x, y)
+    #[np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)] old fit estimate
     fitdata, pcov = curve_fit(double_gaussianwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit, pcov
@@ -129,7 +239,8 @@ def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000):
 def fitdoublelorentztospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = [np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)]
+    initialguess = estimate_double_lorentz_params(x, y)
+    #[np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)] old fit estimate
     fitdata, pcov = curve_fit(double_lorentzwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit, pcov
@@ -137,7 +248,8 @@ def fitdoublelorentztospec(start, end, WL, PLB, maxfev=10000):
 def fitdoublevoigttospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = [np.max(y), x[np.argmax(y)], np.std(x), np.std(x), np.max(y), x[np.argmax(y)], np.std(x), np.std(x)]
+    initialguess = estimate_double_voigt_params(x, y)
+    #[np.max(y), x[np.argmax(y)], np.std(x), np.std(x), np.max(y), x[np.argmax(y)], np.std(x), np.std(x)] old fit estimate
     fitdata, pcov = curve_fit(double_voigtwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, gamma1_fit, amp2_fit, cen2_fit, wid2_fit, gamma2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, gamma1_fit, amp2_fit, cen2_fit, wid2_fit, gamma2_fit, pcov
@@ -193,11 +305,12 @@ def getmaxdoublelorentz(xmin, xmax, amp1, cen1, wid1, amp2, cen2, wid2):
     return x, -fun
 
 def getmaxdoublevoigt(xmin, xmax, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2):
-    xmax = Newtonmax(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
-    ymax = double_voigtwind(xmax, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
+    #xmaximum = Newtonmax(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
+    xmaximum = find_max_of_fit(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), xmin=xmin, xmax=xmax)
+    ymaximum = double_voigtwind(xmaximum, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
     #success, x, fun = find_max_of_fit(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), xmin=xmin, xmax=xmax)
     #return x, -fun
-    return xmax, ymax
+    return xmaximum, ymaximum
 
 # max of 1D Fit functions can be obtained by reading their parameters
 def getmaxgaussian(xmin, xmax, amp, cen, wid):
