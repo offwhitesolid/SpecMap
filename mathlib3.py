@@ -9,6 +9,7 @@ from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 
 # window functions
+# new test
 
 def double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2):
     return voigtwind(x, amp1, cen1, wid1, gamma1) + voigtwind(x, amp2, cen2, wid2, gamma2)
