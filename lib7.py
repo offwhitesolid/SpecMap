@@ -434,15 +434,23 @@ class XYMap:
     def buildandPlotIntCmap(self):
         self.getPLpixelIntervalMaxIndex()
         self.readfontsize()
+        self.writetopixmatrix(self.Intmatrix)
         self.plotPixelMatrixIntensity()
         
     # Spectral Maximum Colormap
     def buildandPlotSpecCmap(self):
         self.updatewl()
+        self.updatecountthresh()
         self.getPLpixelSpecMax()
         self.readfontsize()
         self.fittoMatrix('fitmaxX')
-        self.plotPixelMatrixSpectral()
+        self.writetopixmatrix(self.Intmatrix)
+    
+        try:
+            self.plotPixelMatrixSpectral()
+        except Exception as e:
+            print('Plot failed. {}'.format(str(e)))
+            plt.cla()
     
     def updateandPlotSpecCmap(self, variable):
         #self.updatePixelMatrix(variable)
@@ -476,15 +484,12 @@ class XYMap:
                             except:
                                 print('Maxiter must be type int. Using default 1000.')
                                 self.maxiter = 1000
-                            print('obtain fitdata')
                             self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
-                            print('obtain xmax, ymax')
                             self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixstart, *self.SpecDataMatrix[y][x].fitdata[:-1])
+                            self.SpecDataMatrix[y][x].fitmaxX = self.SpecDataMatrix[y][x].fitmaxX*self.DataSpecdL+self.DataSpecMin
                             #self.SpecDataMatrix[y][x].fitmaxX *= self.DataSpecdL # convert spectrometer pixel to nm
-                            # get maximum using mathlib.Newtonmax
-                            #self.SpecDataMatrix[y][x].fitmaxX = matl.Newtonmax(self.fitkeys[self.selectwindowboxVari][0], self.SpecDataMatrix[y][x].fitdata[0], tol=1e-6, maxiter=1000)
-                            #self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[y][x].fitmaxX, *self.SpecDataMatrix[y][x].fitdata[:-1])
                             self.Intmatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
+                            print('Fit worked, {} {}'.format(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY))
                         
                             #plt.scatter(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY, color='red')
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
@@ -493,8 +498,8 @@ class XYMap:
                         print('Fit filed. {}'.format(str(e)))
         else:
             print(self.SpecDataMatrix[y][x])        
-    
-    def fittoMatrix(self, variable='fitmaxX', incmin=1, incmax=-1, nmin=10, nmax=10):
+
+    def fittoMatrix(self, variable='fitmaxX', incmin=1, incmax=-1, nmin=20, nmax=20):
         # fill matrix with data of the selected enry:
         self.updatecountthresh()
         for i in range(len(self.SpecDataMatrix)):
@@ -510,6 +515,8 @@ class XYMap:
                         while tries < nmin+nmax and worked == False:
                             tries += 1
                             try:
+                                # fit function to spectrum only for PLB implemented
+                                '''
                                 if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
                                     if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                         self.Intmatrix[i][j] = np.nan
@@ -523,7 +530,8 @@ class XYMap:
                                         self.Intmatrix[i][j] = np.nan
                                     else:
                                         self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend][np.where(np.amax(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend])[0][0])]+self.aqpixstart]
-                                elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
+                                '''
+                                if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                         self.Intmatrix[i][j] = np.nan
                                     else:
@@ -536,11 +544,16 @@ class XYMap:
                                         self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
                                         #_, self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = matl.find_max_of_fit(self.SpecDataMatrix[i][j].fitdata, xmin=self.aqpixstart, xmax=self.aqpixend)
                 
-                                if self.SpecDataMatrix[i][j].fitdata != [None]:
-                                    # check if maximum is within the window
-                                    if self.SpecDataMatrix[i][j].fitmaxX >= self.aqpixstart and self.SpecDataMatrix[i][j].fitmaxX <= self.aqpixend:
+                                if self.SpecDataMatrix[i][j].fitdata == [None]:
+                                    self.Intmatrix[i][j] = np.nan 
+                                else:
+                                    # check if maximum is within the window and set to Intmatrix
+                                    if self.SpecDataMatrix[i][j].fitmaxX >= self.wlstart and self.SpecDataMatrix[i][j].fitmaxX <= self.wlend:
                                         worked = True
                                         self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                                    else:
+                                        pass
+                                        #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
                             except Exception as e:
                                 try:
                                     if adjmin == True:
@@ -552,9 +565,9 @@ class XYMap:
                                 except:
                                     print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
                                     worked = True
-                                print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
-                                #messagebox.showerror("Error", "Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
-                            
+                                print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))       
+        plt.imshow(self.Intmatrix)                    
+        plt.show()
     
     def updatePixelMatrix(self, variable, nonecase=np.nan):
         for i in range(len(self.SpecDataMatrix)):
@@ -620,7 +633,7 @@ class XYMap:
                         self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrometer Counts')
                     elif self.speckeys[self.selectdataboxVari] == 'PLB': #Spectrum
                         data = self.SpecDataMatrix[y][x].PLB
-                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrum')
+                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'PL Spectrum')
                     else:
                         print('No valid Data set selected for the Plot.')
 
@@ -656,8 +669,11 @@ class XYMap:
                 plt.plot(x, matl.voigtwind(x, fitfunc[0][0], fitfunc[0][1], fitfunc[0][2]), label='Voigt 1', color='red')
                 plt.plot(x, matl.voigtwind(x, fitfunc[0][3], fitfunc[0][4], fitfunc[0][5]), label='Voigt 2', color='green')
         else:  
-            for i in range(len(fitdata)):
-                plt.plot(x, fitfunc[i](x, *fitdata[i]), label=label[i+1], color='red')  
+            try:
+                for i in range(len(fitdata)):
+                    plt.plot(x, fitfunc[i](x, *fitdata[i]), label=label[i+1], color='red')  
+            except:
+                plt.show()
         plt.xlabel('Wavelength / nm', fontsize=self.fontsize)
         plt.ylabel('Intensity', fontsize=self.fontsize)
         plt.title('Spectrograph Data', fontsize=self.fontsize)
@@ -708,7 +724,7 @@ class XYMap:
     def plotPixelMatrixSpectral(self):
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
-        cax = ax.imshow(self.Intmatrix, cmap=self.colormap.get())#'viridis')
+        cax = ax.imshow(self.PixMatrix, cmap=self.colormap.get())#'viridis')
         # Add a colorbar to the image
         cbar = fig.colorbar(cax, ax=ax)
         # Set the colorbar label
@@ -869,7 +885,6 @@ class XYMap:
             self.PixAxY = [0]
             self.SpecDataMatrix = [[self.specs[0]]]
             self.PixMatrix = [[0]]
-            self.Intmatrix = [[0]]
             self.gdx = 0
             self.gdy = 0
         else:
@@ -933,11 +948,7 @@ class XYMap:
             PixelMatrix.append(pixmat)
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
     
-    def writetopixmatrix(self, matrix, nanzero=False):
+    def writetopixmatrix(self, matrix):
         for i in range(len(matrix)):
             for j in range(len(matrix[i])):
-                if nanzero == True:
-                    if np.isnan(matrix[i][j]):
-                        self.PixMatrix[i][j] = 0
-                    else:
-                        self.PixMatrix[i][j] = matrix[i][j]
+                self.PixMatrix[i][j] = matrix[i][j]

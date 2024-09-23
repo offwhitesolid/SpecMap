@@ -231,7 +231,7 @@ def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000):
     x = WL[start: end]
     y = PLB[start: end]
     initialguess = estimate_double_gaussian_params(x, y)
-    #[np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)] old fit estimate
+    #[np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)] #old fit estimate
     fitdata, pcov = curve_fit(double_gaussianwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit, pcov
@@ -292,25 +292,23 @@ def fitlinetospec(start, end, WL, PLB, maxfev=10000):
 # get maxima of fitted functions
 def getmaxdoublegaussian(xmin, xmax, amp1, cen1, wid1, amp2, cen2, wid2):
     # use newton method to find max
-    #xmax = Newtonmax(lambda x: -double_gaussianwind(x, amp1, cen1, wid1, amp2, cen2, wid2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
-    #ymax = double_gaussianwind(xmax, amp1, cen1, wid1, amp2, cen2, wid2)
-    success, x, fun = find_max_of_fit(lambda x: -double_gaussianwind(x, amp1, cen1, wid1, amp2, cen2, wid2), xmin=xmin, xmax=xmax)
-    return x, -fun
+    x = Newtonmax(lambda x: -double_gaussianwind(x, amp1, cen1, wid1, amp2, cen2, wid2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
+    y = double_gaussianwind(xmax, amp1, cen1, wid1, amp2, cen2, wid2)
+    #success, x, fun = find_max_of_fit(lambda x: -double_gaussianwind(x, amp1, cen1, wid1, amp2, cen2, wid2), xmin=xmin, xmax=xmax)
+    return x, y # -fun
 
 
 def getmaxdoublelorentz(xmin, xmax, amp1, cen1, wid1, amp2, cen2, wid2):
-    #xmax = Newtonmax(lambda x: -double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
-    #ymax = double_lorentzwind(xmax, amp1, cen1, wid1, amp2, cen2, wid2)
-    success, x, fun = find_max_of_fit(lambda x: -double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2), xmin=xmin, xmax=xmax)
-    return x, -fun
+    x = Newtonmax(lambda x: -double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
+    y = double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2)
+    #success, x, fun = find_max_of_fit(lambda x: -double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2), xmin=xmin, xmax=xmax)
+    return x, y #-fun
 
 def getmaxdoublevoigt(xmin, xmax, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2):
-    #xmaximum = Newtonmax(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
-    xmaximum = find_max_of_fit(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), xmin=xmin, xmax=xmax)
-    ymaximum = double_voigtwind(xmaximum, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
-    #success, x, fun = find_max_of_fit(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), xmin=xmin, xmax=xmax)
-    #return x, -fun
-    return xmaximum, ymaximum
+    #x = Newtonmax(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
+    #y = double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
+    success, x, fun = find_max_of_fit(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), xmin=xmin, xmax=xmax)
+    return x, -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
 
 # max of 1D Fit functions can be obtained by reading their parameters
 def getmaxgaussian(xmin, xmax, amp, cen, wid):
@@ -444,7 +442,7 @@ def fitgaussian2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
     print('Beam Waist X = {} mum, Beam Waist Y = {} mum'.format(abs(bwx_end-bwx_start), abs(bwy_end-bwy_start)))
 
 # newton's method to find the maximum of a function
-def Newtonmax(f, x0, tol=1e-6, maxiter=10000, xmin=0, xmax=1000):
+def Newtonmax(f, x0, tol=1e-8, maxiter=10000, xmin=0, xmax=1000):
     # Initialize the iteration counter
     iter = 0
     # Initialize the error
@@ -464,10 +462,21 @@ def Newtonmax(f, x0, tol=1e-6, maxiter=10000, xmin=0, xmax=1000):
     return x0
 
 # another method to find the maximum of a function in an interval
-def find_max_of_fit(fitfunc, tol=1e-6, maxiter=10000, xmin=0, xmax=1000):
+def find_max_of_fit(fitfunc, tol=1e-6, maxiter=10000, xmin=500, xmax=600):
     #Find the maximum of a fitted function within the interval [xmin, xmax].
-    result = minimize(lambda x: -fitfunc(x), x0=550, bounds=[(xmin, xmax)])
-    print(result.x, -result.fun)
+    notfound = True
+    if xmax < xmin+10:
+        xmax = xmin+100
+    x0 = xmin
+    while notfound == True: # if the maximum is not found, increase the initial guess
+        result = minimize(lambda x: -fitfunc(x), x0=550, bounds=[(xmin, xmax)])
+        if result.success:
+            notfound = False
+        else:
+            if x0 > xmax:
+                return False, x0, -fitfunc(x0)
+            x0 += 10
+    #print(result.x, -result.fun)
     return result.success, result.x, -result.fun
 
 # dictionary of window functions and their corresponding fit functions

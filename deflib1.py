@@ -309,7 +309,7 @@ defaults={
     # cmap frame
     'lowest_wavelength': 500, 
     'highest_wavelength': 700,
-    'colormap_threshold': 100000,
+    'colormap_threshold': 10000,
     'fontsize': 13,
     'maxfev': 2000,
     #speckeys
@@ -321,7 +321,7 @@ defaults={
     # buttonframe
     'selected_pixel_x': 0,
     'selected_pixel_y': 0,
-    'selected_fit_function': 'voigt',
+    'selected_fit_function': 'gaussian',
     'seperate_fits': False,
 }
 
