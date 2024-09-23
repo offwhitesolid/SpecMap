@@ -26,6 +26,10 @@ def gaussianwind(x, amp, cen, wid):
 def lorentzwind(x, amp, cen, wid):
     return amp / (1 + (x - cen)**2 / wid**2)
 
+def voigtwindapprox(x, anp, cen, sig, gam):
+    # returns the pseudo-voigt provile as a sum of gaussian and lorentzian profiles
+    return anp * (1 - gam / (2 * sig) * np.sqrt(2 * np.pi) * np.exp(-2 * np.log(2) * ((x - cen) / sig)**2) + (1 - gam) / np.pi / sig / (1 + ((x - cen) / sig)**2))
+
 def voigtwind(x, amp, cen, wid, gamma):
     return amp * np.real(wofz(((x - cen) + 1j*gamma) / wid / np.sqrt(2))) / wid / np.sqrt(2*np.pi)
 
@@ -306,10 +310,11 @@ def getmaxdoublelorentz(xmin, xmax, amp1, cen1, wid1, amp2, cen2, wid2):
     return x, y #-fun
 
 def getmaxdoublevoigt(xmin, xmax, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2):
-    #x = Newtonmax(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
-    #y = double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
-    success, x, fun = find_max_of_fit(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), xmin=xmin, xmax=xmax)
-    return x, -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
+    x = Newtonmax(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
+    y = double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
+    #success, x, fun = find_max_of_fit(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), xmin=xmin, xmax=xmax)
+    return x, y
+    
 
 # max of 1D Fit functions can be obtained by reading their parameters
 def getmaxgaussian(xmin, xmax, amp, cen, wid):
@@ -478,7 +483,8 @@ def find_max_of_fit(fitfunc, tol=1e-6, maxiter=10000, xmin=500, xmax=600):
                 return False, x0, -fitfunc(x0)
             x0 += 10
     #print(result.x, -result.fun)
-    return result.success, result.x, -result.fun
+    #return result.success, result.x, -result.fun
+    return result.seccess, result.x, fitfunc(result.x)
 
 # dictionary of window functions and their corresponding fit functions
 # and functions to get the maxima of the fitted functions

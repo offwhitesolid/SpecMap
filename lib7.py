@@ -441,9 +441,9 @@ class XYMap:
     def buildandPlotSpecCmap(self):
         self.updatewl()
         self.updatecountthresh()
-        self.getPLpixelSpecMax()
         self.readfontsize()
         self.fittoMatrix('fitmaxX')
+        self.getPLpixelSpecMax()
         self.writetopixmatrix(self.Intmatrix)
     
         try:
@@ -542,7 +542,12 @@ class XYMap:
                                             self.maxiter = 1000
                                         self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter)
                                         self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
-                                        #_, self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = matl.find_max_of_fit(self.SpecDataMatrix[i][j].fitdata, xmin=self.aqpixstart, xmax=self.aqpixend)
+                                        #print('try fit')
+                                        #success, x, y = matl.find_max_of_fit(self.SpecDataMatrix[i][j].fitdata, xmin=self.aqpixstart, xmax=self.aqpixend)
+                                        #print('fit worked')
+                                        #if success == True:
+                                        #    self.SpecDataMatrix[i][j].fitmaxX = x
+                                        #    self.SpecDataMatrix[i][j].fitmaxY = y
                 
                                 if self.SpecDataMatrix[i][j].fitdata == [None]:
                                     self.Intmatrix[i][j] = np.nan 
@@ -566,8 +571,6 @@ class XYMap:
                                     print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
                                     worked = True
                                 print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))       
-        plt.imshow(self.Intmatrix)                    
-        plt.show()
     
     def updatePixelMatrix(self, variable, nonecase=np.nan):
         for i in range(len(self.SpecDataMatrix)):
