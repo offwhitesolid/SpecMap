@@ -228,7 +228,7 @@ Function LoadDF1(pathName, spechead)
  	variable newdy = 0
  	
  	for (ic=0; ic<vin; ic+=1)
- 		sprintf iasstr "%05d\r", ic
+ 		sprintf iasstr "%05d", ic
  		string n1 = pathName + name + iasstr + extension
  		string n2 = pathName + name + iasstr + ".txt"
  		string n3 = pathName + name + iasstr
@@ -247,8 +247,6 @@ Function LoadDF1(pathName, spechead)
  		if (ic == 0)
  			duplicate/O wave0, root:HSI:metadata:WL
  			duplicate/O wave1, root:HSI:metadata:BG
- 			//duplicate/O wave0, root:HSI:metadata:WL
- 			//duplicate/O/rmd=[*][0,0] $n2, root:HSI:metadata:WL
  		endif
  		
  		wave2 -= wave1 //root:HSI:metadata:BG
@@ -259,6 +257,7 @@ Function LoadDF1(pathName, spechead)
  		//sp1 = note($n6)
  		metadata = stringfromlist(2, note($n6))
  		killwaves $n6
+ 		killwaves $n1
  		
  		posx = str2num(stringfromlist(1, stringfromlist(22, metadata, "\n"), ":"))
  		posy = str2num(stringfromlist(1, stringfromlist(23, metadata, "\n"), ":"))
