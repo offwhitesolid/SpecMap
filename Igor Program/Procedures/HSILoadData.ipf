@@ -2,23 +2,59 @@
 #pragma rtGlobals=3				// Use modern global access method and strict wave access
 #pragma DefaultTab={3,20,4}		// Set default tab width in Igor Pro 9 and later
 
-function Panel()
-     NewDataFolder/O root:Packages
-     NewDataFolder/O root:Packages:myFolder
-     Make/T/O/N=5 root:Packages:myFolder:Path
-     wave/T Path = root:Packages:myFolder:Path
+function createfolders()
+	NewDataFolder/O root:Packages
+	NewDataFolder/O root:Packages:myFolder
+	Make/T/O/N=9 root:Packages:myFolder:Path
+	NewDataFolder/O root:HSI
+	NewDataFolder/O root:HSI:metadata
+	NewDataFolder/O root:HSI:spec
+	NewDataFolder/O root:HSI:rawspecs
+	NewDataFolder/O root:HSI:spec:CosmicSpecs
+end
+
+function LoadPanel()
+	variable coswid = 20
+	variable costhr = 200
+    NewDataFolder/O root:Packages
+    NewDataFolder/O root:Packages:myFolder
+    Make/T/O/N=9 root:Packages:myFolder:Path
+    // cosmic width and tresh are 3 and 4
+    // WL start,end in pixel x and y are 5 and 6
+    // WL start,end in nm x and y are 7 and 8
+    wave/T Path = root:Packages:myFolder:Path
+    Path[3] = num2str(10)
+    Path[4] = num2str(100)
      
-    NewPanel /W=(81,73,774,248)
+    NewPanel /W=(81,73,774,248)/N=Load_Panel
     Button FilesDir,pos={13.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Select Data Folder"
     SetVariable FilesDirDialog,pos={168.00,13.00},size={800.00,14.00},value= Path[0], title="Path"
     Button DoIt,pos={13.00,41.00},size={100.00,20.00},proc=ButtonProc,title="Load Data"
     SetVariable SpecNameDialog,pos={168.00,41.00},size={170.00,14.00},value= Path[1], title="Spec Name"
     SetVariable FirstHSINum,pos={350.00,41.00},size={140.00,14.00},value= Path[2], title="Start HSI count"
     
-    SetVariable coswidth,pos={168.00,61.00},size={170.00,14.00},value= Path[3], title="Cosmic width"
-    SetVariable costhresh,pos={350,61.00},size={140.00,14.00},value= Path[4], title="Cosmic thresh" 
+    SetVariable coswidth,pos={168.00,61.00},size={170.00,14.00},value= Path[3], title="Cosmic width", proc=SetVarProc, value=_STR:num2str(coswid)
+    SetVariable costhresh,pos={350,61.00},size={140.00,14.00},value= Path[4], title="Cosmic thresh", proc=SetVarProc, value=_STR:num2str(costhr) 
+    
+    return 0
     
 end
+
+function ProcessPanel()
+	wave WLwave = root:HSI:metadata:WL
+	wave/T Path = root:Packages:myFolder:Path
+	
+	Path[5] = "0"
+	Path[6] = "1023"
+	Path[7] = num2str(WLwave[0])
+	Path[8] = num2str(WLwave[1023])
+	NewPanel /W=(81,73,774,248)/N=Process_Panel
+	Button GenIntHSI,pos={13.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Integrate Pixels to HSI"
+	SetVariable wl_start, title="WL start (min="+Path[7]+" nm)",size={200,20},pos={170,10},proc=SetVarProc, value=_STR:Path[7]
+    SetVariable wl_end, title="WL end (min="+Path[8]+" nm)",size={200,20},pos={400,10},proc=SetVarProc, value=_STR:Path[8]
+	
+end
+	
 
 // define buttons
 Function ButtonProc(ctrlName) : ButtonControl
@@ -38,15 +74,6 @@ Function ButtonProc(ctrlName) : ButtonControl
                 Path[0] = S_fileName
                 break
        
-            case "SelectFile2"  :
-                // get File Paths
-                Open/D/R/F="*.tif"/M="Select fist file" refNum
-                if (strlen(S_FileName) == 0)
-                    return -1
-                endif
-                Path[1] = S_fileName
-                break
-       
             case "FilesDir"   :
                 // set outputfolder
                 NewPath/Q/O OutputPath
@@ -56,7 +83,12 @@ Function ButtonProc(ctrlName) : ButtonControl
            
             case "DoIt" :      		
                 LoadHSIData()
+                ProcessPanel()
                 break
+            
+            case "GenIntHSI" :
+            	integratehsidata()
+            	break
        
         EndSwitch
 End
@@ -67,12 +99,12 @@ function LoadHSIData()
 	
     NewDataFolder/O root:Packages
     NewDataFolder/O root:Packages:myFolder
-    Make/T/O/N=3 root:Packages:myFolder:Path
+    //Make/T/O/N=7 root:Packages:myFolder:Path
+    
     wave/T Path = root:Packages:myFolder:Path
        		         		
     KillDataFolder/Z HSI
     
-    	
     NewDataFolder/O root:HSI
     NewDataFolder/O root:HSI:metadata
     NewDataFolder/O root:HSI:spec
@@ -339,8 +371,77 @@ Function LoadDF1(pathName, spechead, startHSIcount)
   	
   	setdatafolder root:
   	
+  	
+  	
   	PutSpecIn3DWave(xmin, ymin, dx, dy)
 
+END
+
+//	setdatafolder root:HSI:rawspecs
+//	string a = wavelist("*", ";", "")
+//	string stringspecwave = "root:HSI:spec:hsidata"
+//	wave d = $stringspecwave
+//	for (i=0; i<ItemsInList(a); i+=1)
+//		substr = StringFromList(i,a)
+//		wave c = $substr
+//		gridx = (str2num(stringfromlist(0, stringfromlist(1, note(c), "x="), ";"))-xmin)/dx
+//		gridy = (str2num(stringfromlist(0, stringfromlist(1, note(c), "y="), ";"))-ymin)/dy
+//		for (j=0; j<1023; j+=1)
+//			d[gridx][gridy][j] = c[j]
+//		endfor
+//	endfor
+
+Function cosmicsthresh()
+	wave/T Path = root:Packages:myFolder:Path // width 3, tresh 4
+	variable i
+	variable j
+	string substr
+	variable costresh = str2num(Path[4])
+	setdatafolder root:HSI:spec:
+	Make/T/O/N=(1024, 0) diffoverth
+	wave/T diffoverth
+	Make/T/O/N=(1024, 0) diffunderth
+	wave/T diffunderth
+	//make/O/N=(1024, 0) currbgk
+	//make/O/N=(1023, 0) currdiff
+
+	setdatafolder root:HSI:rawspecs:
+	string a = wavelist("*", ";", "")
+	variable checkj
+	
+	for (i=0; i<ItemsInList(a); i+=1)
+		substr = StringFromList(i,a)
+		
+		
+		string copy = substr+"copy"
+		string cdiff = copy+"d"
+		make/O/N=(1024, 0) root:HSI:spec:$copy
+		make/O/N=(1024, 0) root:HSI:spec:$cdiff
+		
+		duplicate/O/D root:HSI:rawspecs:$substr, root:HSI:spec:$copy
+		duplicate/O/D root:HSI:rawspecs:$substr, root:HSI:spec:$cdiff
+		differentiate root:HSI:spec:$cdiff
+		
+		//display root:HSI:spec:$copy
+		//appendtograph root:HSI:spec:$cdiff
+		
+		//appendtograph currbgk
+		//display currbgk
+		//appendtoGraph plot
+		// identify cosmics in the wave
+		setdatafolder root:HSI:spec:
+		if (wavemax($cdiff) > costresh) // rising cosmics
+			print "rising cosmic at i = "+ num2str(i) + "\n"
+			endif
+		
+		if (wavemin($cdiff) < costresh)  // falling cosmics
+			print "falling cosmic at i = " + num2str(i) + "\n"
+			endif
+		
+	endfor
+	//killwaves root:HSI:spec:currdiff
+	//killwaves root:HSI:spec:currbgk
+	
 END
 
 // Given a path to a folder on disk, gets all files ending in "ext"
@@ -432,3 +533,93 @@ Function PlotPixMatrix()
 	Display/K=0 root:HSI:spec:PixMatrix
 	
 End
+
+// Slider demo test
+Window SliderDemoPanel() : Panel
+	PauseUpdate; Silent 1 // building window...
+	NewPanel /W=(262,115,665,287)
+	TitleBox Title0,pos={46,21},size={139,15},fSize=12,frame=0,fStyle=1
+	TitleBox Title0,title="Live Mode Off"
+	Slider slider0,pos={197,23},size={150,44},proc=Slider0Proc
+	Slider slider0,limits={0,2,0},value=0,live=0,vert=0
+	TitleBox Title1,pos={52,114},size={135,15},fSize=12,frame=0,fStyle=1
+	TitleBox Title1,title="Live Mode On"
+	Slider slider1,pos={197,113},size={150,44},proc=Slider1Proc
+	Slider slider1,limits={0,2,0},value=0,live=0,vert=0
+EndMacro
+
+Function Slider0Proc(sa) : SliderControl // Action procedure for slider0
+	STRUCT WMSliderAction &sa
+	switch(sa.eventCode)
+		case -3: // Control received keyboard focus
+		case -2: // Control lost keyboard focus
+		case -1: // Control being killed
+			break
+	default:
+		if (sa.eventCode & 1) // Value set
+			Printf "Value = %g, event code = %d\r", sa.curval, sa.eventCode
+		endif
+			break
+	endswitch
+	return 0
+End
+
+Function Slider1Proc(sa) : SliderControl // Action procedure for slider1
+	STRUCT WMSliderAction &sa
+	switch(sa.eventCode)
+	case -3: // Control received keyboard focus
+	case -2: // Control lost keyboard focus
+	case -1: // Control being killed
+		break
+	default:
+		if (sa.eventCode & 1) // Value set
+			Printf "Value = %g, event code = %d\r", sa.curval, sa.eventCode
+		endif
+		if (sa.eventCode & 8) // Mouse moved or arrow key moved the slider
+			Printf "Value = %g, event code = %d\r", sa.curval, sa.eventCode
+		endif
+		break
+	endswitch
+	return 0
+End
+
+// simple float input
+// creates selection in analysis pull down menu
+
+Menu "Analysis"
+    "Open Calculate Panel",/Q, OpenCalculatePanel()
+End
+ 
+// creates panel, defines operations
+ 
+Function OpenCalculatePanel()
+
+// make space for the pane to live, name it
+
+    DoWindow/K CalculatePanel
+    Newpanel /W=(248,115,730,626)/N=CalculatePanel
+   
+// create a button, with title "Load Waves" that execeutes the procedure ButtonProc when pressed       
+    Button button1,pos={160,165},size={161,35},proc=ButtonProc,title="String Maker"
+//  
+    SetVariable sample_name title="sample ",size={200,136},pos={136,100},proc=SetVarProc, value=_STR:"sample name"
+    SetVariable ref_name title="reference ",size={200,136},pos={136,200},proc=SetVarProc, value=_STR:"reference name"
+    SetVariable temp_list title="temperature list ",size={400,136},pos={40,300},proc=SetVarProc, value=_STR:"temperature list;separated by ; ex. 10;20 "
+        return 0
+end
+
+Function SetVarProc(sva) : SetVariableControl
+        STRUCT WMSetVariableAction &sva
+ 
+        switch(sva.eventCode)
+               case 1:
+               case 2:
+               case 3:
+                     string/g sam = sva.sval
+                  if(cmpstr(sva.ctrlname,"temp_list")==0)
+                     print sva.ctrlname
+                   endif
+                     break
+        endswitch
+        return 0
+end
