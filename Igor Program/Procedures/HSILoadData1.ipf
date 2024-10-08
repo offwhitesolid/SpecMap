@@ -429,6 +429,7 @@ Function cosmicsthresh()
 		//display currbgk
 		//appendtoGraph plot
 		// identify cosmics in the wave
+		// try to iterate over cdiff
 		setdatafolder root:HSI:spec:
 		if (wavemax($cdiff) > costresh) // rising cosmics
 			print "rising cosmic at i = "+ num2str(i) + "\n"
