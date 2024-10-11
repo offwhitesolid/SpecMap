@@ -14,12 +14,10 @@ function createfolders()
 end
 
 function LoadPanel()
-	variable coswid = 20
-	variable costhr = 200
     NewDataFolder/O root:Packages
     NewDataFolder/O root:Packages:myFolder
     Make/T/O/N=9 root:Packages:myFolder:Path
-    // cosmic width and tresh are 3 and 4
+    // cosmic width and thresh are 3 and 4
     // WL start,end in pixel x and y are 5 and 6
     // WL start,end in nm x and y are 7 and 8
     wave/T Path = root:Packages:myFolder:Path
@@ -27,17 +25,21 @@ function LoadPanel()
     Path[4] = num2str(100)
      
     NewPanel /W=(81,73,774,248)/N=Load_Panel
-    Button FilesDir,pos={13.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Select Data Folder"
-    SetVariable FilesDirDialog,pos={168.00,13.00},size={800.00,14.00},value= Path[0], title="Path"
-    Button DoIt,pos={13.00,41.00},size={100.00,20.00},proc=ButtonProc,title="Load Data"
-    SetVariable SpecNameDialog,pos={168.00,41.00},size={170.00,14.00},value= Path[1], title="Spec Name"
-    SetVariable FirstHSINum,pos={350.00,41.00},size={140.00,14.00},value= Path[2], title="Start HSI count"
-    
-    SetVariable coswidth,pos={168.00,61.00},size={170.00,14.00},value= Path[3], title="Cosmic width", proc=SetVarProc, value=_STR:num2str(coswid)
-    SetVariable costhresh,pos={350,61.00},size={140.00,14.00},value= Path[4], title="Cosmic thresh", proc=SetVarProc, value=_STR:num2str(costhr) 
-    
+    Button FilesDir,pos={13.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Select Data Folder",win=Load_Panel
+    SetVariable FilesDirDialog,pos={168.00,13.00},size={800.00,14.00},value= Path[0], title="Path",win=Load_Panel
+    Button DoIt,pos={13.00,41.00},size={100.00,20.00},proc=ButtonProc,title="Load Data",win=Load_Panel
+    SetVariable SpecNameDialog,pos={168.00,41.00},size={170.00,14.00},value= Path[1], title="Spec Name",win=Load_Panel
+    SetVariable FirstHSINum,pos={350.00,41.00},size={140.00,14.00},value= Path[2], title="Start HSI count",win=Load_Panel
+     
     return 0
     
+end
+
+function addcosmicremonloadpanel()
+	wave/T Path = root:Packages:myFolder:Path
+	Button cosmicremoval,pos={13.00,65.00},size={140.00,20.00},proc=ButtonProc,title="Remove Cosmics",win=Load_Panel
+    SetVariable coswidth,pos={168.00,65.00},size={170.00,14.00},value= Path[3], title="Cosmic width", proc=SetVarProc, value=_STR:Path[3],win=Load_Panel
+    SetVariable costhresh,pos={350,65.00},size={140.00,14.00},value= Path[4], title="Cosmic thresh", proc=SetVarProc, value=_STR:Path[4],win=Load_Panel
 end
 
 function ProcessPanel()
@@ -49,9 +51,9 @@ function ProcessPanel()
 	Path[7] = num2str(WLwave[0])
 	Path[8] = num2str(WLwave[1023])
 	NewPanel /W=(81,73,774,248)/N=Process_Panel
-	Button GenIntHSI,pos={13.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Integrate Pixels to HSI"
-	SetVariable wl_start, title="WL start (min="+Path[7]+" nm)",size={200,20},pos={170,10},proc=SetVarProc, value=_STR:Path[7]
-    SetVariable wl_end, title="WL end (min="+Path[8]+" nm)",size={200,20},pos={400,10},proc=SetVarProc, value=_STR:Path[8]
+	Button GenIntHSI,pos={13.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Integrate Pixels to HSI",win=Process_Panel
+	SetVariable wl_start, title="WL start (min="+Path[7]+" nm)",size={200,20},pos={170,10},proc=SetVarProc, value=_STR:Path[7],win=Process_Panel
+    SetVariable wl_end, title="WL end (min="+Path[8]+" nm)",size={200,20},pos={400,10},proc=SetVarProc, value=_STR:Path[8],win=Process_Panel
 	
 end
 	
@@ -83,11 +85,16 @@ Function ButtonProc(ctrlName) : ButtonControl
            
             case "DoIt" :      		
                 LoadHSIData()
+                addcosmicremonloadpanel()
                 ProcessPanel()
                 break
             
             case "GenIntHSI" :
             	integratehsidata()
+            	break
+            	
+            case "cosmicremoval":
+            	removecosmics()
             	break
        
         EndSwitch
@@ -204,13 +211,6 @@ Function/S findallFiles(path, ext[, recurse])
         folders = removeFromList(fldr, folders)                                 // Remove the folder we just looked at
     while (strlen(folders))
     KillPath/Z $pathName
-    //printf fileList
-    printf "\n"
-    //printf stringFromList(3, filelist)
-    
-    //nt = itemsInList(filelist)
-    //printf "\n" + num2str(nt)
-   	
     return filelist
 end
 
@@ -371,34 +371,18 @@ Function LoadDF1(pathName, spechead, startHSIcount)
   	Make/O /N=((xmax-xmin)/dx+1, (ymax-ymin)/dy+1) PixMatrix
   	
   	setdatafolder root:
-  	
-  	
-  	
+
   	PutSpecIn3DWave(xmin, ymin, dx, dy)
 
 END
 
-//	setdatafolder root:HSI:rawspecs
-//	string a = wavelist("*", ";", "")
-//	string stringspecwave = "root:HSI:spec:hsidata"
-//	wave d = $stringspecwave
-//	for (i=0; i<ItemsInList(a); i+=1)
-//		substr = StringFromList(i,a)
-//		wave c = $substr
-//		gridx = (str2num(stringfromlist(0, stringfromlist(1, note(c), "x="), ";"))-xmin)/dx
-//		gridy = (str2num(stringfromlist(0, stringfromlist(1, note(c), "y="), ";"))-ymin)/dy
-//		for (j=0; j<1023; j+=1)
-//			d[gridx][gridy][j] = c[j]
-//		endfor
-//	endfor
-
 Function sumupcosmics()
-	wave/T Path = root:Packages:myFolder:Path // width 3, tresh 4
+	wave/T Path = root:Packages:myFolder:Path // width 3, tgresh 4
 	variable i
 	variable j
 	variable k
 	string substr
-	variable costresh = str2num(Path[4])
+	variable costhresh = str2num(Path[4])
 	setdatafolder root:HSI:spec:
 	
 	wave d = root:HSI:hsidata
@@ -430,11 +414,11 @@ Function sumupcosmics()
 			make/O/N=(numpnts(WL), 0) currcol
 			// diffoverth and diffunterth collect cosmic start and end
 			for (k=0; k<numpnts(WL); k+=1)
-				if (hsiptr[i][j][k] > costresh)
+				if (hsiptr[i][j][k] > costhresh)
 					diffoverth[k] += hsiptr[i][j][k]
 					somecosmics = 1
 				endif
-				if (hsiptr[i][j][k] < -costresh)
+				if (hsiptr[i][j][k] < -costhresh)
 					diffunderth[k] += hsiptr[i][j][k]
 					somecosmics = 1
 				endif
@@ -444,19 +428,20 @@ Function sumupcosmics()
 End
 
 Function removecosmics()
-	wave/T Path = root:Packages:myFolder:Path // width 3, tresh 4
+	wave/T Path = root:Packages:myFolder:Path // width 3, thresh 4
 	// iterators
 	variable i // col
 	variable j // row
 	variable k // spec
 	variable l // spec to remove cosmics
 	string substr
-	variable costresh = str2num(Path[4])
+	variable costhresh = str2num(Path[4])
 	variable coswidth = str2num(Path[3])
 	setdatafolder root:HSI:spec:
 	
 	wave hs = root:HSI:spec:hsidata
 	duplicate/O/D root:HSI:spec:hsidata, root:HSI:spec:hsidatad
+	duplicate/O/D root:HSI:spec:hsidata, hsidatanocrm
 	differentiate /dim=2 root:HSI:spec:hsidatad
 
 	wave gridx = root:HSI:metadata:gridx
@@ -471,12 +456,15 @@ Function removecosmics()
 	for (i=1; i<numpnts(gridx)-1; i+=1)
 		for (j=1; j<numpnts(gridy)-1; j+=1)
 			for (k=1; k<numpnts(WL)-1; k+=1)
-				if (hsiptrd[i][j][k] > costresh | hsiptrd[i][j][k] < -costresh)
+				if (abs(hsiptrd[i][j][k]) > costhresh)
 					somecosmics = 1
 				endif
 			endfor
 			
-			if (somecosmics == 1)				
+			if (somecosmics == 1)
+				// display old spectrum with cosmic
+				string plotname = num2str(i) + num2str(j) + num2str(k)
+				display/N=plotname hsidatanocrm [i][j][]
 				variable cstart = 0
 				variable cend = 0
 				variable reading = 0
@@ -487,34 +475,33 @@ Function removecosmics()
 				for (k=0; k<numpnts(WL); k+=1)
 					// cosmic start
 					if (reading == 0)
-						if (hsiptrd[i][j][k] > costresh)
+						if (hsiptrd[i][j][k] > costhresh)
 							cstart = k
 							reading = 1 // cosmic up started
-						elseif (hsiptrd[i][j][k] < -costresh)
+						elseif (hsiptrd[i][j][k] < -costhresh)
 							cstart = k
 							reading = 4 // cosmic down started
 						endif
 					// find cosmic end
 					elseif (reading > 0)
 						if (k-cstart <= coswidth) 
-							print k, reading
 							if (reading == 1)
-								if (hsiptrd[i][j][k] < -costresh)
+								if (hsiptrd[i][j][k] < -costhresh)
 									// started with up, now detected down
 									reading = 2
 								endif
 							elseif (reading == 2)
-								if (hsiptrd[i][j][k] > -costresh)
+								if (hsiptrd[i][j][k] > -costhresh)
 									cend = k
 									reading = 3
 								endif
 							elseif (reading == 4)
-								if (hsiptrd[i][j][k] > costresh)
+								if (hsiptrd[i][j][k] > costhresh)
 									// started with down, now detected up
 									reading = 5
 								endif
 							elseif (reading == 5)
-								if (hsiptrd[i][j][k] < costresh)
+								if (hsiptrd[i][j][k] < costhresh)
 									cend = k
 									reading = 6
 								endif
@@ -526,13 +513,14 @@ Function removecosmics()
 						// cosmic start and end identified, now remove them
 						if (reading == 3 | reading == 6 )
 							for (l=cstart; l<cend; l+=1)
-								print i, j, l, hs[i-1][j][l]
 								// set the cosmic to the average value of the other pixels around it
-								hs[i][j][l] = (hs[i-1][j-1][l]+hs[i-1][j][l]+hs[i-1][j+1][l]+hs[i][j-1][l]+hs[i][j+1][l]+hs[i+1][j-1][l]+hs[i+1][j][l]+hs[i+1][j+1][l])/8
+								hs[i][j][l] = (hs[i-1][j-1][l]/sqrt(2)+hs[i-1][j][l]+hs[i-1][j+1][l]/sqrt(2)+hs[i][j-1][l]+hs[i][j+1][l]+hs[i+1][j-1][l]/sqrt(2)+hs[i+1][j][l]+hs[i+1][j+1][l]/sqrt(2))/(4+4/sqrt(2))
 							endfor
 							reading = 0
 							somecosmics = 0
 						endif
+					// add cosmic removed spectrum to plot 
+					//AppendToGraph/W=plotname/L/B hs[i][j][]
 					endif
 				endfor
 			endif
