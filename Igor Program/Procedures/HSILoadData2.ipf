@@ -458,13 +458,14 @@ Function removecosmics()
 			for (k=1; k<numpnts(WL)-1; k+=1)
 				if (abs(hsiptrd[i][j][k]) > costhresh)
 					somecosmics = 1
+					break
 				endif
 			endfor
 			
 			if (somecosmics == 1)
 				// display old spectrum with cosmic
-				string plotname = num2str(i) + num2str(j) + num2str(k)
-				display/N=plotname hsidatanocrm [i][j][]
+				string plotname = "wi" + num2str(i) + "j"+ num2str(j)
+				display/N=$plotname hsidatanocrm [i][j][]
 				variable cstart = 0
 				variable cend = 0
 				variable reading = 0
@@ -520,7 +521,7 @@ Function removecosmics()
 							somecosmics = 0
 						endif
 					// add cosmic removed spectrum to plot 
-					//AppendToGraph/W=plotname/L/B hs[i][j][]
+					AppendToGraph/W=$plotname/L/B hs[i][j][]
 					endif
 				endfor
 			endif
