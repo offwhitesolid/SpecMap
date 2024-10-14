@@ -391,23 +391,32 @@ END
 //		endfor
 //	endfor
 
+Function remcos()
+	variable i
+	variable j
+	
+
+end
+
 Function cosmicsthresh()
 	wave/T Path = root:Packages:myFolder:Path // width 3, tresh 4
 	variable i
 	variable j
 	string substr
 	variable costresh = str2num(Path[4])
-	setdatafolder root:HSI:spec:
-	Make/T/O/N=(1024, 0) diffoverth
-	wave/T diffoverth
-	Make/T/O/N=(1024, 0) diffunderth
-	wave/T diffunderth
+
 	//make/O/N=(1024, 0) currbgk
 	//make/O/N=(1023, 0) currdiff
 
 	setdatafolder root:HSI:rawspecs:
 	string a = wavelist("*", ";", "")
 	variable checkj
+	
+	string scw = "root:HSI:spec:"
+	wave scwn = $scw
+	
+	setdatafolder root:HSI:spec:
+	
 	
 	for (i=0; i<ItemsInList(a); i+=1)
 		substr = StringFromList(i,a)
@@ -430,15 +439,28 @@ Function cosmicsthresh()
 		//appendtoGraph plot
 		// identify cosmics in the wave
 		// try to iterate over cdiff
-		setdatafolder root:HSI:spec:
+		
 		if (wavemax($cdiff) > costresh) // rising cosmics
-			print "rising cosmic at i = "+ num2str(i) + "\n"
-			endif
+			wave b = $cdiff
+			wave c = NewFreewave(2, 1024)
+			for (j=0; j<1024; j+=1)
+				if (b[j] > costresh)
+					c[j] = b[j]
+					print c [j]
+				endif
+			endfor
+		endif
 		
-		if (wavemin($cdiff) < costresh)  // falling cosmics
-			print "falling cosmic at i = " + num2str(i) + "\n"
-			endif
-		
+		if (wavemin($cdiff) < -costresh)  // falling cosmics
+			wave b = $cdiff
+			wave d = NewFreewave(2, 1024)
+			for (j=0; j<1024; j+=1)
+				if (b[j] < -costresh)
+					c[j] = b[j]
+					print c [j]
+				endif
+			endfor		
+		endif
 	endfor
 	//killwaves root:HSI:spec:currdiff
 	//killwaves root:HSI:spec:currbgk
