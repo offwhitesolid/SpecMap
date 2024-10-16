@@ -12,17 +12,23 @@ function createfolders()
 	NewDataFolder/O root:HSI:rawspecs
 	NewDataFolder/O root:HSI:spec:CosmicSpecs
 	make/O/N=1 root:Packages:myFolder:Pathnum
+	variable/G root:Packages:myFolder:checkcosrem
 end
 
 function LoadPanel()
     NewDataFolder/O root:Packages
     NewDataFolder/O root:Packages:myFolder
     Make/T/O/N=16 root:Packages:myFolder:Path
-    // cosmic width and thresh are 3 and 4
-    // WL start,end in pixel x and y are 5 and 6
-    // WL start,end in nm x and y are 7 and 8
-    // Path A=9,10 B=11,12 C=13,14 D=15,16 E=17,18 F=19,20 (x,y)
+    Make/O/N=18 root:Packages:myFolder:Pathnum
+    // pathnum to store numerical variables: 
+    // Pathnum:
+    // cosmic width and thresh are 0 and 1
+    // WL start,end in pixel x and y are 2 and 3
+    // WL start,end in nm x and y are 4 and 5
+    //
+    // Pathnum A=6,7 B=8, 9 C=10,11 D=12,13 E=14,15 F=16,17 (x,y)
     wave/T Path = root:Packages:myFolder:Path
+    wave Pathnum = root:Packages:myFolder:Pathnum
     Path[3] = num2str(10)
     Path[4] = num2str(150)
      
@@ -38,22 +44,20 @@ function LoadPanel()
 end
 
 function addcosmicremonloadpanel()
+	NVAR checkcosrem = root:Packages:myFolder:checkcosrem
 	wave/T Path = root:Packages:myFolder:Path
 	wave Pathnum = root:Packages:myFolder:Pathnum
-	variable testv3
-	Checkbox showremcos, pos={500, 65}, title="Display removed Cosmics",proc=CheckProc, value=testv3, win=Load_Panel
-	//Variable/G root:Packages:myFolder:gSelectedRadioButton
-	//setDataFolder root:Packages:myFolder:
-	//variable showcosm = Pathnum //str2num(Path[9])
+	// create button elements for cosmic ray removal
 	Button cosmicremoval,pos={13.00,65.00},size={140.00,20.00},proc=ButtonProc,title="Remove Cosmics",win=Load_Panel
-    SetVariable coswidth,pos={168.00,65.00},size={170.00,14.00},value= Path[3], title="Cosmic width", proc=SetVarProc, value=_STR:Path[3],win=Load_Panel
-    SetVariable costhresh,pos={350,65.00},size={140.00,14.00},value= Path[4], title="Cosmic thresh", proc=SetVarProc, value=_STR:Path[4],win=Load_Panel
-    //Checkbox showremcos, pos={500, 65}, title="Display removed Cosmics",proc=CheckProc, value=testv3, win=Load_Panel
+    SetVariable coswidth,pos={168.00,65.00},size={170.00,14.00}, title="Cosmic width", proc=SetVarProc, value=_STR:Path[3],win=Load_Panel
+    SetVariable costhresh,pos={350,65.00},size={140.00,14.00}, title="Cosmic thresh", proc=SetVarProc, value=_STR:Path[4],win=Load_Panel
+    Checkbox showremcos, pos={500, 65}, title="Display removed Cosmics",proc=CheckProc, variable=checkcosrem, win=Load_Panel
 end
 
 function ProcessPanel()
 	wave WLwave = root:HSI:metadata:WL
 	wave/T Path = root:Packages:myFolder:Path
+	wave Pathnum = root:Packages:myFolder:Pathnum
 	
 	Path[5] = "0"
 	Path[6] = "1023"
@@ -386,12 +390,12 @@ Function LoadDF1(pathName, spechead, startHSIcount)
 END
 
 Function sumupcosmics()
-	wave/T Path = root:Packages:myFolder:Path // width 3, tgresh 4
+	wave Pathnum = root:Packages:myFolder:Pathnum // width 3, tgresh 4
 	variable i
 	variable j
 	variable k
 	string substr
-	variable costhresh = str2num(Path[4])
+	variable costhresh = Pathnum[3]
 	setdatafolder root:HSI:spec:
 	
 	wave d = root:HSI:hsidata
@@ -437,16 +441,17 @@ Function sumupcosmics()
 End
 
 Function removecosmics()
-	wave/T Path = root:Packages:myFolder:Path // width 3, thresh 4
-	wave Pathnum = root:Packages:myFolder:Pathnum
+	wave Pathnum = root:Packages:myFolder:Pathnum // width 3, tgresh 4
+	NVAR checkcosrem = root:Packages:myFolder:checkcosrem
+	print checkcosrem
 	// iterators
 	variable i // col
 	variable j // row
 	variable k // spec
 	variable l // spec to remove cosmics
 	string substr
-	variable costhresh = str2num(Path[4])
-	variable coswidth = str2num(Path[3])
+	variable costhresh = Pathnum[3]
+	variable coswidth = Pathnum[2]
 	setdatafolder root:HSI:spec:
 	
 	wave hs = root:HSI:spec:hsidata
@@ -475,7 +480,7 @@ Function removecosmics()
 			if (somecosmics == 1)
 				// display old spectrum with cosmic
 				string plotname = "wi" + num2str(i) + "j"+ num2str(j)
-				if (Pathnum[0] > 0)
+				if (checkcosrem > 0)
 					display/N=$plotname hsidatanocrm [i][j][]
 					ModifyGraph rgb(hsidatanocrm)=(0,0,0)
 				endif
@@ -534,7 +539,7 @@ Function removecosmics()
 							somecosmics = 0
 						endif
 						// add cosmic removed spectrum to plot 
-						if (Pathnum[0] > 0)
+						if (checkcosrem > 0)
 							AppendToGraph/W=$plotname/L/B hs[i][j][]
 						endif
 					endif
@@ -688,32 +693,10 @@ End
 // creates selection in analysis pull down menu
 
 Menu "Analysis"
-    "Open Calculate Panel",/Q, OpenCalculatePanel()
+    "Open Calculate Pansel",/Q, OpenCalculatePanel()
 End
  
 // creates panel, defines operations
- 
-Function OpenCalculatePanel()
-
-// make space for the pane to live, name it
-
-    DoWindow/K CalculatePanel
-    Newpanel /W=(248,115,730,626)/N=CalculatePanel
-   
-// create a button, with title "Load Waves" that execeutes the procedure ButtonProc when pressed       
-    Button button1,pos={160,165},size={161,35},proc=ButtonProc,title="String Maker"
-//  
-    SetVariable sample_name title="sample ",size={200,136},pos={136,100},proc=SetVarProc, value=_STR:"sample name"
-    SetVariable ref_name title="reference ",size={200,136},pos={136,200},proc=SetVarProc, value=_STR:"reference name"
-    SetVariable temp_list title="temperature list ",size={400,136},pos={40,300},proc=setVarProc, value=_STR:"temperature list;separated by ; ex. 10;20 "
-        return 0
-end
-
-function setboolvar(sva): SetVariableControl
-	STRUCT WMSetVariableAction &sva
-		print sva.eventcode
-	return 0
-end
 
 Function SetVarProc(sva) : SetVariableControl
         STRUCT WMSetVariableAction &sva

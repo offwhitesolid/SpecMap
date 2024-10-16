@@ -466,6 +466,7 @@ Function removecosmics()
 				// display old spectrum with cosmic
 				string plotname = "wi" + num2str(i) + "j"+ num2str(j)
 				display/N=$plotname hsidatanocrm [i][j][]
+				ModifyGraph rgb=(0,0,0)
 				variable cstart = 0
 				variable cend = 0
 				variable reading = 0
@@ -522,6 +523,7 @@ Function removecosmics()
 						endif
 					// add cosmic removed spectrum to plot 
 					AppendToGraph/W=$plotname/L/B hs[i][j][]
+					
 					endif
 				endfor
 			endif
