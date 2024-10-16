@@ -156,12 +156,28 @@ Function ButtonProc(ctrlName) : ButtonControl
             	break
             
             case "PlotspecCA":
-            	variable cx = pcsr(A)
+	variable cx = pcsr(A)
             	variable cy = qcsr(A)
-            	print cx, cy
+            	HSIplotspec(cx, cy)
             	break
        
         EndSwitch
+End
+
+function HSIplotspec(x, y)
+	variable x
+	variable y
+	variable i
+	wave wl = root:HSI:metadata:Wl
+	wave hsiptr = root:hsi:spec:hsidata
+	string spec = "root:HSI:spec:specx" + num2str(x) + "y" + num2str(y)
+	Make/O/N=(numpnts(WL)) $spec
+	wave d =$spec
+	for (i=0; i<numpnts(WL); i+=1)
+		d[i] = hsiptr[x][y][i]
+	endfor
+	display d vs WL
+	
 End
 
 function LoadHSIData()
@@ -580,32 +596,29 @@ Function removecosmics()
 							reading = 0
 						endif
 						// cosmic start and end identified, now remove them
-						if (reading == 3 | reading == 6 )
+						if (reading == 3 || reading == 6 )
 							variable ci
 							variable cj
 							variable cl
 							variable findcs
 							for (l=cstart; l<cend; l+=1)
-								print i, j, k, l
-								if (i>0&j>0&l>0&i<numpnts(gridx)+1&j<numpnts(gridy)+1&l<numpnts(WL)+1)
-									print numpnts(gridx), numpnts(gridy), numpnts(WL)
-									print 1
+								if (i>0&&j>0&&l>0&&i<numpnts(gridx)-1&&j<numpnts(gridy)-1&&l<numpnts(WL)-1)
 									// set the cosmic to the average value of the other pixels around it
 									hs[i][j][l] = (hs[i-1][j-1][l]/sqrt(2)+hs[i-1][j][l]+hs[i-1][j+1][l]/sqrt(2)+hs[i][j-1][l]+hs[i][j+1][l]+hs[i+1][j-1][l]/sqrt(2)+hs[i+1][j][l]+hs[i+1][j+1][l]/sqrt(2))/(4+4/sqrt(2))
 								else // at the edges of the HSI, select different methode
 									// last or first WL pixel cosmic: set zero instead of interplating, since last WL pixel might also contain straylight and should never be located in a relevant spectral area
 									print 2
-									if (l==0|l>=numpnts(WL)-1)
+									if (l==0||l>=numpnts(WL))
 										hs[i][j][l] = 0
 									elseif (i==0)
 										if (j==0)
 											hs[i][j][l] = (hs[i+1][j][l]+hs[i][j+1][l]+hs[i+1][j+1][l]/sqrt(2))/(2+1/sqrt(2))
-										elseif (j>=numpnts(gridy)-1)
+										elseif (j>=numpnts(gridy))
 											hs[i][j][l] = (hs[i+1][j][l]+hs[i][j-1][l]+hs[i+1][j-1][l]/sqrt(2))/(2+1/sqrt(2))
 										else
 											hs[i][j][l] = (hs[i][j-1][l]+hs[i][j+1][l]+hs[i+1][j-1][l]/sqrt(2)+hs[i+1][j][l]+hs[i+1][j+1][l]/sqrt(2))/(3+2/sqrt(2))
 										endif
-									elseif (i>=numpnts(gridx)-1)
+									elseif (i>=numpnts(gridx))
 										if (j==0)
 											hs[i][j][l] = (hs[i-1][j][l]+hs[i][j+1][l]+hs[i-1][j+1][l]/sqrt(2))/(2+1/sqrt(2))
 										elseif (j>=numpnts(gridy)-1)
