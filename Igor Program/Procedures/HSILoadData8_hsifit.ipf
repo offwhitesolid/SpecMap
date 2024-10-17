@@ -110,7 +110,7 @@ function ProcessPanel()
 	SetVariable wl_start, title="WL start (min="+num2str(Pathnum[7])+" nm)",size={200,20},pos={170,10},proc=SetVarProc, value=Pathnum[10],win=Process_Panel
     SetVariable wl_end, title="WL end (min="+num2str(Pathnum[8])+" nm)",size={200,20},pos={400,10},proc=SetVarProc, value=Pathnum[11],win=Process_Panel
     Button PlotspecCA, pos={13.00,40.00},size={180.00,20.00},proc=ButtonProc,title="Plot Spectrum under Cursor A",win=Process_Panel
-    Button PlotspecCA, pos={13.00,60.00},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
+    Button hsifit, pos={13.00,60.00},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
 	
 end
 	
@@ -941,3 +941,29 @@ Function CheckProc(cba) : CheckBoxControl
 		endswitch
 	return 0
 End
+
+Function dolistbox(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+
+	switch( ba.eventCode )
+		case 2: // mouse up
+			// click code here
+			wave fred
+			wave/t lucy
+			variable index, maxindex
+			maxindex = numpnts(fred)
+			for(index=0;index<maxindex;index+=1)
+				if(fred[index])
+					print lucy[index]+"\r"
+				endif
+			endfor
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
+	return 0
+End
+
+
+

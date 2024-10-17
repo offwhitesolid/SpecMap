@@ -171,7 +171,6 @@ End
 function fittohsi()
 	wave specfitwave
 	
-	
 end
 
 
@@ -961,5 +960,28 @@ Function CheckProc(cba) : CheckBoxControl
 		case -1: // Control being killed
 			break
 		endswitch
+	return 0
+End
+
+Function dolistbox(ba) : ButtonControl
+	STRUCT WMButtonAction &ba
+
+	switch( ba.eventCode )
+		case 2: // mouse up
+			// click code here
+			wave fitbselect = root:packages:myfolder:fitboxselect
+			wave/t fitfuncs = root:packages:myfolder:fitfunctions
+			variable index, maxindex
+			maxindex = numpnts(fitbselect)
+			for(index=0;index<maxindex;index+=1)
+				if(fitbselect[index])
+					print fitfuncs[index]+"\r"
+				endif
+			endfor
+			break
+		case -1: // control being killed
+			break
+	endswitch
+
 	return 0
 End
