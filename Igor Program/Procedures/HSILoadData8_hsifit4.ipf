@@ -1017,3 +1017,37 @@ function fittohsi()
 		endfor
 	endfor
 end
+
+//from Klaus: Voigt fits
+// VOIGT FUNCTIONS --> LORENTZ AND GAUSSIAN CAN ALSO BE OBTAINED FROM THIS FIT
+Function FitManyVoigts(w, x) : FitFunc
+    WAVE w      // must be of length 2 + 4 * n where n is the number of Voigt peaks to be fit
+    variable x
+    variable y0=w[0]
+    variable slope = w[1]
+    Variable cfi
+    // cfi[i+2] = area under Voigt
+    // cfi[i+3] = center
+    // cfi[i+4] = Gaussian FWHM (must not be =0. Use a very small value, i.e. 1e-6, with lw/gw --> inf for a perfect Lorentzian)
+    // cfi[i+5] = Lorentzian FWHM (can be =0 for perfect Gaussian)
+    Variable i
+    Variable numPeaks = floor((numpnts(w)-2)/4)
+    variable returnvalue = 0
+    for (i = 0; i < numPeaks; i += 1)
+        cfi = 4 * i
+        make/FREE/N=5 dmyw
+        dmyw = {0,w[cfi+2],w[cfi+3],w[cfi+4],w[cfi+5]/w[cfi+4]} // cfi[i] = Area, cfi[i+1] = center, cfi[i+2] = gaussian FWHM, cfi[i+3] = Lorentzian width. Gaussian width is not allowed to be exactly 0. Use very small number gw/lw --> 0 for a Lorentzian 
+        returnvalue += VoigtPeak(dmyw,x)
+    endfor
+    returnvalue += y0 + slope*x
+    return returnvalue
+End
+
+
+
+
+
+
+
+
+
