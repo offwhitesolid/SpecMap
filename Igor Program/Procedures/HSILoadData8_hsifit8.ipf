@@ -845,10 +845,11 @@ Function Integratehsispeclim(showimage) // showimage = 1 to display
 	updateWLInput()
 	wave/T path = root:Packages:myFolder:Path
 	wave pathnum = root:Packages:myFolder:Pathnum
-	wave pixmatrix = $"root:HSI:spec:PixMatrix1"
+	//wave pixmatrix = $"root:HSI:spec:PixMatrix1"
 	variable i
 	variable j
 	variable k
+	variable l
 	
 	wave gridx = root:HSI:metadata:gridx
 	wave gridy = root:HSI:metadata:gridy
@@ -856,7 +857,12 @@ Function Integratehsispeclim(showimage) // showimage = 1 to display
 	wave hsiptr = root:HSI:spec:hsidata
 	wave xax = root:hsi:metadata:gridx
 	wave yax = root:hsi:metadata:gridy
-	string stringspecwave = "root:HSI:spec:pixmatrix1"
+	l = 0
+	string stringspecwave = "root:HSI:spec:pixmatrix" + num2str(i)
+	do 
+		l+=1
+		stringspecwave = "root:HSI:spec:pixmatrix" + num2str(l)
+	while (waveexists($stringspecwave)==1) 
 	Make/O /N=(numpnts(xax), numpnts(yax)) $stringspecwave
 	wave d = $stringspecwave
 	
@@ -868,10 +874,13 @@ Function Integratehsispeclim(showimage) // showimage = 1 to display
 			endfor
 		endfor
 	endfor
+	setnote($stringspecwave, "Integrated WL start [nm]", num2str(wl[pathnum[12]]))
+	setnote($stringspecwave, "Integrated WL end [nm]", num2str(wl[pathnum[13]]))
 	if (showimage == 1)
-		wave pixmatrix1 = $"root:HSI:spec:pixmatrix1"
-		newimage pixmatrix1
-		ModifyImage pixmatrix1 ctab= {*,*,YellowHot256,0}
+		wave pixmatrixplot = $stringspecwave
+		newimage pixmatrixplot
+		string pixmatrixn = "pixmatrix"+num2str(l)
+		ModifyImage $pixmatrixn ctab= {*,*,YellowHot256,0}
 	endif
 end
 
