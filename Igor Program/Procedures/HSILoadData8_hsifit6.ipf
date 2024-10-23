@@ -14,6 +14,7 @@ function createfolders()
 	NewDataFolder/O root:HSI:spec:CosmicSpecs
 	make/O/N=1 root:Packages:myFolder:Pathnum
 	variable/G root:Packages:myFolder:checkcosrem
+	NVAR checkcosrem
 end
 
 // 1. run code in createfolders()
@@ -53,6 +54,7 @@ function Initfortestdata(ic, jc, wlc)
 end
 
 function LoadPanel()
+	createfolders()
     NewDataFolder/O root:Packages
     NewDataFolder/O root:Packages:myFolder
     Make/T/O/N=16 root:Packages:myFolder:Path
@@ -599,10 +601,6 @@ Function removecosmics()
 			if (somecosmics == 1)
 				// display old spectrum with cosmic
 				string plotname = "wi" + num2str(i) + "j"+ num2str(j)
-				if (checkcosrem > 0)
-					display/N=$plotname hsidatanocrm [i][j][]
-					ModifyGraph rgb(hsidatanocrm)=(0,0,0)
-				endif
 				variable cstart = 0
 				variable cend = 0
 				variable reading = 0
@@ -684,10 +682,12 @@ Function removecosmics()
 							endfor
 							reading = 0
 							somecosmics = 0
-						endif
-						// add cosmic removed spectrum to plot 
-						if (checkcosrem > 0)
-							AppendToGraph/W=$plotname/L/B hs[i][j][]
+							// plot original spec and cosmic
+							if (checkcosrem > 0)
+								display/N=$plotname hsidatanocrm [i][j][]
+								ModifyGraph rgb(hsidatanocrm)=(0,0,0)
+								AppendToGraph/W=$plotname/L/B hs[i][j][]
+							endif
 						endif
 					endif
 				endfor
@@ -741,7 +741,7 @@ Function PutSpecIn3DWave(xmin, ymin, dx, dy)
 		wave c = $substr
 		gridx = (str2num(stringfromlist(0, stringfromlist(1, note(c), "x="), ";"))-xmin)/dx
 		gridy = (str2num(stringfromlist(0, stringfromlist(1, note(c), "y="), ";"))-ymin)/dy
-		for (j=0; j<1023; j+=1)
+		for (j=0; j<numpnts(WL); j+=1)
 			d[gridx][gridy][j] = c[j]
 		endfor
 	endfor

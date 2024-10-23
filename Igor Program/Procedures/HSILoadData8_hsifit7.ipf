@@ -5,6 +5,7 @@
 function createfolders()
 	NewDataFolder/O root:Packages
 	NewDataFolder/O root:Packages:myFolder
+	NewDataFolder/O root:Packages:Fitdata
 	Make/T/O/N=9 root:Packages:myFolder:Path
 	NewDataFolder/O root:HSI
 	NewDataFolder/O root:HSI:metadata
@@ -52,6 +53,7 @@ function Initfortestdata(ic, jc, wlc)
 end
 
 function LoadPanel()
+	createfolders()
     NewDataFolder/O root:Packages
     NewDataFolder/O root:Packages:myFolder
     Make/T/O/N=16 root:Packages:myFolder:Path
@@ -104,16 +106,55 @@ function ProcessPanel()
 	Pathnum[11] = WLwave[numpnts(WLwave)-1]								// lambda max selection
 	Pathnum[12] = 0														// lambda min selection in pixels
 	Pathnum[13] = numpnts(WLwave)-1										// lambda max selection in pixels
+	buildfitwaves()
 		
 	NewPanel /W=(81,73,774,248)/N=Process_Panel
 	Button GenIntHSI,pos={13.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Integrate Pixels to HSI",win=Process_Panel
 	SetVariable wl_start, title="WL start (min="+num2str(Pathnum[7])+" nm)",size={200,20},pos={170,10},proc=SetVarProc, value=Pathnum[10],win=Process_Panel
     SetVariable wl_end, title="WL end (min="+num2str(Pathnum[8])+" nm)",size={200,20},pos={400,10},proc=SetVarProc, value=Pathnum[11],win=Process_Panel
-    Button PlotspecCA, pos={13.00,30.00},size={180.00,20.00},proc=ButtonProc,title="Plot Spectrum under Cursor A",win=Process_Panel
-    Button FitFunction, pos={13.00,50.00},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
+    Button PlotspecCA, pos={13.00,35.00},size={180.00,20.00},proc=ButtonProc,title="Plot Spectrum under Cursor A",win=Process_Panel
+    // listbox to select fit function
+    Button FitFunction, pos={13.00,60.00},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
+    SetVariable fittresh, title="count threshold for fit",size={200,20},pos={310,60},proc=SetVarProc, value=Pathnum[14],win=Process_Panel
+    ListBox list0,pos={200.00,60.00},size={100.00,60.00},listWave=root:packages:myfolder:fitfuncs
+	ListBox list0,selWave=root:packages:myfolder:fitboxselect,mode=4
+	Button FitFunctionplot, pos={13.00,85.00},size={180.00,20.00},proc=ButtonProc,title="Plot Fit and Spec under cursor",win=Process_Panel
+	Button FitParameterplot, pos={310.00,85.00},size={180.00,20.00},proc=ButtonProc,title="Create HSI from Fitparameter",win=Process_Panel
+	ListBox list1,pos={520.00,60.00},size={200.00,200.00},listWave=root:packages:myfolder:fitfuncsplot
+	ListBox list1,selWave=root:packages:myfolder:fitboxplotselect,mode=4
 	
 end
+
+function buildfitwaves()
+	// create boxex to select fit function
+	string fitbselect = "root:packages:myfolder:fitboxselect"
+	Make/O/N=(6) $fitbselect
+	wave fbs =$fitbselect
+	string fitfuncs = "root:packages:myfolder:fitfuncs"
+	Make/T/O/N=(6) $fitfuncs
+	wave/T ffs = $fitfuncs
+	ffs[0] = "gauss"
+	ffs[1] = "lorentz"
+	ffs[2] = "voigt"
+	ffs[3] = "double gauss"
+	ffs[4] = "double lorentz"
+	ffs[5] = "double voigt"
+	// create box to plot fit parameters
+	string fitbplotselect = "root:packages:myfolder:fitboxplotselect"
+	Make/O/N=(30) $fitbplotselect
+	wave fbsp =$fitbplotselect
+	string fitfuncsplot = "root:packages:myfolder:fitfuncsplot"
+	Make/T/O/N=(30) $fitfuncsplot
+	wave/T ffsp = $fitfuncsplot
+	ffsp[0] = "g max"
+	ffsp[1] = "g fwhm"
+	ffsp[2] = "g maxWL"
+	ffsp[3] = "g amp"
+	// add further entries for the fit functions
+	//ffsp[] = ""
 	
+end
+
 
 // define buttons
 Function ButtonProc(ctrlName) : ButtonControl
@@ -148,7 +189,7 @@ Function ButtonProc(ctrlName) : ButtonControl
             
             case "GenIntHSI" :
             	//updateWLInput()
-            	integratehsispeclim()
+            	integratehsispeclim(1)
             	//integratehsidata()
             	break
             	
@@ -159,22 +200,26 @@ Function ButtonProc(ctrlName) : ButtonControl
             case "PlotspecCA":
 				variable cx = pcsr(A)
             	variable cy = qcsr(A)
-            	HSIplotspec(cx, cy)
+            	HSIplotspec(cx, cy, 0)
             	break
             
             case "fitfunction":
             	FittoHSI()
+            	integratehsispeclim(0)
+            	break
+            	
+            case "fitfunctionplot":
+            	cx = pcsr(A)
+            	cy = qcsr(A)
+            	HSIplotspec(cx, cy, 1)
+            	break
+            
        
         EndSwitch
 End
 
-function fittohsi()
-	wave specfitwave
-	
-end
-
-
-function HSIplotspec(x, y)
+function HSIplotspec(x, y, plotfit)
+	variable plotfit
 	variable x
 	variable y
 	variable i
@@ -187,6 +232,9 @@ function HSIplotspec(x, y)
 		d[i] = hsiptr[x][y][i]
 	endfor
 	display d vs WL
+	if (plotfit == 1)
+	 
+	endif
 End
 
 function LoadHSIData()
@@ -459,7 +507,7 @@ Function LoadDF1(pathName, spechead, startHSIcount)
   	
   	Make/O /N=((xmax-xmin)/dx+1, (ymax-ymin)/dy+1, numpnts(WL)) hsidata
   	Make/O /N=((xmax-xmin)/dx+1, (ymax-ymin)/dy+1) PixMatrix
-  	Make/O /N=((xmax-xmin)/dx+1, (ymax-ymin)/dy+1, 20) Fitparameter
+  	Make/O /N=((xmax-xmin)/dx+1, (ymax-ymin)/dy+1, 100) Fitparameter // set here number of parameters that can be obtained by fit
   	wave fit = $"Fitparameter"
   	for (i=0; i<(xmax-xmin)/dx+1; i+=1)
   		for (j=0; j<(ymax-ymin)/dy+1; j+=1)
@@ -568,10 +616,6 @@ Function removecosmics()
 			if (somecosmics == 1)
 				// display old spectrum with cosmic
 				string plotname = "wi" + num2str(i) + "j"+ num2str(j)
-				if (checkcosrem > 0)
-					display/N=$plotname hsidatanocrm [i][j][]
-					ModifyGraph rgb(hsidatanocrm)=(0,0,0)
-				endif
 				variable cstart = 0
 				variable cend = 0
 				variable reading = 0
@@ -653,10 +697,12 @@ Function removecosmics()
 							endfor
 							reading = 0
 							somecosmics = 0
-						endif
-						// add cosmic removed spectrum to plot 
-						if (checkcosrem > 0)
-							AppendToGraph/W=$plotname/L/B hs[i][j][]
+							// plot original spec and cosmic
+							if (checkcosrem > 0)
+								display/N=$plotname hsidatanocrm [i][j][]
+								ModifyGraph rgb(hsidatanocrm)=(0,0,0)
+								AppendToGraph/W=$plotname/L/B hs[i][j][]
+							endif
 						endif
 					endif
 				endfor
@@ -664,41 +710,6 @@ Function removecosmics()
 		endfor
 	endfor
 END
-
-// Given a path to a folder on disk, gets all files ending in "ext"
-Function/S findFiles(path, ext[, recurse])
-// By default, subfolders are searched. Turn off with recurse=0.
-// 2017-05-02, joel corbin
-//
-    string path, ext; variable recurse
-   
-    if (paramIsDefault(recurse))
-        recurse=1
-    endif
-    path = sanitizeFilePath(path)                                               // may not work in extreme cases
-   
-    string fileList=""
-    string files=""
-    string pathName = "tmpPath"
-    string folders =path+";"                                                    // Remember the full path of all folders in "path" & search each for "ext" files
-    string fldr
-    do
-        fldr = stringFromList(0,folders)
-        NewPath/O/Q $pathName, fldr                                             // sets S_path=$path, and creates the symbolic path needed for indexedFile()
-        PathInfo $pathName
-        files = indexedFile($pathName,-1,ext)                                   // get file names
-        if (strlen(files))
-            files = fldr+":"+ replaceString(";", removeEnding(files), ";"+fldr+":") // add the full path (folders 'fldr') to every file in the list
-            fileList = addListItem(files,fileList)
-        endif
-        if (recurse)
-            folders += indexedDir($pathName,-1,1)                               // get full folder paths
-        endif
-        folders = removeFromList(fldr, folders)                                 // Remove the folder we just looked at
-    while (strlen(folders))
-    KillPath $pathName
-    return fileList
-End
 
 function PutTestSpecIn3DWave(imax, jmax)
 	variable imax
@@ -724,7 +735,6 @@ function PutTestSpecIn3DWave(imax, jmax)
 		endfor
 	endfor
 End
-
 
 Function PutSpecIn3DWave(xmin, ymin, dx, dy)
 	variable xmin
@@ -774,16 +784,16 @@ Function updateWLInput()
 	variable i
 	variable j
 	// check if wavemin and wavemax are within WL limits
-	if (pathnum[10] > pathnum[7])
-		if (pathnum[10] < pathnum[8])
+	if (pathnum[10] >= pathnum[7])
+		if (pathnum[10] <= pathnum[8])
 		else
 			pathnum[10] = pathnum[7]
 		endif
 	else
 		pathnum[10] = pathnum[7]
 	endif
-	if (pathnum[11] < pathnum[8])
-		if (pathnum[11] > pathnum[7])
+	if (pathnum[11] <= pathnum[8])
+		if (pathnum[11] >= pathnum[7])
 		else
 			pathnum[11] = pathnum[8]
 		endif
@@ -792,14 +802,14 @@ Function updateWLInput()
 	endif
 	pathnum[12] = pathnum[10]
 	for (i=0; i<numpnts(WL)-1; i+=1)
-		if (Wl[i] > pathnum[10])
+		if (Wl[i] >= pathnum[10])
 			pathnum[12] = i
 			break
 		endif
 	endfor
 	pathnum[13] = pathnum[6]
 	for (i=numpnts(WL)-1; i>=0; i-=1)
-		if (Wl[i] < pathnum[11])
+		if (Wl[i] <= pathnum[11])
 			pathnum[13] = i
 			break
 		endif
@@ -818,7 +828,8 @@ Function Integratehsidata()
 	ModifyImage intmap ctab= {*,*,YellowHot256,0}
 End
 
-Function Integratehsispeclim()
+Function Integratehsispeclim(showimage) // showimage = 1 to display
+	variable showimage
 	updateWLInput()
 	wave/T path = root:Packages:myFolder:Path
 	wave pathnum = root:Packages:myFolder:Pathnum
@@ -845,10 +856,11 @@ Function Integratehsispeclim()
 			endfor
 		endfor
 	endfor
-	
-	wave pixmatrix1 = $"root:HSI:spec:pixmatrix1"
-	newimage pixmatrix1
-	ModifyImage pixmatrix1 ctab= {*,*,YellowHot256,0}
+	if (showimage == 1)
+		wave pixmatrix1 = $"root:HSI:spec:pixmatrix1"
+		newimage pixmatrix1
+		ModifyImage pixmatrix1 ctab= {*,*,YellowHot256,0}
+	endif
 end
 
 Function PlotPixMatrix()
@@ -856,64 +868,6 @@ Function PlotPixMatrix()
 	Display/K=0 root:HSI:spec:PixMatrix
 	
 End
-
-// Slider demo test
-Window SliderDemoPanel() : Panel
-	PauseUpdate; Silent 1 // building window...
-	NewPanel /W=(262,115,665,287)
-	TitleBox Title0,pos={46,21},size={139,15},fSize=12,frame=0,fStyle=1
-	TitleBox Title0,title="Live Mode Off"
-	Slider slider0,pos={197,23},size={150,44},proc=Slider0Proc
-	Slider slider0,limits={0,2,0},value=0,live=0,vert=0
-	TitleBox Title1,pos={52,114},size={135,15},fSize=12,frame=0,fStyle=1
-	TitleBox Title1,title="Live Mode On"
-	Slider slider1,pos={197,113},size={150,44},proc=Slider1Proc
-	Slider slider1,limits={0,2,0},value=0,live=0,vert=0
-EndMacro
-
-Function Slider0Proc(sa) : SliderControl // Action procedure for slider0
-	STRUCT WMSliderAction &sa
-	switch(sa.eventCode)
-		case -3: // Control received keyboard focus
-		case -2: // Control lost keyboard focus
-		case -1: // Control being killed
-			break
-	default:
-		if (sa.eventCode & 1) // Value set
-			Printf "Value = %g, event code = %d\r", sa.curval, sa.eventCode
-		endif
-			break
-	endswitch
-	return 0
-End
-
-Function Slider1Proc(sa) : SliderControl // Action procedure for slider1
-	STRUCT WMSliderAction &sa
-	switch(sa.eventCode)
-	case -3: // Control received keyboard focus
-	case -2: // Control lost keyboard focus
-	case -1: // Control being killed
-		break
-	default:
-		if (sa.eventCode & 1) // Value set
-			Printf "Value = %g, event code = %d\r", sa.curval, sa.eventCode
-		endif
-		if (sa.eventCode & 8) // Mouse moved or arrow key moved the slider
-			Printf "Value = %g, event code = %d\r", sa.curval, sa.eventCode
-		endif
-		break
-	endswitch
-	return 0
-End
-
-// simple float input
-// creates selection in analysis pull down menu
-
-Menu "Analysis"
-    "Open Calculate Pansel",/Q, OpenCalculatePanel()
-End
- 
-// creates panel, defines operations
 
 Function SetVarProc(sva) : SetVariableControl
         STRUCT WMSetVariableAction &sva
@@ -982,6 +936,136 @@ Function dolistbox(ba) : ButtonControl
 		case -1: // control being killed
 			break
 	endswitch
-
 	return 0
 End
+
+// define the Fit Functions in the following lines
+function fittohsi()
+	wave fitselect = root:packages:myfolder:fitboxselect
+	wave hsidata = root:hsi:spec:hsidata
+	wave gridx = root:hsi:metadata:gridx
+	wave gridy = root:hsi:metadata:gridy
+	wave wl = root:hsi:metadata:wl
+	wave pathnum = root:packages:myfolder:pathnum
+	// iterators
+	variable i, j, k
+	//make/O/N=(3, 0) root:packages:fitdata:fitwave
+	make/O/N=(pathnum[13]-pathnum[12], 0) root:packages:fitdata:fitwave
+	make/O/N=(pathnum[13]-pathnum[12], 0) root:packages:fitdata:fitwl
+	wave fitwave = root:packages:fitdata:fitwave
+	wave fitwl = root:packages:fitdata:fitwl
+	wave hsiint = root:HSI:spec:pixmatrix1
+	// put wl in fitwl
+	for (i=0; i<pathnum[13]-pathnum[12]; i+=1)
+		fitwl[i] = WL[i+pathnum[12]]
+	endfor
+	wave fitw = root:hsi:spec:fitparameter
+	make/O/N=(50) root:packages:Fitdata:fitwpar
+	wave fitstw = root:packages:Fitdata:fitwpar
+	
+	setdataFolder root:packages:fitdata
+	for (i=0; i<numpnts(gridx); i+=1)
+		for (j=0; j<numpnts(gridy); j+=1)
+			if (hsiint[i][j] >= pathnum[14]) // fit only if pixel in pixmatrix1 > count threshold for fit
+				for (k=0; k<numpnts(fitwl); k+=1)
+					fitwave[k] = hsidata[i][j][k] // write spectrum to specarray
+					
+				endfor
+				// do the fit to hsi[i][k]
+				if (fitselect[0] == 1) // gaussian fit Gauss: fitw[0-7]
+					curvefit/Q=1 gauss, fitwave
+					wave w_coef, w_sigma
+					fitw[i][j][0] = w_coef[0]
+					fitw[i][j][1] = w_coef[1]
+					fitw[i][j][2] = w_coef[2]
+					fitw[i][j][3] = w_coef[3]
+					fitw[i][j][4] = w_sigma[0]
+					fitw[i][j][5] = w_sigma[1]
+					fitw[i][j][6] = w_sigma[2]
+					fitw[i][j][7] = w_sigma[3]
+				elseif (fitselect[1] == 1) // lorenz fit lorentzian: fitw[8-15]
+					curvefit/Q=1 lor, fitwave
+					wave w_coef, w_sigma
+					fitw[i][j][8] = w_coef[0]
+					fitw[i][j][9] = w_coef[1]
+					fitw[i][j][10] = w_coef[2]
+					fitw[i][j][11] = w_coef[3]
+					fitw[i][j][12] = w_sigma[0]
+					fitw[i][j][13] = w_sigma[1]
+					fitw[i][j][14] = w_sigma[2]
+					fitw[i][j][15] = w_sigma[3]
+				elseif (fitselect[2] == 1) // lorenz fit lorentzian: fitw[8-15]
+					curvefit/Q=1 lor, fitwave
+					wave w_coef, w_sigma
+					fitw[i][j][16] = w_coef[0]
+					fitw[i][j][17] = w_coef[1]
+					fitw[i][j][18] = w_coef[2]
+					fitw[i][j][19] = w_coef[3]
+					fitw[i][j][20] = w_sigma[0]
+					fitw[i][j][21] = w_sigma[1]
+					fitw[i][j][22] = w_sigma[2]
+					fitw[i][j][23] = w_sigma[3]
+				endif
+			else
+				fitw[i][j][0] = NaN
+				fitw[i][j][1] = NaN
+				fitw[i][j][2] = NaN
+				fitw[i][j][3] = NaN
+				fitw[i][j][4] = NaN
+				fitw[i][j][5] = NaN
+				fitw[i][j][6] = NaN
+				fitw[i][j][7] = NaN
+				fitw[i][j][8] = NaN
+				fitw[i][j][9] = NaN
+				fitw[i][j][10] = NaN
+				fitw[i][j][11] = NaN
+				fitw[i][j][12] = NaN
+				fitw[i][j][13] = NaN
+				fitw[i][j][14] = NaN
+				fitw[i][j][15] = NaN
+				fitw[i][j][16] = NaN
+				fitw[i][j][17] = NaN
+				fitw[i][j][18] = NaN
+				fitw[i][j][19] = NaN
+				fitw[i][j][20] = NaN
+				fitw[i][j][21] = NaN
+				fitw[i][j][22] = NaN
+				fitw[i][j][23] = NaN
+			endif
+		endfor
+	endfor
+end
+
+//from Klaus: Voigt fits
+// VOIGT FUNCTIONS --> LORENTZ AND GAUSSIAN CAN ALSO BE OBTAINED FROM THIS FIT
+Function FitManyVoigts(w, x) : FitFunc
+    WAVE w      // must be of length 2 + 4 * n where n is the number of Voigt peaks to be fit
+    variable x
+    variable y0=w[0]
+    variable slope = w[1]
+    Variable cfi
+    // cfi[i+2] = area under Voigt
+    // cfi[i+3] = center
+    // cfi[i+4] = Gaussian FWHM (must not be =0. Use a very small value, i.e. 1e-6, with lw/gw --> inf for a perfect Lorentzian)
+    // cfi[i+5] = Lorentzian FWHM (can be =0 for perfect Gaussian)
+    Variable i
+    Variable numPeaks = floor((numpnts(w)-2)/4)
+    variable returnvalue = 0
+    for (i = 0; i < numPeaks; i += 1)
+        cfi = 4 * i
+        make/FREE/N=5 dmyw
+        dmyw = {0,w[cfi+2],w[cfi+3],w[cfi+4],w[cfi+5]/w[cfi+4]} // cfi[i] = Area, cfi[i+1] = center, cfi[i+2] = gaussian FWHM, cfi[i+3] = Lorentzian width. Gaussian width is not allowed to be exactly 0. Use very small number gw/lw --> 0 for a Lorentzian 
+        returnvalue += VoigtPeak(dmyw,x)
+    endfor
+    returnvalue += y0 + slope*x
+    return returnvalue
+End
+
+
+
+
+
+
+
+
+
