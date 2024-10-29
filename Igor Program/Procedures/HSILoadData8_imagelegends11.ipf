@@ -12,10 +12,16 @@ function createfolders()
 	NewDataFolder/O root:HSI:spec
 	NewDataFolder/O root:HSI:rawspecs
 	NewDataFolder/O root:HSI:spec:CosmicSpecs
+	NewDataFolder/O root:HSI:roi
 	make/O/N=1 root:Packages:myFolder:Pathnum
 	variable/G root:Packages:myFolder:checkcosrem
 	variable/G root:packages:myFolder:linearbg
 end
+
+// test: 
+// multmasktoimg(root:hsi:spec:pixmatrix7, root:hsi:roi:roi2, "root:hsi:spec:pixmatrix7roi1")
+// NewImage/K=0 root:HSI:spec:pixmatrix7roi1
+// ColorScale/C/N=text0
 
 // 1. run code in createfolders()
 // 2. compile
@@ -114,14 +120,14 @@ function ProcessPanel()
     SetVariable wl_end, title="WL end (min="+num2str(Pathnum[8])+" nm)",size={200,20},pos={400,10},proc=SetVarProc, value=Pathnum[11],win=Process_Panel
     Button PlotspecCA, pos={13.00,35.00},size={180.00,20.00},proc=ButtonProc,title="Plot Spectrum under Cursor A",win=Process_Panel
     // listbox to select fit function
-    Button FitFunction, pos={13.00,60.00},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
-    SetVariable fittresh, title="count threshold for fit",size={200,20},pos={310,60},proc=SetVarProc, value=Pathnum[14],win=Process_Panel
-    ListBox list0,pos={200.00,60.00},size={100.00,60.00},listWave=root:packages:myfolder:fitfuncs
-	ListBox list0,selWave=root:packages:myfolder:fitboxselect,mode=4
-	Button FitFunctionplot, pos={13.00,85.00},size={180.00,20.00},proc=ButtonProc,title="Plot Fit and Spec under cursor",win=Process_Panel
-	Button FitParameterplot, pos={310.00,85.00},size={180.00,20.00},proc=ButtonProc,title="Create HSI from Fitparameter",win=Process_Panel
-	ListBox list1,pos={520.00,60.00},size={200.00,200.00},listWave=root:packages:myfolder:fitfuncsplot
-	ListBox list1,selWave=root:packages:myfolder:fitboxplotselect,mode=4
+//    Button FitFunction, pos={13.00,60.00},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
+//    SetVariable fittresh, title="count threshold for fit",size={200,20},pos={310,60},proc=SetVarProc, value=Pathnum[14],win=Process_Panel
+//    ListBox list0,pos={200.00,60.00},size={100.00,60.00},listWave=root:packages:myfolder:fitfuncs
+//	ListBox list0,selWave=root:packages:myfolder:fitboxselect,mode=4
+//	Button FitFunctionplot, pos={13.00,85.00},size={180.00,20.00},proc=ButtonProc,title="Plot Fit and Spec under cursor",win=Process_Panel
+//	Button FitParameterplot, pos={310.00,85.00},size={180.00,20.00},proc=ButtonProc,title="Create HSI from Fitparameter",win=Process_Panel
+//	ListBox list1,pos={520.00,60.00},size={200.00,200.00},listWave=root:packages:myfolder:fitfuncsplot
+//	ListBox list1,selWave=root:packages:myfolder:fitboxplotselect,mode=4
 	
 end
 
@@ -188,9 +194,7 @@ Function ButtonProc(ctrlName) : ButtonControl
                 break
             
             case "GenIntHSI" :
-            	//updateWLInput()
             	integratehsispeclim(1)
-            	//integratehsidata()
             	break
             	
             case "cosmicremoval":
@@ -901,7 +905,6 @@ Function Integratehsispeclim(showimage) // showimage = 1 to display
 	ModifyGraph margin(left)=20
 	ModifyGraph margin(top)=20
 	Label top "\\Z15"
-	legend
 	// create colorscale
 	ColorScale/C/N=text0 image=$pixmatrixn
 	
@@ -990,22 +993,25 @@ function multmasktoimg(image, mask, newname)
 	variable xpts = dimsize(image, 0)
 	variable ypts = dimsize(image, 1)
 	variable rgbpts = dimsize(image, 2) // should always be 3 for rgb image
-	make/N=(xpts, ypts, rgbpts) $newname
+	if (waveexists($newname) == 1)
+		killwaves $newname	
+	endif
+	
 	variable i, j, k // iterator
+	duplicate image $newname
 	wave imgdup = $newname
 	
-	duplicate image $newname
+	wave newimagen = $newname
 	for (i=0; i<xpts; i+=1)
 		for (j=0; j<ypts; j+=1)
-			for (k=0; k<rgbpts; k+=1)
-				if (mask[i][j] == 0)
-					imgdup[i][j][k] = Nan
-				else
-					imgdup[i][j][k] = image[i][j][k]*mask[i][j]
-				endif
-			endfor
+			if (mask[i][j] == 0)
+				imgdup[i][j] = Nan
+			else
+				imgdup[i][j] = imgdup[i][j]*mask[i][j]
+			endif
 		endfor
 	endfor
+	ColorScale/C/N=text0
 end
 
 function scalepixtatrix(pixmatrixn)
