@@ -12,10 +12,17 @@ function createfolders()
 	NewDataFolder/O root:HSI:spec
 	NewDataFolder/O root:HSI:rawspecs
 	NewDataFolder/O root:HSI:spec:CosmicSpecs
+	NewDataFolder/O root:HSI:roi
+	NewDatafolder/O root:HSI:pixmatrixfolder
 	make/O/N=1 root:Packages:myFolder:Pathnum
 	variable/G root:Packages:myFolder:checkcosrem
-	NVAR checkcosrem
+	variable/G root:packages:myFolder:linearbg = 1
 end
+
+// test: 
+// multmasktoimg(root:hsi:spec:pixmatrix7, root:hsi:roi:roi2, "root:hsi:spec:pixmatrix7roi1")
+// NewImage/K=0 root:HSI:spec:pixmatrix7roi1
+// ColorScale/C/N=text0
 
 // 1. run code in createfolders()
 // 2. compile
@@ -64,26 +71,26 @@ function LoadPanel()
     // cosmic width and thresh are 3 and 4
     // WL start,end in pixel x and y are 5 and 6
     // WL start,end in nm x and y are 7 and 8
-    //
-    // Pathnum A=6,7 B=8, 9 C=10,11 D=12,13 E=14,15 F=16,17 (x,y)
+    //h
+    // Pathnum A=6,7
+    // 
     wave/T Path = root:Packages:myFolder:Path
     wave Pathnum = root:Packages:myFolder:Pathnum
+    NVAR averagebg = root:packages:myfolder:linearbg
     Pathnum[3] = 10
     Pathnum[4] = 150
-     
     NewPanel /W=(81,73,774,248)/N=Load_Panel
     Button FilesDir,pos={13.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Select Data Folder",win=Load_Panel
     SetVariable FilesDirDialog,pos={168.00,13.00},size={800.00,14.00},value= Path[0], title="Path",win=Load_Panel
     Button DoIt,pos={13.00,41.00},size={100.00,20.00},proc=ButtonProc,title="Load Data",win=Load_Panel
     SetVariable SpecNameDialog,pos={168.00,41.00},size={170.00,14.00},value= Path[1], title="Spec Name",win=Load_Panel
-    SetVariable FirstHSINum,pos={350.00,41.00},size={140.00,14.00},value=Path[2], title="Start HSI count",win=Load_Panel
-     
+    Checkbox averagebg, pos={350, 41}, title="use averaged BG",proc=CheckProc, variable=averagebg, win=Load_Panel     
     return 0
     
 end
 
 function addcosmicremonloadpanel()
-	NVAR checkcosrem = root:Packages:myFolder:checkcosrem
+	//NVAR checkcosrem = root:Packages:myFolder:checkcosrem
 	wave/T Path = root:Packages:myFolder:Path
 	wave Pathnum = root:Packages:myFolder:Pathnum
 	// create button elements for cosmic ray removal
@@ -97,6 +104,7 @@ function ProcessPanel()
 	wave WLwave = root:HSI:metadata:WL
 	wave/T Path = root:Packages:myFolder:Path
 	wave Pathnum = root:Packages:myFolder:Pathnum
+	wave/T roisw = root:packages:myfolder:roisw
 	
 	Pathnum[5] = 0
 	Pathnum[6] = numpnts(WLwave)-1
@@ -108,23 +116,79 @@ function ProcessPanel()
 	Pathnum[12] = 0														// lambda min selection in pixels
 	Pathnum[13] = numpnts(WLwave)-1										// lambda max selection in pixels
 	buildfitwaves()
-		
-	NewPanel /W=(81,73,774,248)/N=Process_Panel
+	buildroiselect()
+	buildpixmatrixselect()
+	
+	NewPanel /W=(81,73,774,320)/N=Process_Panel
 	Button GenIntHSI,pos={13.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Integrate Pixels to HSI",win=Process_Panel
 	SetVariable wl_start, title="WL start (min="+num2str(Pathnum[7])+" nm)",size={200,20},pos={170,10},proc=SetVarProc, value=Pathnum[10],win=Process_Panel
     SetVariable wl_end, title="WL end (min="+num2str(Pathnum[8])+" nm)",size={200,20},pos={400,10},proc=SetVarProc, value=Pathnum[11],win=Process_Panel
     Button PlotspecCA, pos={13.00,35.00},size={180.00,20.00},proc=ButtonProc,title="Plot Spectrum under Cursor A",win=Process_Panel
     // listbox to select fit function
-    Button FitFunction, pos={13.00,60.00},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
-    SetVariable fittresh, title="count threshold for fit",size={200,20},pos={310,60},proc=SetVarProc, value=Pathnum[14],win=Process_Panel
-    ListBox list0,pos={200.00,60.00},size={100.00,60.00},listWave=root:packages:myfolder:fitfuncs
-	ListBox list0,selWave=root:packages:myfolder:fitboxselect,mode=4
-	Button FitFunctionplot, pos={13.00,85.00},size={180.00,20.00},proc=ButtonProc,title="Plot Fit and Spec under cursor",win=Process_Panel
-	
+    variable roiselect = 80
+    Button updaterois, pos={13.00,roiselect},size={180.00,20.00},proc=ButtonProc,title="Update ROI List",win=Process_Panel
+    Button updatepixmatrix, pos={13.00,roiselect+25},size={180.00,20.00},proc=ButtonProc,title="Update pixmatrix List",win=Process_Panel
+    ListBox list0,pos={200.00,roiselect},size={100.00, 140},listWave=root:packages:myfolder:roisw
+    ListBox list0,selWave=root:packages:myfolder:roiselect,mode=4
+    Button multiplyroitopixmatrix, pos={13.00,roiselect+50},size={180.00,20.00},proc=ButtonProc,title="multiply roi to pixmatrix",win=Process_Panel
+
+    ListBox list1,pos={320.00,roiselect},size={200.00,140},listWave=root:packages:myfolder:pixmatw
+    ListBox list1,selWave=root:packages:myfolder:pixmatselect,mode=4
+    
+    Button plotselpixm, pos={530.00,roiselect},size={150.00,20.00},proc=ButtonProc,title="plot selected pixmatrix",win=Process_Panel
+
+    variable fitbuttonstart = 260
+    Button FitFunction, pos={13.00,fitbuttonstart},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
+    SetVariable fittresh, title="count threshold for fit",size={200,20},pos={310,fitbuttonstart},proc=SetVarProc, value=Pathnum[14],win=Process_Panel
+    ListBox list2,pos={200.00,fitbuttonstart},size={100.00,fitbuttonstart},listWave=root:packages:myfolder:fitfuncs
+	ListBox list2,selWave=root:packages:myfolder:fitboxselect,mode=4
+	Button FitFunctionplot, pos={13.00,fitbuttonstart+25},size={180.00,20.00},proc=ButtonProc,title="Plot Fit and Spec under cursor",win=Process_Panel
+	Button FitParameterplot, pos={310.00,fitbuttonstart+25},size={180.00,20.00},proc=ButtonProc,title="Create HSI from Fitparameter",win=Process_Panel
+	ListBox list3,pos={520.00,fitbuttonstart},size={200.00,200.00},listWave=root:packages:myfolder:fitfuncsplot
+	ListBox list3,selWave=root:packages:myfolder:fitboxplotselect,mode=4
 	
 end
 
+function buildroiselect()
+	variable i
+	string substr
+	string roisw = "root:packages:myfolder:roisw"
+	string rois = "root:packages:myfolder:roiselect"
+	setdatafolder root:HSI:roi
+	string a = wavelist("*", ";", "")
+	variable nrois = ItemsInList(a)
+	string stringspecwave = "root:HSI:roi"
+	wave d = $stringspecwave
+	Make/T/O/N=(nrois) $roisw
+	Make/O/N=(nrois) $rois
+	wave/T roisentries = $roisw
+	for (i=0; i<ItemsInList(a); i+=1)
+		substr = StringFromList(i,a)
+		roisentries[i] = substr
+	endfor
+end
+
+function buildpixmatrixselect()
+	variable i
+	string substr
+	string pixmw = "root:packages:myfolder:pixmatw"
+	string pixms = "root:packages:myfolder:pixmatselect"
+	setdatafolder root:HSI:pixmatrixfolder
+	string a = wavelist("*", ";", "")
+	variable npixms = ItemsInList(a)
+	string stringspecwave = "root:HSI:pixmatrixfolder"
+	wave d = $stringspecwave
+	Make/T/O/N=(npixms) $pixmw
+	Make/O/N=(npixms) $pixms
+	wave/T pixmsentries = $pixmw
+	for (i=0; i<ItemsInList(a); i+=1)
+		substr = StringFromList(i,a)
+		pixmsentries[i] = substr
+	endfor
+end
+
 function buildfitwaves()
+	// create boxex to select fit function
 	string fitbselect = "root:packages:myfolder:fitboxselect"
 	Make/O/N=(6) $fitbselect
 	wave fbs =$fitbselect
@@ -137,6 +201,19 @@ function buildfitwaves()
 	ffs[3] = "double gauss"
 	ffs[4] = "double lorentz"
 	ffs[5] = "double voigt"
+	// create box to plot fit parameters
+	string fitbplotselect = "root:packages:myfolder:fitboxplotselect"
+	Make/O/N=(30) $fitbplotselect
+	wave fbsp =$fitbplotselect
+	string fitfuncsplot = "root:packages:myfolder:fitfuncsplot"
+	Make/T/O/N=(30) $fitfuncsplot
+	wave/T ffsp = $fitfuncsplot
+	ffsp[0] = "g max"
+	ffsp[1] = "g fwhm"
+	ffsp[2] = "g maxWL"
+	ffsp[3] = "g amp"
+	// add further entries for the fit functions
+	//ffsp[] = ""
 	
 end
 
@@ -199,7 +276,59 @@ Function ButtonProc(ctrlName) : ButtonControl
             	HSIplotspec(cx, cy, 1)
             	break
             
-       
+            case "updaterois":
+            	buildroiselect()
+            	break
+            
+            case "updatepixmatrix":
+            	buildpixmatrixselect()
+            	break
+            
+            case "multiplyroitopixmatrix":
+            	variable roisel = 0
+            	variable pixsel = 0
+            	variable i
+            	wave/T pixmw = $"root:packages:myfolder:pixmatw"
+				wave pixms = $"root:packages:myfolder:pixmatselect"
+				wave/T roisw = $"root:packages:myfolder:roisw"
+				wave rois = $"root:packages:myfolder:roiselect"
+				for (i=0; i<numpnts(pixms); i+=1)
+					if (pixms[i]==1)
+						pixsel = i
+						break
+					endif
+				endfor
+				for (i=0; i<numpnts(rois); i+=1)
+					if (rois[i]==1)
+						roisel = i
+						break
+					endif
+				endfor
+         		string spix = "root:hsi:pixmatrixfolder:" + pixmw[pixsel]
+         		string sro = "root:hsi:roi:" + roisw[roisel]
+         		string newpixroi = "root:hsi:pixmatrixfolder:" + pixmw[pixsel] + roisw[roisel]
+         		
+         		multmasktoimg($spix, $sro, newpixroi)
+         		buildpixmatrixselect()
+
+            	break
+            
+            case "plotselpixm":
+            	variable pixselp = 0
+            	variable pixi
+            	string selpixmat
+            	wave/T pixmw = $"root:packages:myfolder:pixmatw"
+				wave pixms = $"root:packages:myfolder:pixmatselect"
+				
+				for (pixi=0; pixi<numpnts(pixms); pixi+=1)
+					if (pixms[pixi]==1)
+						pixselp = pixi
+						break
+					endif
+				endfor
+				plotpixmatrix(pixmw[pixselp]) // for different plot look: copy the plotpixmatrix function and substitute it here
+            	break
+            
         EndSwitch
 End
 
@@ -208,6 +337,7 @@ function HSIplotspec(x, y, plotfit)
 	variable x
 	variable y
 	variable i
+	wave pathnum = root:packages:myfolder:pathnum
 	wave wl = root:HSI:metadata:Wl
 	wave hsiptr = root:hsi:spec:hsidata
 	string spec = "root:HSI:spec:specx" + num2str(x) + "y" + num2str(y)
@@ -216,6 +346,11 @@ function HSIplotspec(x, y, plotfit)
 	for (i=0; i<numpnts(WL); i+=1)
 		d[i] = hsiptr[x][y][i]
 	endfor
+	//Setnote($n4, "Coordinates", wavenote)
+	setnote(d, "x[pixel]", num2str(x))
+	setnote(d, "y[pixel]", num2str(y))
+	setnote(d, "x[mum]", num2str(x*pathnum[16]))
+	setnote(d, "y[mum]", num2str(y*pathnum[17]))
 	display d vs WL
 	if (plotfit == 1)
 	 
@@ -369,12 +504,12 @@ Function LoadDF1(pathName, spechead, startHSIcount)
 	String pathName
 	String spechead
 	String startHSIcount
-	variable HSI0 = str2num(startHSIcount)
+	variable HSI0 = str2num(startHSIcount) + 64000
 	String extension
 	string name
 	string opennames 
-	string specfolder = ":HSI:rawspecs:"
-	string metadataf = ":HSI:metadata:"
+	string specfolder = "root:HSI:rawspecs:"
+	string metadataf = "root:HSI:metadata:"
 	string iasstr
 	string wavenote
 	variable i
@@ -388,6 +523,7 @@ Function LoadDF1(pathName, spechead, startHSIcount)
  	name = spechead + "_" //"spectrum_"
  	extension = ".txt" 	
  	opennames = findallFiles(pathName, extension)
+ 	wave pathnum = root:packages:myfolder:pathnum
  	
  	variable ic 
  	variable vin 
@@ -405,6 +541,17 @@ Function LoadDF1(pathName, spechead, startHSIcount)
  	variable dy = 300
  	variable newdx = 0
  	variable newdy = 0
+ 	
+ 	
+ 	for (i=0; i<vin; i+=1)
+	 	iasstr = stringfromlist(2, stringfromlist(1, stringfromlist(i, opennames, ".txt"), "::"), "_")
+	 	if (str2num(iasstr) == 0)
+	 		hsi0 = 0
+	 		break
+	 	elseif (str2num(iasstr) < hsi0)
+	 		hsi0 = str2num(iasstr)
+	 	endif
+ 	endfor
  	
  	for (ic=HSI0; ic<vin+HSI0; ic+=1)
  		sprintf iasstr "%05d", ic
@@ -487,11 +634,20 @@ Function LoadDF1(pathName, spechead, startHSIcount)
   		new = ic*dy
   		gridy[ic] = new
   	endfor
-  	
-  	setdatafolder root:HSI:spec
-  	
+  	setdatafolder root:hsi:spec
   	Make/O /N=((xmax-xmin)/dx+1, (ymax-ymin)/dy+1, numpnts(WL)) hsidata
-  	Make/O /N=((xmax-xmin)/dx+1, (ymax-ymin)/dy+1) PixMatrix
+	if (exists("root:HSI:pixmatrixfolder")== 1)  	// I have no idea why this folder way sometimes
+	  	setdatafolder root:HSI:pixmatrixfolder
+	else
+		NewDatafolder/O root:HSI:pixmatrixfolder
+		setdatafolder root:HSI:pixmatrixfolder
+	endif
+		if (exists("root:HSI:roi")== 0)  	// I have no idea why this folder way sometimes
+		NewDatafolder/O root:HSI:roi
+	endif
+		
+  	Make/O /N=((xmax-xmin)/dx+1, (ymax-ymin)/dy+1) pixmatrix
+  	setdatafolder root:HSI:spec
   	Make/O /N=((xmax-xmin)/dx+1, (ymax-ymin)/dy+1, 100) Fitparameter // set here number of parameters that can be obtained by fit
   	wave fit = $"Fitparameter"
   	for (i=0; i<(xmax-xmin)/dx+1; i+=1)
@@ -504,6 +660,12 @@ Function LoadDF1(pathName, spechead, startHSIcount)
   	
   	
   	setdatafolder root:
+  	if (gridx[1] - gridx[0] > 0)
+  		pathnum[16] = gridx[1] - gridx[0]
+  	endif
+  	if (gridy[1] - gridy[0] > 0)
+  		pathnum[17] = gridy[1] - gridy[0]
+  	endif
 
   	PutSpecIn3DWave(xmin, ymin, dx, dy)
 
@@ -741,7 +903,7 @@ Function PutSpecIn3DWave(xmin, ymin, dx, dy)
 		wave c = $substr
 		gridx = (str2num(stringfromlist(0, stringfromlist(1, note(c), "x="), ";"))-xmin)/dx
 		gridy = (str2num(stringfromlist(0, stringfromlist(1, note(c), "y="), ";"))-ymin)/dy
-		for (j=0; j<numpnts(WL); j+=1)
+		for (j=0; j<1023; j+=1)
 			d[gridx][gridy][j] = c[j]
 		endfor
 	endfor
@@ -750,7 +912,7 @@ End
 Function IntHSItoPixMatrix()
 	wave gridx = $"gridx"
 	wave gridy = $"gridy"
-	wave pixmat = $"root:HSI:spec:PixMatrix"
+	wave pixmat = $"root:HSI:pixmatrixfolder:PixMatrix"
 	wave hsidata = $"root:HSI:spec:hsidata"
 	setdatafolder root:HSI:metadata
 	variable i
@@ -818,10 +980,11 @@ Function Integratehsispeclim(showimage) // showimage = 1 to display
 	updateWLInput()
 	wave/T path = root:Packages:myFolder:Path
 	wave pathnum = root:Packages:myFolder:Pathnum
-	wave pixmatrix = $"root:HSI:spec:PixMatrix1"
+	//wave pixmatrix = $"root:HSI:spec:PixMatrix1"
 	variable i
 	variable j
 	variable k
+	variable l
 	
 	wave gridx = root:HSI:metadata:gridx
 	wave gridy = root:HSI:metadata:gridy
@@ -829,7 +992,13 @@ Function Integratehsispeclim(showimage) // showimage = 1 to display
 	wave hsiptr = root:HSI:spec:hsidata
 	wave xax = root:hsi:metadata:gridx
 	wave yax = root:hsi:metadata:gridy
-	string stringspecwave = "root:HSI:spec:pixmatrix1"
+	l = 0
+	string stringspecwave = "root:HSI:pixmatrixfolder:pixmatrix" + num2str(i)
+	do 
+		l+=1
+		stringspecwave = "root:HSI:pixmatrixfolder:pixmatrix" + num2str(l)
+	while (waveexists($stringspecwave)==1)
+	pathnum[15] = l 
 	Make/O /N=(numpnts(xax), numpnts(yax)) $stringspecwave
 	wave d = $stringspecwave
 	
@@ -841,18 +1010,51 @@ Function Integratehsispeclim(showimage) // showimage = 1 to display
 			endfor
 		endfor
 	endfor
+	setnote($stringspecwave, "Integrated WL start [nm]", num2str(wl[pathnum[12]]))
+	setnote($stringspecwave, "Integrated WL end [nm]", num2str(wl[pathnum[13]]))
 	if (showimage == 1)
-		wave pixmatrix1 = $"root:HSI:spec:pixmatrix1"
-		newimage pixmatrix1
-		ModifyImage pixmatrix1 ctab= {*,*,YellowHot256,0}
+		wave pixmatrixplot = $stringspecwave
+		newimage pixmatrixplot
+		string pixmatrixn = "pixmatrix"+num2str(l)
+		ModifyImage $pixmatrixn ctab= {*,*,YellowHot256,0}
+		ColorScale/C/N=text0 "counts"
+		scalepixmatrix(l)
+		ModifyGraph margin(right)=85
+		ModifyGraph fSize(left)=13
+		ModifyGraph fSize(top)=13
+		ModifyGraph margin(left)=20
+		ModifyGraph margin(top)=20
+		Label top "\\Z15"
+		// create colorscale
+		ColorScale/C/N=text0 image=$pixmatrixn
+		ModifyGraph lblLatPos(top)=118;DelayUpdate
+		Label top "\\Z15 μm"
 	endif
 end
 
-Function PlotPixMatrix()
-	setdatafolder root:HSI:spec
-	Display/K=0 root:HSI:spec:PixMatrix
-	
-End
+// change something on the image here, suggestion: create a copy of plotmatrix(mname) and use the modified copy in ButtonProc function. 
+// Maybe consider adding the function also to the
+function plotpixmatrix(mname)
+	string mname
+	string pixmatplotnam = "root:HSI:pixmatrixfolder:" + mname
+	wave pixmatplot = $pixmatplotnam
+	newimage pixmatplot
+	ModifyImage $mname ctab= {*,*,YellowHot256,0}
+	ColorScale/C/N=text0 "counts"
+	ColorScale/C/N=text0/A=RC/X=-67.79/Y=-0.37
+	ModifyGraph margin(right)=140, height=200, width=200
+	ModifyGraph fSize(left)=15
+	ModifyGraph fSize(top)=15
+	ModifyGraph margin(left)=20
+	ModifyGraph margin(top)=20
+	ModifyGraph margin(bottom) = 25
+	ColorScale/C/N=text0 image=$mname
+	ColorScale/C/N=text0 fsize=15
+	ModifyGraph lblLatPos(top)=115;DelayUpdate
+	Label top "\\Z15 μm"
+	ModifyGraph lblLatPos(left)=115;DelayUpdate
+	Label left "\\Z15 μm"
+end
 
 Function SetVarProc(sva) : SetVariableControl
         STRUCT WMSetVariableAction &sva
@@ -924,6 +1126,45 @@ Function dolistbox(ba) : ButtonControl
 	return 0
 End
 
+function multmasktoimg(image, mask, newname)
+	wave image
+	wave mask
+	string newname
+	variable xpts = dimsize(image, 0)
+	variable ypts = dimsize(image, 1)
+	//make/O/N=(xpts, ypts) $newname
+	variable i, j // iterator
+	
+	duplicate/O image $newname
+	wave imgdup = $newname
+	for (i=0; i<xpts; i+=1)
+		for (j=0; j<ypts; j+=1)
+			if (mask[i][j] == 0)
+				imgdup[i][j] = Nan
+			else
+				imgdup[i][j] = image[i][j]*mask[i][j]
+			endif
+		endfor
+	endfor
+end
+
+function scalepixmatrix(pixmatrixn)
+	variable pixmatrixn
+	wave pathnum = root:packages:myfolder:pathnum
+	wave pixmatrix = root:hsi:pixmarixfolder:pixmatrix1
+	wave gridx = root:hsi:metadata:gridx
+	wave gridy = root:hsi:metadata:gridy
+	variable gdx = gridx[1]-gridx[0]
+	variable gdy = gridy[1]-gridy[0]
+	setdatafolder root:hsi:pixmatrixfolder
+	string pixmatrixname
+	pixmatrixname = "root:hsi:pixmatrixfolder:pixmatrix" + num2str(pixmatrixn)
+	Setscale/P x, 0, gdx, $pixmatrixname
+	Setscale/P y, 0, gdy, $pixmatrixname
+	ModifyGraph lblLatPos(top)=118;DelayUpdate
+	Label top "\\Z15 μm"
+end
+
 // define the Fit Functions in the following lines
 function fittohsi()
 	wave fitselect = root:packages:myfolder:fitboxselect
@@ -939,12 +1180,14 @@ function fittohsi()
 	make/O/N=(pathnum[13]-pathnum[12], 0) root:packages:fitdata:fitwl
 	wave fitwave = root:packages:fitdata:fitwave
 	wave fitwl = root:packages:fitdata:fitwl
-	wave hsiint = root:HSI:spec:pixmatrix1
+	wave hsiint = root:HSI:pixmatrixfolder:pixmatrix1
 	// put wl in fitwl
 	for (i=0; i<pathnum[13]-pathnum[12]; i+=1)
 		fitwl[i] = WL[i+pathnum[12]]
 	endfor
 	wave fitw = root:hsi:spec:fitparameter
+	make/O/N=(50) root:packages:Fitdata:fitwpar
+	wave fitstw = root:packages:Fitdata:fitwpar
 	
 	setdataFolder root:packages:fitdata
 	for (i=0; i<numpnts(gridx); i+=1)
@@ -952,10 +1195,11 @@ function fittohsi()
 			if (hsiint[i][j] >= pathnum[14]) // fit only if pixel in pixmatrix1 > count threshold for fit
 				for (k=0; k<numpnts(fitwl); k+=1)
 					fitwave[k] = hsidata[i][j][k] // write spectrum to specarray
+					
 				endfor
 				// do the fit to hsi[i][k]
 				if (fitselect[0] == 1) // gaussian fit Gauss: fitw[0-7]
-					curvefit/Q=1 /G gauss, fitwave
+					curvefit/Q=1 gauss, fitwave
 					wave w_coef, w_sigma
 					fitw[i][j][0] = w_coef[0]
 					fitw[i][j][1] = w_coef[1]
