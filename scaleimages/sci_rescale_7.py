@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 import os
 
+# pixel size of scale bar for each magnification, specific for the microscope used
 def obtainmagnification(imagename):
     magnification = 5
     scaling = 0.69444444
