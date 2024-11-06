@@ -115,7 +115,7 @@ class ScaleBarApp:
         self.bar_length_mum = self.scalelength.get()
         self.bar_height_mum = 1
         self.bar_length = self.bar_length_mum/self.scalepixels
-        self.bar_height = self.bar_height_mum/self.scalepixels * self.fontsize.get() * 0.1
+        self.bar_height = self.bar_height_mum/self.scalepixels * self.fontsize.get() * 0.05  # Assuming the height is related to the font size
         self.text = f"{self.bar_length_mum} µm"
         
         # Default position of the scale bar
@@ -137,9 +137,9 @@ class ScaleBarApp:
             self.bar_length_mum = self.scalelength.get()
             self.bar_length = self.bar_length_mum/self.scalepixels
             # update the hight of the scale bar
-            self.bar_height = self.bar_height_mum/self.scalepixels * self.fontsize.get() * 0.1
+            self.bar_height = self.bar_height_mum/self.scalepixels * self.fontsize.get() * 0.05
              # Update the height of the scale bar
-            self.bar_height = self.fontsize.get()  # Assuming the height is related to the font size
+            self.bar_height = self.bar_height_mum/self.scalepixels * self.fontsize.get() * 0.05  # Assuming the height is related to the font size
             self.canvas.coords(self.bar, self.bar_x, self.bar_y, self.bar_x + self.bar_length, self.bar_y + self.bar_height)
             # Update the text below the scale bar
             self.text = f"{self.bar_length_mum} µm"

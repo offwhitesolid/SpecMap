@@ -136,16 +136,17 @@ function ProcessPanel()
     ListBox list1,selWave=root:packages:myfolder:pixmatselect,mode=4
     
     Button plotselpixm, pos={530.00,roiselect},size={150.00,20.00},proc=ButtonProc,title="plot selected pixmatrix",win=Process_Panel
+    Button plavpixm, pos={530.00,roiselect+25},size={150.00,20.00},proc=ButtonProc,title="selected pixmatrix spec",win=Process_Panel
 
-//    variable fitbuttonstart = 260
-//    Button FitFunction, pos={13.00,fitbuttonstart},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
-//    SetVariable fittresh, title="count threshold for fit",size={200,20},pos={310,fitbuttonstart},proc=SetVarProc, value=Pathnum[14],win=Process_Panel
-//    ListBox list2,pos={200.00,fitbuttonstart},size={100.00,fitbuttonstart},listWave=root:packages:myfolder:fitfuncs
-//	ListBox list2,selWave=root:packages:myfolder:fitboxselect,mode=4
-//	Button FitFunctionplot, pos={13.00,fitbuttonstart+25},size={180.00,20.00},proc=ButtonProc,title="Plot Fit and Spec under cursor",win=Process_Panel
-//	Button FitParameterplot, pos={310.00,fitbuttonstart+25},size={180.00,20.00},proc=ButtonProc,title="Create HSI from Fitparameter",win=Process_Panel
-//	ListBox list3,pos={520.00,fitbuttonstart},size={200.00,200.00},listWave=root:packages:myfolder:fitfuncsplot
-//	ListBox list3,selWave=root:packages:myfolder:fitboxplotselect,mode=4
+    variable fitbuttonstart = 260
+    Button FitFunction, pos={13.00,fitbuttonstart},size={180.00,20.00},proc=ButtonProc,title="Fit Function to hsi",win=Process_Panel
+    SetVariable fittresh, title="count threshold for fit",size={200,20},pos={310,fitbuttonstart},proc=SetVarProc, value=Pathnum[14],win=Process_Panel
+    ListBox list2,pos={200.00,fitbuttonstart},size={100.00,fitbuttonstart},listWave=root:packages:myfolder:fitfuncs
+	ListBox list2,selWave=root:packages:myfolder:fitboxselect,mode=4
+	Button FitFunctionplot, pos={13.00,fitbuttonstart+25},size={180.00,20.00},proc=ButtonProc,title="Plot Fit and Spec under cursor",win=Process_Panel
+	Button FitParameterplot, pos={310.00,fitbuttonstart+25},size={180.00,20.00},proc=ButtonProc,title="Create HSI from Fitparameter",win=Process_Panel
+	ListBox list3,pos={520.00,fitbuttonstart},size={200.00,200.00},listWave=root:packages:myfolder:fitfuncsplot
+	ListBox list3,selWave=root:packages:myfolder:fitboxplotselect,mode=4
 	
 end
 
@@ -328,8 +329,57 @@ Function ButtonProc(ctrlName) : ButtonControl
 				plotpixmatrix(pixmw[pixselp]) // for different plot look: copy the plotpixmatrix function and substitute it here
             	break
             
+            case "plavpixm": // variables: see case "plotselpixm" above
+            	wave/T pixmw = $"root:packages:myfolder:pixmatw"
+	            wave pixms = $"root:packages:myfolder:pixmatselect"
+				for (i=0; i<numpnts(pixms); i+=1)
+					if (pixms[i]==1)
+						pixselp = i
+						break
+					endif
+				endfor
+				AveragePixmatrixSpecs(pixmw[pixselp])
+            	break
+            
         EndSwitch
 End
+
+// average the given pixelmatrix to one spectrum and savit
+function AveragePixmatrixSpecs(pixmatrixsel)
+	string pixmatrixsel
+	variable i
+	variable j
+	variable k
+	wave hsidata = root:hsi:spec:hsidata
+	wave WL = root:hsi:metadata:wl
+	string spix = "root:hsi:pixmatrixfolder:" + pixmatrixsel
+	print spix
+	variable xpts = dimsize($spix, 0)
+	variable ypts = dimsize($spix, 1)
+	wave pixmat2av = $spix
+	variable specavnum = 0
+	string avspecname = "root:hsi:spec:" + pixmatrixsel + "spec"
+	Make/O/N=(numpnts(WL)) $avspecname
+	wave avspec = $avspecname
+	avspec = 0
+	for (i=0; i<xpts; i+=1)
+		for (j=0; j<ypts; j+=1)
+			if (numtype(pixmat2av[i][j]) == 2)
+			else 
+				specavnum += 1
+				for (k=0; k<numpnts(WL); k+=1)
+					avspec[k] += hsidata[i][j][k]
+				endfor
+				print specavnum, i, j
+			endif
+		endfor
+	endfor
+	avspec /= specavnum
+	display avspec vs WL
+	Label bottom "wavelength / nm"
+	Label left "PL / counts"
+	
+end
 
 function HSIplotspec(x, y, plotfit)
 	variable plotfit
@@ -572,6 +622,13 @@ Function LoadDF1(pathName, spechead, startHSIcount)
  		if (ic == 0)
  			duplicate/O wave0, root:HSI:metadata:WL
  			duplicate/O wave1, root:HSI:metadata:BG
+ 			NVAR averagebg = root:packages:myfolder:linearbg
+ 			if (averagebg == 1)
+ 				variable bgav = sum(root:HSI:metadata:BG)/numpnts(root:HSI:metadata:BG)
+ 				wave bgw = root:HSI:metadata:BG
+ 				duplicate root:HSI:metadata:BG root:HSI:metadata:BG_uncorrected
+ 				bgw = bgav
+ 			endif
  		endif
  		
  		wave2 -= wave1 //root:HSI:metadata:BG
@@ -643,7 +700,7 @@ Function LoadDF1(pathName, spechead, startHSIcount)
 		NewDatafolder/O root:HSI:pixmatrixfolder
 		setdatafolder root:HSI:pixmatrixfolder
 	endif
-		if (exists("root:HSI:roi")== 0)  	// I have no idea why this folder way sometimes
+	if (exists("root:HSI:roi")== 0)  	// I have no idea why this folder way sometimes
 		NewDatafolder/O root:HSI:roi
 	endif
 		
@@ -1223,18 +1280,23 @@ function fittohsi()
 					fitw[i][j][13] = w_sigma[1]
 					fitw[i][j][14] = w_sigma[2]
 					fitw[i][j][15] = w_sigma[3]
-				elseif (fitselect[2] == 1) // lorenz fit lorentzian: fitw[8-15]
-					curvefit/Q=1 lor, fitwave
+				elseif (fitselect[2] == 1) // voigt fit voigt: fitw[16-25]
+					curvefit/Q=1 voigt, fitwave
 					wave w_coef, w_sigma
 					fitw[i][j][16] = w_coef[0]
 					fitw[i][j][17] = w_coef[1]
 					fitw[i][j][18] = w_coef[2]
 					fitw[i][j][19] = w_coef[3]
-					fitw[i][j][20] = w_sigma[0]
-					fitw[i][j][21] = w_sigma[1]
-					fitw[i][j][22] = w_sigma[2]
-					fitw[i][j][23] = w_sigma[3]
+					fitw[i][j][20] = w_coef[4]
+					fitw[i][j][21] = w_sigma[0]
+					fitw[i][j][22] = w_sigma[1]
+					fitw[i][j][23] = w_sigma[2]
+					fitw[i][j][24] = w_sigma[3]
+					fitw[i][j][25] = w_sigma[4]
+				elseif (fitselect[5] == 1)
+					//curvefit/Q=1, 
 				endif
+				
 			else
 				fitw[i][j][0] = NaN
 				fitw[i][j][1] = NaN
@@ -1275,7 +1337,8 @@ Function FitManyVoigts(w, x) : FitFunc
     Variable cfi
     // cfi[i+2] = area under Voigt
     // cfi[i+3] = center
-    // cfi[i+4] = Gaussian FWHM (must not be =0. Use a very small value, i.e. 1e-6, with lw/gw --> inf for a perfect Lorentzian)
+    // cfi[i+4] = Gaussian FWHM (must not be =0. Use a very small value,
+    //i.e. 1e-6, with lw/gw --> inf for a perfect Lorentzian)
     // cfi[i+5] = Lorentzian FWHM (can be =0 for perfect Gaussian)
     Variable i
     Variable numPeaks = floor((numpnts(w)-2)/4)
@@ -1290,11 +1353,66 @@ Function FitManyVoigts(w, x) : FitFunc
     return returnvalue
 End
 
+function cw2w(inw, copy, istai, cstai, n)
+	wave inw
+	wave copy
+	variable istai
+	variable cstai
+	variable n
+	variable i
+	
+	for (i=0; i<n; i+=1)
+		copy[i+cstai] = inw[i+istai]
+	endfor
 
+end
 
+Function PlotGaussian1(A, x_0, w_conf, xmin, xmax, numPoints)
+    Variable A, x_0, w_conf, xmin, xmax, numPoints
+    // Create the x-axis wave (wl) from xmin to xmax with numPoints points
+    Make/O /N=(numPoints) wlgp
+    wlgp = xmin + (xmax - xmin) * (p / (numPoints - 1))  // Linearly spaced points
+    // Create Gaussian function wave
+    Make/O/N=(numPoints) GaussianWave = A * exp(-((wlgp - x_0)^2) / (2 * w_conf^2))
+    // Create a new graph and plot the Gaussian function
+    //Display wlgp, GaussianWave
+    display gaussianwave 
 
+    // Label axes
+    Label left "Amplitude"
+    Label bottom "Wavelength (wl)"
+End
 
+Function PlotGaussian2(w, xax)
+	wave w
+    wave xax
+    Make/O/N=(numpnts(xax)) GaussianWave = Gauss1d(w, xax)
+    display gaussianwave vs xax
 
+    // Label axes
+    Label left "Amplitude"
+    Label bottom "Wavelength (wl)"
+End
 
+Function Plotvoigt1(w, xax)
+	wave w
+    wave xax
+    Make/O/N=(numpnts(xax)) GaussianWave = voigtpeak(w, xax)
+    display gaussianwave vs xax
 
+    // Label axes
+    Label left "Amplitude"
+    Label bottom "Wavelength (wl)"
+End
 
+Function Plotvoigt2(w, xax)
+	wave w
+    wave xax
+    //xax-=xax[0]
+    Make/O/N=(numpnts(xax)) GaussianWave = voigtpeak(w, xax)
+    display gaussianwave vs xax
+
+    // Label axes
+    Label left "Amplitude"
+    Label bottom "Wavelength (wl)"
+End
