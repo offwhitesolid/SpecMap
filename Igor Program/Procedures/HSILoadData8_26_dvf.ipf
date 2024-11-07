@@ -622,10 +622,14 @@ Function LoadDF1(pathName, spechead, startHSIcount)
  		if (ic == 0)
  			duplicate/O wave0, root:HSI:metadata:WL
  			duplicate/O wave1, root:HSI:metadata:BG
+ 			print numpnts(root:HSI:metadata:BG)
  			NVAR averagebg = root:packages:myfolder:linearbg
  			if (averagebg == 1)
  				variable bgav = sum(root:HSI:metadata:BG)/numpnts(root:HSI:metadata:BG)
  				wave bgw = root:HSI:metadata:BG
+ 				if (waveExists(root:HSI:metadata:BG_uncorrected) == 1)
+ 					killwaves root:HSI:metadata:BG_uncorrected
+ 				endif
  				duplicate root:HSI:metadata:BG root:HSI:metadata:BG_uncorrected
  				bgw = bgav
  			endif
@@ -678,7 +682,6 @@ Function LoadDF1(pathName, spechead, startHSIcount)
   	setdatafolder root:HSI:metadata:
     make/O/N=(1024, 0) WL
     wave WL = root:HSI:metadata:WL
-    make/O BG
     make/O/N=(Ceil((xmax-xmin)/dx)+1, 0) gridx
     make/O/N=(Ceil((ymax-ymin)/dy)+1, 0) gridy
   	
