@@ -79,3 +79,5 @@ install python 3.12 and the packages
 numpy, pandas, matplotlib, scipy using pip install
 
 Igor: 
+
+See Igor Program folder and the Readme.txt file in the folder
