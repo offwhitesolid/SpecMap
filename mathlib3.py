@@ -485,15 +485,27 @@ def find_max_of_fit(fitfunc, tol=1e-6, maxiter=10000, xmin=500, xmax=600):
     #return result.success, result.x, -result.fun
     return result.seccess, result.x, fitfunc(result.x)
 
+# build an array to store the fit parameters for each fit function
+# +3 is for ss_res, ss_tot, and r_squared
+def buildfitparas():
+    fa = []
+    for i in fitkeys.keys():
+        fa.append([])
+        for j in range(0, fitkeys[i][4]+3):
+            fa[-1].append([np.nan])
+    return fa
+
+
 # dictionary of window functions and their corresponding fit functions
 # and functions to get the maxima of the fitted functions
 # key: window function name
 # value: list of window function, fit function, and function to get maxima of the fit function
-fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit'],
-           'gaussian':[gaussianwind, fitgaussiantospec, getmaxgaussian, 'Gaussian fit'], 
-           'voigt':[voigtwind, fitvoigttospec, getmaxvoigt, 'Voigt fit'], 
-           'linear':[linearwind, fitlinetospec, getmaxlinear, 'Linear fit'], 
-           'double lorentz':[double_lorentzwind, fitdoublelorentztospec, getmaxdoublelorentz, 'Double Lorentz fit'], 
-           'double gaussian':[double_gaussianwind, fitdoublegaussiantospec, getmaxdoublegaussian, 'Double Gaussian fit'], 
-           'double voigt':[double_voigtwind, fitdoublevoigttospec, getmaxdoublevoigt, 'Double Voigt fit']}
+# parnum: number of parameters for the fit function
+fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit', 3],
+           'gaussian':[gaussianwind, fitgaussiantospec, getmaxgaussian, 'Gaussian fit', 3], 
+           'voigt':[voigtwind, fitvoigttospec, getmaxvoigt, 'Voigt fit', 4], 
+           'linear':[linearwind, fitlinetospec, getmaxlinear, 'Linear fit', 2], 
+           'double lorentz':[double_lorentzwind, fitdoublelorentztospec, getmaxdoublelorentz, 'Double Lorentz fit', 6], 
+           'double gaussian':[double_gaussianwind, fitdoublegaussiantospec, getmaxdoublegaussian, 'Double Gaussian fit', 6], 
+           'double voigt':[double_voigtwind, fitdoublevoigttospec, getmaxdoublevoigt, 'Double Voigt fit', 8]}
 

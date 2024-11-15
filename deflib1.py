@@ -256,6 +256,22 @@ def loadclaraimage(file):
         y = []  
     return np.asarray(data)
 
+# check if file ends with a number before the file extension
+# increment the number by 1 and return the new filename
+def increment_filename(file):
+    fnoext = file.split('.')[-2]
+    fext = file.split('.')[-1]
+    num = 1
+    # check if the file ends with a number and increment it by 1
+    if fnoext[-1].isdigit():
+        num = int(fnoext[-1]) + 1
+        fnoext = fnoext[:-1]
+    return fnoext + str(num) + '.' + fext
+    
+
+
+    
+
 def closest_indices(X, Y, px, py):
     X = np.asarray(X)
     Y = np.asarray(Y)
@@ -323,6 +339,8 @@ defaults={
     'selected_pixel_y': 0,
     'selected_fit_function': 'gaussian',
     'seperate_fits': False,
+    'save_hsi': "hsidata/hsi.txt", 
+    'load_hsi_saved': "hsidata/hsi.txt"
 }
 
 defaulttypes = {
@@ -355,4 +373,6 @@ defaulttypes = {
     'selected_pixel_y': int,
     'selected_fit_function': str,
     'seperate_fits': bool,
+    'save_hsi': str,
+    'load_hsi_saved': str
 }

@@ -645,7 +645,7 @@ class XYMap:
         plt.figure(figsize=(10, 6))
         plt.plot(y, x, label=label, color='blue')       
         plt.xlabel('Wavelength / nm', fontsize=self.fontsize)
-        plt.ylabel('Intensity', fontsize=self.fontsize)
+        plt.ylabel('Intensity / counts', fontsize=self.fontsize)
         plt.title('Spectrograph Data', fontsize=self.fontsize)
         plt.legend(fontsize=self.fontsize)
         plt.tick_params(axis='both', which='major', labelsize=self.fontsize)

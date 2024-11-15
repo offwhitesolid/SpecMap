@@ -10,6 +10,7 @@ import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib
 import export1 as xplib
+import pickle
 
 # default values for GUI
 defaults = deflib.initdefaults()
@@ -140,6 +141,24 @@ class FileProcessorApp:
         self.cl_folder_button = tk.Button(self.claraloadframe, text="Browse", command= lambda: deflib.select_file(self.cl_file_entrystr))
         self.cl_folder_button.pack(side=tk.RIGHT, anchor='center')
 
+        # frame to save the current hsi object
+        self.saveframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
+        self.saveframe.pack(anchor='e')
+        self.save_label = tk.Label(self.saveframe, text="Save the current Nanomap object")
+        self.save_label.pack()
+        self.savehsipath = tk.StringVar()
+        self.save_entry = tk.Entry(self.saveframe, textvariable=self.savehsipath, width=60)
+        self.save_entry.pack()
+        self.save_entry.insert(0, defaults['save_hsi'])
+        self.save_button = tk.Button(self.saveframe, text="Save", command=lambda: self.saveNanomap(self.savehsipath.get()))
+        self.save_button.pack()
+        # add button to open file where the object is saved
+        self.open_button = tk.Button(self.saveframe, text="Open", command=lambda: os.system('start ' + self.savehsipath.get()))
+        self.open_button.pack(anchor='e')
+        
+
+
+
     def spec_loadfiles(self):
         self.defaults = deflib.initdefaults()
         folder = self.folder_entry.get()
@@ -208,6 +227,17 @@ class FileProcessorApp:
             self.claraimage = claralib.imageprocessor(self.nodeframes['Clara Image'], file, deflib.loadclaraimage, None, 0.568, 0.568)
         except Exception as error:
             messagebox.showerror("Error", "Could not load Clara image. {}".format(error))
+    
+    def on_closing(self):
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            self.root.destroy()
+
+    # pickle the Nanomap object, all subobjects and all their attributes
+    def saveNanomap(self, filename):
+        with open(filename, 'wb') as output:
+            pickle.dump(self.Nanomap, output, pickle.HIGHEST_PROTOCOL)
+        
+
 
 if __name__ == "__main__":
     # Create the main window

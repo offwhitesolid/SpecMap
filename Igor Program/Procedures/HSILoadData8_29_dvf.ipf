@@ -127,7 +127,6 @@ function ProcessPanel()
 
     ListBox list1,pos={320.00,roiselect},size={200.00,140},listWave=root:packages:myfolder:pixmatw
     ListBox list1,selWave=root:packages:myfolder:pixmatselect,mode=4
-    
     Button plotselpixm, pos={530.00,roiselect},size={150.00,20.00},proc=ButtonProc,title="plot selected pixmatrix",win=Process_Panel
     Button plavpixm, pos={530.00,roiselect+25},size={150.00,20.00},proc=ButtonProc,title="selected pixmatrix spec",win=Process_Panel
 
