@@ -7,6 +7,7 @@ from scipy.ndimage import median_filter
 import pandas as pd
 from scipy.interpolate import UnivariateSpline
 import os, csv
+from matplotlib.path import Path
 
 # comment how cremove_cosmics works
 
@@ -267,10 +268,6 @@ def increment_filename(file):
         num = int(fnoext[-1]) + 1
         fnoext = fnoext[:-1]
     return fnoext + str(num) + '.' + fext
-    
-
-
-    
 
 def closest_indices(X, Y, px, py):
     X = np.asarray(X)
@@ -284,6 +281,55 @@ def closest_indices(X, Y, px, py):
     # Find the index of the minimum difference in Y
     j = np.argmin(diff_y)
     return i, j
+
+def highlight_roi(Mat, points):
+    # Create a copy of the matrix initialized with NaN
+    result = np.full_like(Mat, np.nan, dtype=float)
+    # Get grid of all pixel coordinates in the matrix
+    y, x = np.meshgrid(np.arange(Mat.shape[1]), np.arange(Mat.shape[0]))
+    points_grid = np.vstack((x.ravel(), y.ravel())).T
+    # Create a Path object from the points (closed polygon)
+    polygon_path = Path(points)
+    # Find which points are inside the polygon
+    inside_mask = polygon_path.contains_points(points_grid)
+    inside_mask = inside_mask.reshape(Mat.shape)
+    # Set inside points to 1, leaving the rest as NaN
+    result[inside_mask] = 1
+    return result
+
+def fig_on_hoverevent(event, ax, fig, Z, x_range, y_range):
+ def on_hover(event, ax, fig, Z, x_range, y_range):
+    """
+    Handles mouse hover event to display x, y, and z values dynamically for a 2D list or array.
+
+    Parameters:
+    - event: The mouse motion event.
+    - ax: The axes of the plot.
+    - fig: The matplotlib figure object.
+    - Z: The 2D list (or array) of values.
+    - x_range: Tuple (x_min, x_max) representing the x-coordinate range.
+    - y_range: Tuple (y_min, y_max) representing the y-coordinate range.
+    """
+    if event.inaxes == ax:
+        x_min, x_max = x_range
+        y_min, y_max = y_range
+
+        # Check if Z is a 2D list (list of lists)
+        if not (isinstance(Z, list) and all(isinstance(row, list) for row in Z)):
+            raise ValueError("Z must be a 2D list.")
+
+        # Get the number of rows and columns
+        num_rows = len(Z)
+        num_cols = len(Z[0])
+
+        # Calculate indices based on cursor position and plot extent
+        x_idx = int((event.xdata - x_min) / (x_max - x_min) * (num_cols - 1))
+        y_idx = int((event.ydata - y_min) / (y_max - y_min) * (num_rows - 1))
+
+        if 0 <= x_idx < num_cols and 0 <= y_idx < num_rows:
+            z_value = Z[y_idx][x_idx]  # Access the element in the 2D list
+            ax.set_title(f"x: {event.xdata:.2f}, y: {event.ydata:.2f}, z: {z_value:.2f}")
+            fig.canvas.draw_idle()
 
 cosmicfuncts = {'Linear Interpolation': remove_cosmics_linear, 
                 'Median Filter': remove_cosmics_median_filter, 
@@ -374,5 +420,7 @@ defaulttypes = {
     'selected_fit_function': str,
     'seperate_fits': bool,
     'save_hsi': str,
-    'load_hsi_saved': str
+    'load_hsi_saved': str, 
+    'Matrix_grid_dx': float,
+    'Matrix_grid_dy': float
 }

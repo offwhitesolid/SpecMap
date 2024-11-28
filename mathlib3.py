@@ -485,16 +485,55 @@ def find_max_of_fit(fitfunc, tol=1e-6, maxiter=10000, xmin=500, xmax=600):
     #return result.success, result.x, -result.fun
     return result.seccess, result.x, fitfunc(result.x)
 
+# calculate the r_squared between fit and data
+# r_squared = 1 - (ss_res / ss_tot) 
+def calc_r_squared(fit, data): # args: data, y_fit(data)
+    ss_res = np.sum((data - fit)**2)
+    ss_tot = np.sum((data - np.mean(data))**2)
+    r_squared = 1 - (ss_res / ss_tot)
+    return r_squared, ss_res, ss_tot
+# ss_res is the sum of the squared residuals
+# ss_tot is the total sum of squares
+
 # build an array to store the fit parameters for each fit function
-# +3 is for ss_res, ss_tot, and r_squared
+# + is for ss_res, ss_tot, r_squared, pixstart, pixend, wlstart, wlend, fwhm, max_x, max_y
+addtofitparms = ['ss_res', 'ss_tot', 'r_squared', 'fwhm', 'pixstart', 'pixend', 'wlstart', 'wlend', 'max_x', 'max_y'] # Note: this one is essential to exist
+# add further parameters to the array after r_squared
 def buildfitparas():
     fa = []
     for i in fitkeys.keys():
-        fa.append([])
-        for j in range(0, fitkeys[i][4]+3):
-            fa[-1].append([np.nan])
+        fa.append([np.nan])
+        for j in range(0, fitkeys[i][4]+len(addtofitparms)):
+            fa[-1].append(np.nan)
     return fa
 
+# return a list of all fit parameters by their names
+def getlistofallFitparameters():
+    fl = []
+    for i in fitkeys.keys():
+        fl.append([])
+        for j in range(0, fitkeys[i][4]):
+            fl[-1].append(i + ' ' + str(j))
+        for j in range(0, len(addtofitparms)):
+            fl[-1].append(i + ' ' + addtofitparms[j])
+    return fl
+
+def getlistofallFitparaminone():
+    fl = []
+    for i in fitkeys.keys():
+        for j in range(0, fitkeys[i][4]):
+            fl.append(i + ' ' + str(j))
+        for j in range(0, len(addtofitparms)):
+            fl.append(i + ' ' + addtofitparms[j])
+    return fl
+    
+def getindexofFitparameter(fl, fitname):
+    ii = -1 
+    ij = -1
+    for i in range(0, len(fl)):
+        if fitname in fl[i]:
+            return i, fl[i].index(fitname)
+    return -1, -1
 
 # dictionary of window functions and their corresponding fit functions
 # and functions to get the maxima of the fitted functions
@@ -509,3 +548,9 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
            'double gaussian':[double_gaussianwind, fitdoublegaussiantospec, getmaxdoublegaussian, 'Double Gaussian fit', 6], 
            'double voigt':[double_voigtwind, fitdoublevoigttospec, getmaxdoublevoigt, 'Double Voigt fit', 8]}
 
+if __name__ == '__main__':
+    print('This is a library of window functions and their corresponding fit functions.')
+    print('Use the fitkeys dictionary to access the functions.')
+
+    print(getlistofallFitparameters())
+    print(len(getlistofallFitparameters()))

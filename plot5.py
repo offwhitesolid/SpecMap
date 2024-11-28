@@ -254,7 +254,8 @@ class FileProcessorApp:
             return
         # check if filename is a valid path
         canopen = False
-        if os.path.exists(filename):
+        exists = False
+        while os.path.exists(filename):
                 filename = deflib.increment_filename(filename)
                 canopen = True
                 with open(filename, 'wb') as output: # clear the file

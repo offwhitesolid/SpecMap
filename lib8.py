@@ -158,6 +158,8 @@ class XYMap:
         self.DataSpecMin = np.amin(self.WL)                                 # Spectrum Start
         self.DataSpecMax = np.amax(self.WL[-1])                             # Spectrum End
         self.DataSpecdL = self.specs[0].data['Delta Wavelength (nm)']       # delta Lambda
+        self.allfpnames = matl.getlistofallFitparameters()
+        self.allfpnamesinone = matl.getlistofallFitparaminone()
         self.speckeys = {'Wavelength axis': 'WL', 'Background (BG)': 'BG',
                          'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB'} # WLB is BG corrected (=PL-BG)
         self.windowfunctions = ['gaussian', 'lorentz', 'voigt', 'double gaussian', 'double lorentz', 'double voigt', 'linear']  # Window Functions
@@ -381,9 +383,20 @@ class XYMap:
         self.sepfitfunct.set(0)
         self.sepfitfunctsbut = tk.Checkbutton(parframe, text="Separate Fit Functions", variable=self.sepfitfunct)
         self.sepfitfunctsbut.pack(side=tk.TOP, anchor=tk.W)
+
+        # add spacing between buttons
+        self.spacing = tk.Label(parframe, text="")
+        self.spacing.pack(side=tk.TOP, padx=(10, 10))
+        # create a select box for the parameters of each fit
+        tk.Label(parframe, text="HSI from Fit Parameter").pack(side=tk.TOP, anchor=tk.W)
+        self.selectfitparambox = ttk.Combobox(parframe, values=self.allfpnamesinone)
+        self.selectfitparambox.pack(side=tk.TOP, anchor=tk.W)
+        self.selectfitparambox.set(self.allfpnamesinone[0]) # set default value
+        b3 = tk.Button(parframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam())
+        b3.pack(side=tk.TOP, anchor=tk.W)
+
         buttons = []
         self.SpecButtons = []
-        #buttons = self.buildButtonMatrix(frame, n, m)
         return buttons
         
         # fram = Tkinter frame, n = len(self.Intmatrix), m = len(self.Intmatrix[0])
@@ -457,7 +470,8 @@ class XYMap:
         self.updatewl()
         self.updatecountthresh()
         self.readfontsize()
-        self.fittoMatrix('fitmaxX')
+        #self.fittoMatrix('fitmaxX') old
+        self.fittoMatrixfitparams('fitmaxX') # new
         self.getPLpixelSpecMax()
         self.writetopixmatrix(self.Intmatrix)
     
@@ -512,9 +526,9 @@ class XYMap:
                     except Exception as e:
                         print('Fit filed. {}'.format(str(e)))
         else:
-            print(self.SpecDataMatrix[y][x])        
+            print(self.SpecDataMatrix[y][x])  
 
-    def fittoMatrix(self, variable='fitmaxX', incmin=1, incmax=-1, nmin=20, nmax=20):
+    def fittoMatrixfitparams(self, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
         # fill matrix with data of the selected enry:
         self.updatecountthresh()
         for i in range(len(self.SpecDataMatrix)):
@@ -530,22 +544,6 @@ class XYMap:
                         while tries < nmin+nmax and worked == False:
                             tries += 1
                             try:
-                                # fit function to spectrum only for PLB implemented
-                                '''
-                                if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
-                                    if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.Intmatrix[i][j] = np.nan
-                                elif self.speckeys[self.selectspecboxVari] == 'BG': #Background
-                                    if np.sum(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.Intmatrix[i][j] = np.nan
-                                    else:
-                                        self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend][np.where(np.amax(self.SpecDataMatrix[i][j].BG[self.aqpixstart:self.aqpixend])[0][0])]+self.aqpixstart]
-                                elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
-                                    if np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.Intmatrix[i][j] = np.nan
-                                    else:
-                                        self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].WL[self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend][np.where(np.amax(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend])[0][0])]+self.aqpixstart]
-                                '''
                                 if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                         self.Intmatrix[i][j] = np.nan
@@ -557,13 +555,25 @@ class XYMap:
                                             self.maxiter = 1000
                                         self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter)
                                         self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
-                                        #print('try fit')
-                                        #success, x, y = matl.find_max_of_fit(self.SpecDataMatrix[i][j].fitdata, xmin=self.aqpixstart, xmax=self.aqpixend)
-                                        #print('fit worked')
-                                        #if success == True:
-                                        #    self.SpecDataMatrix[i][j].fitmaxX = x
-                                        #    self.SpecDataMatrix[i][j].fitmaxY = y
-                
+                                        r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[i][j].fitdata[:-1]))
+                                        a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get())
+                                        # put fitdata into fitparams
+                                        try:
+                                            for k in range(matl.fitkeys[list(matl.fitkeys.keys())[a]][4]):
+                                                self.SpecDataMatrix[i][j].fitparams[a][k] = self.SpecDataMatrix[i][j].fitdata[k]
+                                            # store fitmaxX and fitmaxY in fitparams[-1] and [-2]
+                                            self.SpecDataMatrix[i][j].fitparams[a][-1] = self.SpecDataMatrix[i][j].fitmaxX
+                                            self.SpecDataMatrix[i][j].fitparams[a][-2] = self.SpecDataMatrix[i][j].fitmaxY
+                                            # store aqpixstart and aqpixend in fitparams[-3] and [-4]
+                                            self.SpecDataMatrix[i][j].fitparams[a][-3] = self.aqpixstart
+                                            self.SpecDataMatrix[i][j].fitparams[a][-4] = self.aqpixend
+                                            # store r_squared in fitparams [-7], [-8], [-9]
+                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)+1] = r_squared
+                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
+                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
+                                        except Exception as e:
+                                            print('Fit parameter update failed in new fitline. {}'.format(str(e)))
+
                                 if self.SpecDataMatrix[i][j].fitdata == [None]:
                                     self.Intmatrix[i][j] = np.nan 
                                 else:
@@ -586,6 +596,57 @@ class XYMap:
                                     print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
                                     worked = True
                                 print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))       
+    
+    def fittoMatrix(self, variable='fitmaxX', incmin=1, incmax=-1, nmin=20, nmax=20):
+        # fill matrix with data of the selected enry:
+        self.updatecountthresh()
+        for i in range(len(self.SpecDataMatrix)):
+            for j in range(len(self.SpecDataMatrix[i])):
+                if type(self.SpecDataMatrix[i][j]) == SpectrumData:
+                    if self.SpecDataMatrix[i][j].dataokay == True:
+                        self.selectwindowboxVari = self.selectwindowbox.get()
+                        self.selectspecboxVari = self.selectspecbox.get()
+                        tries = 1
+                        worked = False
+                        adjmin = True
+                        # if fit does not work, adjust the window size
+                        while tries < nmin+nmax and worked == False:
+                            tries += 1
+                            try:
+                                if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
+                                    if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
+                                        self.Intmatrix[i][j] = np.nan
+                                    else:
+                                        try:
+                                            self.maxiter = int(self.fitmaxiter.get())
+                                        except:
+                                            print('Maxiter must be int. Using default 1000.')
+                                            self.maxiter = 1000
+                                        self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter)
+                                        self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
+                
+                                if self.SpecDataMatrix[i][j].fitdata == [None]:
+                                    self.Intmatrix[i][j] = np.nan 
+                                else:
+                                    # check if maximum is within the window and set to Intmatrix
+                                    if self.SpecDataMatrix[i][j].fitmaxX >= self.wlstart and self.SpecDataMatrix[i][j].fitmaxX <= self.wlend:
+                                        worked = True
+                                        self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                                    else:
+                                        pass
+                                        #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
+                            except Exception as e:
+                                try:
+                                    if adjmin == True:
+                                        self.aqpixstart += incmin
+                                        adjmin = False
+                                    else:
+                                        self.aqpixend += incmax
+                                        adjmin = True
+                                except:
+                                    print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+                                    worked = True
+                                print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))    
     
     def updatePixelMatrix(self, variable, nonecase=np.nan):
         for i in range(len(self.SpecDataMatrix)):
@@ -736,6 +797,7 @@ class XYMap:
         # click event
         cid = fig.canvas.mpl_connect('button_press_event', lambda event: deflib.on_click(event, self.Intmatrix))
         self.updateselectionentries()
+        fig.canvas.mpl_connect('motion_notify_event', lambda event: deflib.fig_on_hoverevent(event, ax, fig, self.Intmatrix, (self.PixAxX[0], self.PixAxX[-1]), (self.PixAxY[0], self.PixAxY[-1])))
 
         plt.show()
 
@@ -974,4 +1036,33 @@ class XYMap:
             for j in range(len(matrix[i])):
                 self.PixMatrix[i][j] = matrix[i][j]
 
+    def plotHSIfromfitparam(self):
+        self.updatewl()
+        self.updatecountthresh()
+        fitvari = self.allfpnamesinone.index(self.selectfitparambox.get())
+        for i in range(len(self.SpecDataMatrix[10][10].fitparams)):
+            print(list(matl.fitkeys.keys())[i], self.SpecDataMatrix[10][10].fitparams[i])
+
+        # get index of fitvari in self.allfitparams
+        # set self.pixmatrix[i][j] to the value self.allfitparams[i][j][fitvari]
+        for i in range(len(self.SpecDataMatrix)):
+            for j in range(len(self.SpecDataMatrix[i])):
+                if type(self.SpecDataMatrix[i][j]) == SpectrumData:
+                    if self.SpecDataMatrix[i][j].dataokay == True:
+                        try:
+                            pari, parj = matl.getindexofFitparameter(self.allfpnames, self.selectfitparambox.get())
+                            if pari != -1 and parj != -1:
+                                self.PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitparams[pari][parj]
+                            else:
+                                self.PixMatrix[i][j] = np.nan
+                                raise Exception('Parameter not found in fitparams.')
+                        except Exception as e:
+                            print('Error in plotHSIfromfitparam. {}'.format(str(e)))
+                    else:
+                        self.PixMatrix[i][j] = np.nan
+                        print('No Data found in Pixel {}, {}'.format(i, j))
+                else:
+                    self.PixMatrix[i][j] = np.nan
+                    print('No Data found in Pixel {}, {}'.format(i, j))
+        self.plotPixelMatrixSpectral()
         
