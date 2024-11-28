@@ -1131,6 +1131,7 @@ Function Integratehsispeclim(showimage) // showimage = 1 to display
 		string pixmattopl = "pixmatrix" + num2str(l)
 		wave pixmatrixplot = $stringspecwave
 		plotpixmatrix(pixmattopl)
+		scalepixmatrix(l)
 //		newimage pixmatrixplot
 //		string pixmatrixn = "pixmatrix"+num2str(l)
 //		ModifyImage $pixmatrixn ctab= {*,*,YellowHot256,0}
