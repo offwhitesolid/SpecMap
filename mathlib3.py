@@ -5,6 +5,9 @@ from scipy.optimize import fminbound
 from scipy.special import jv
 from matplotlib.ticker import MaxNLocator
 from scipy.signal import find_peaks
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
 
 import matplotlib.pyplot as plt
 
@@ -495,13 +498,29 @@ def calc_r_squared(fit, data): # args: data, y_fit(data)
 # ss_res is the sum of the squared residuals
 # ss_tot is the total sum of squares
 
+# calculate the r_squared between fit and data
+# r_squared = 1 - (ss_res / ss_tot) 
+def calc_r_squared(fit, data): # args: data, y_fit(data)
+    ss_res = np.sum((data - fit)**2)
+    ss_tot = np.sum((data - np.mean(data))**2)
+    r_squared = 1 - (ss_res / ss_tot)
+    return r_squared, ss_res, ss_tot
+# ss_res is the sum of the squared residuals
+# ss_tot is the total sum of squares
+
 # build an array to store the fit parameters for each fit function
+# + is for ss_res, ss_tot, r_squared, pixstart, pixend, wlstart, wlend, fwhm, max_x, max_y
+addtofitparms = ['ss_res', 'ss_tot', 'r_squared', 'fwhm', 'pixstart', 'pixend', 'wlstart', 'wlend', 'max_x', 'max_y'] # Note: this one is essential to exist
+# add further parameters to the array after r_squared
 # + is for ss_res, ss_tot, r_squared, pixstart, pixend, wlstart, wlend, fwhm, max_x, max_y
 addtofitparms = ['ss_res', 'ss_tot', 'r_squared', 'fwhm', 'pixstart', 'pixend', 'wlstart', 'wlend', 'max_x', 'max_y'] # Note: this one is essential to exist
 # add further parameters to the array after r_squared
 def buildfitparas():
     fa = []
     for i in fitkeys.keys():
+        fa.append([np.nan])
+        for j in range(0, fitkeys[i][4]+len(addtofitparms)):
+            fa[-1].append(np.nan)
         fa.append([np.nan])
         for j in range(0, fitkeys[i][4]+len(addtofitparms)):
             fa[-1].append(np.nan)
@@ -551,6 +570,11 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
 if __name__ == '__main__':
     print('This is a library of window functions and their corresponding fit functions.')
     print('Use the fitkeys dictionary to access the functions.')
+if __name__ == '__main__':
+    print('This is a library of window functions and their corresponding fit functions.')
+    print('Use the fitkeys dictionary to access the functions.')
 
+    print(getlistofallFitparameters())
+    print(len(getlistofallFitparameters()))
     print(getlistofallFitparameters())
     print(len(getlistofallFitparameters()))
