@@ -282,7 +282,9 @@ def closest_indices(X, Y, px, py):
     j = np.argmin(diff_y)
     return i, j
 
+#roi = region of interest, returns a matrix with 1s in the region of interest and NaNs elsewhere
 def highlight_roi(Mat, points):
+    Mat = np.asarray(Mat)
     # Create a copy of the matrix initialized with NaN
     result = np.full_like(Mat, np.nan, dtype=float)
     # Get grid of all pixel coordinates in the matrix
@@ -296,6 +298,8 @@ def highlight_roi(Mat, points):
     # Set inside points to 1, leaving the rest as NaN
     result[inside_mask] = 1
     return result
+
+
 
 def fig_on_hoverevent(event, ax, fig, Z, x_range, y_range):
  def on_hover(event, ax, fig, Z, x_range, y_range):
@@ -386,7 +390,8 @@ defaults={
     'selected_fit_function': 'gaussian',
     'seperate_fits': False,
     'save_hsi': "hsidata/hsi.txt", 
-    'load_hsi_saved': "hsidata/hsi.txt"
+    'load_hsi_saved': "hsidata/hsi.txt",
+    'enable_buttonmatrix': False
 }
 
 defaulttypes = {
@@ -422,5 +427,16 @@ defaulttypes = {
     'save_hsi': str,
     'load_hsi_saved': str, 
     'Matrix_grid_dx': float,
-    'Matrix_grid_dy': float
+    'Matrix_grid_dy': float,
+    'enable_buttonmatrix': bool
 }
+
+# check definitions 
+if __name__ == '__main__':
+    for i in list(defaults.keys()):
+        if i not in list(defaulttypes.keys()):
+            print(f'{i} not in defaulttypes')
+        if i not in list(defaults.keys()):
+            print(f'{i} not in defaults')
+        if defaulttypes[i] != type(defaults[i]):
+            print(f'{i} not the same type')

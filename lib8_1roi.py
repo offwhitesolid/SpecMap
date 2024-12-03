@@ -8,6 +8,8 @@ from tkinter import ttk
 from tkinter import messagebox
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  
 NavigationToolbar2Tk)
+from matplotlib.widgets import Cursor
+from matplotlib.widgets import Button
 import matplotlib.patches as mpatches
 from scipy.optimize import curve_fit
 from scipy.special import wofz
@@ -47,6 +49,7 @@ class SpectrumData:
         self.openDstate = [] # open Data from spectrometer
         self.dataokay = False    # set True if everything openend properly
         self.data = {}
+        self.roistore = {}
         self.PL = []
         self._read_file()
 
@@ -171,6 +174,7 @@ class XYMap:
         self.aqpixend = -1                                                  # evaluate window end dL
         self.SpecButtons = self.build_button_frame(self.specframe)         # build Spec GUI
         self.buildMinMaxSpec(self.cmapframe)                                # build CMAP grid GUI
+        #if self.defentries['enable_buttonmatrix'] == True:
         self.build_PixMatrix_frame(self.cmapframe)                          # build Pixel Matrix GUI
         self.buildselectboxes(self.cmapframe, list(self.speckeys.keys()))
         #self.getPLpixelIntervalMax()                                        # build PL Matrix
@@ -336,13 +340,13 @@ class XYMap:
     def build_button_frame(self, placeframe, width=600, height=600):
         # create new subframe
         parframe = tk.Frame(placeframe)
-        parframe.pack(side=tk.TOP, anchor=tk.W, fill=tk.Y)
+        parframe.pack(side=tk.TOP, anchor=tk.W, expand=False)#, fill=tk.Y)
 
         # create input GUI, ButtonMatrix is created in buildButtonMatrix in seperate frame
         n = len(self.PixMatrix)
         m = len(self.PixMatrix[0])
         frame = tk.Frame(parframe)
-        frame.pack(side=tk.RIGHT, anchor=tk.N, fill=tk.BOTH, expand=True)
+        frame.pack(side=tk.RIGHT, anchor=tk.N, expand=False)#fill=tk.BOTH, expand=True)
         tk.Label(parframe, text='Press Plot Spectrum\nto plot selected Pixel\nPixel Loaded: {} x {}'.format(len(self.SpecDataMatrix[0]), len(self.SpecDataMatrix))).pack(side=tk.TOP, anchor=tk.W)
         tk.Label(parframe, text='selected Pixel: ').pack(side=tk.TOP, anchor=tk.W)
         xyframe = tk.Frame(parframe)
@@ -806,6 +810,11 @@ class XYMap:
 
         plt.show()
 
+        # ROI editing
+        self.testroi = PlotHSI()
+        print(type(self.PixMatrix), type(self.PixMatrix[0]), type(self.PixMatrix[0][0]))
+        self.testroi.construct(self.PixMatrix)
+
     def plotPixelMatrixSpectral(self):
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
@@ -829,10 +838,6 @@ class XYMap:
         ax.set_yticks(np.arange(len(yticks)))
         ax.set_xticklabels(np.round(xticks, 4))
         ax.set_yticklabels(np.round(yticks, 4))
-        #ax.set_xticks(np.arange(0, len(self.PixAxX), 1))
-        #ax.set_yticks(np.arange(0, len(self.PixAxY), 1))
-        #ax.set_xticklabels(np.subtract(np.multiply(self.PixAxX, self.gdx), np.amin(self.PixAxX)), fontsize=self.fontsize)
-        #ax.set_yticklabels(np.subtract(np.multiply(self.PixAxY, self.gdy), np.amin(self.PixAxY)), fontsize=self.fontsize)
 
         # automatic displayed ticks
         ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
@@ -1071,3 +1076,55 @@ class XYMap:
                     print('No Data found in Pixel {}, {}'.format(i, j))
         self.plotPixelMatrixSpectral()
         
+class PlotHSI():
+    def __init__(self, roilist={}, pixmatrix=[[]]):
+        self.roi_mode = False
+        self.roi_points = []
+        self.roi_lines = []
+        self.fig = None
+        self.roilist = roilist
+        self.pixmatrix = pixmatrix
+    def construct(self, image):
+        self.fig, self.ax = plt.subplots()
+        self.fig.subplots_adjust(right=0.89)# distance on right side for buttons
+        self.ax.imshow(image, cmap='viridis')
+        # plt.axess([left, bottom, width, height])
+        self.ax_button_toggle = plt.axes([0.89, 0.95, 0.1, 0.05])
+        self.button_toggle = Button(self.ax_button_toggle, 'Edit ROI')
+        self.button_toggle.on_clicked(self.toggle_roi)
+        self.ax_button_clear = plt.axes([0.89, 0.89, 0.1, 0.05])
+        self.button_clear = Button(self.ax_button_clear, 'Clear ROI')
+        self.button_clear.on_clicked(self.clear_roi)
+        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+        plt.show()
+    def toggle_roi(self, event):
+        self.roi_mode = not self.roi_mode
+        if self.roi_mode:
+            self.button_toggle.label.set_text('Save ROI')
+            nrois = len(list(self.roilist.keys()))
+            self.roilist[str(nrois+1)] = deflib.highlight_roi(self.pixmatrix, self.roi_points)
+            self.roi_points.clear()
+        else:
+            self.button_toggle.label.set_text('Edit ROI')
+    def clear_roi(self, event):
+        self.clear_roi_points()
+        self.clear_roi_lines()
+        plt.draw()
+        print("ROI cleared.")
+    def on_click(self, event):
+        if self.roi_mode and event.inaxes == self.ax:
+            x, y = event.xdata, event.ydata
+            self.roi_points.append((x, y))
+            point_plot, = self.ax.plot(x, y, 'ro')
+            self.roi_lines.append(point_plot)
+            if len(self.roi_points) > 1:
+                line_plot, = self.ax.plot([self.roi_points[-2][0], x],
+                                            [self.roi_points[-2][1], y], 'r-')
+                self.roi_lines.append(line_plot)
+            plt.draw()
+    def clear_roi_points(self):
+        self.roi_points.clear()
+    def clear_roi_lines(self):
+        for line in self.roi_lines:
+            line.remove()
+        self.roi_lines.clear()

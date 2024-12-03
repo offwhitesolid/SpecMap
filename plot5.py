@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os, sys
 from PIL import Image, ImageTk
-import lib8 as lib # type: ignore
+import lib8_2PixMatrix2nparray as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib
@@ -162,10 +162,6 @@ class FileProcessorApp:
         self.load_entry.insert(0, defaults['load_hsi_saved'])
         self.load_button = tk.Button(self.saveframe, text="Load", command=lambda: self.loadhsisaved(self.loadhsipath.get()))
         self.load_button.pack()
-
-        
-
-
 
     def spec_loadfiles(self):
         self.defaults = deflib.initdefaults()
