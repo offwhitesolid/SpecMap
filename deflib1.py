@@ -8,6 +8,7 @@ import pandas as pd
 from scipy.interpolate import UnivariateSpline
 import os, csv
 from matplotlib.path import Path
+import matplotlib.pyplot as plt
 
 # comment how cremove_cosmics works
 
@@ -297,9 +298,12 @@ def highlight_roi(Mat, points):
     inside_mask = inside_mask.reshape(Mat.shape)
     # Set inside points to 1, leaving the rest as NaN
     result[inside_mask] = 1
-    return result
+    return np.transpose(result)
 
-
+def remove_nan(arr):
+    # Remove NaN values from the array and return it
+    reta = []
+    return reta
 
 def fig_on_hoverevent(event, ax, fig, Z, x_range, y_range):
  def on_hover(event, ax, fig, Z, x_range, y_range):
@@ -391,7 +395,8 @@ defaults={
     'seperate_fits': False,
     'save_hsi': "hsidata/hsi.txt", 
     'load_hsi_saved': "hsidata/hsi.txt",
-    'enable_buttonmatrix': False
+    'enable_buttonmatrix': False, 
+    'loadonstart': False
 }
 
 defaulttypes = {
@@ -428,7 +433,8 @@ defaulttypes = {
     'load_hsi_saved': str, 
     'Matrix_grid_dx': float,
     'Matrix_grid_dy': float,
-    'enable_buttonmatrix': bool
+    'enable_buttonmatrix': bool, 
+    'loadonstart': bool
 }
 
 # check definitions 

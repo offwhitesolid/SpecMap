@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os, sys
 from PIL import Image, ImageTk
-import lib8_4panelarangement as lib # type: ignore
+import lib8_5pixmatrixToDictionary as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib
@@ -231,7 +231,10 @@ class FileProcessorApp:
             messagebox.showerror("Error", "Please select a file")
             return
         try:
-            self.claraimage = claralib.imageprocessor(self.nodeframes['Clara Image'], file, deflib.loadclaraimage, None, 0.568, 0.568)
+            # clara 100x scaling factor 56.8 nm /pixel
+            dx = 0.0568*2#0.0568 
+            dy = 0.0568*2#0.0568
+            self.claraimage = claralib.imageprocessor(self.nodeframes['Clara Image'], file, deflib.loadclaraimage, None, dx, dy)# 0.568, 0.568) 100x scaling
         except Exception as error:
             messagebox.showerror("Error", "Could not load Clara image. {}".format(error))
     

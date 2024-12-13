@@ -154,6 +154,7 @@ class XYMap:
         self.fontsize = self.defentries['fontsize']                         # Default Plot Font Size
         self.colormap = tk.StringVar()                                      # Colormap
         self.fitkeys = matl.fitkeys
+        self.countthreshv = self.defentries['colormap_threshold']
         # load files in hyperthreading
         self.loadfiles()
         self.cmapframe = cmapframe                                          # Colormap Frame
@@ -179,6 +180,8 @@ class XYMap:
         self.buildselectboxes(self.cmapframe, list(self.speckeys.keys()))
         #self.getPLpixelIntervalMax()                                        # build PL Matrix
         #self.plotPixelMatrix()                                              # Plot PL Matrix 
+        #self.build_roi_frame(self.cmapframe)                                # build ROI GUI
+
         self.updatewl()
 
     def buildselectboxes(self, frame, values):
@@ -293,6 +296,31 @@ class XYMap:
         b2= tk.Button(frame, text="fit 2D Gaussian to Matrix", command= lambda: self.fit2dgausstopixmatrix())
         b2.grid(row=2, column=0)
 
+    def build_roi_frame(self, parframe):
+        self.roihandler = Roihandler()#self)
+        self.roisel = tk.StringVar()
+
+        frame = tk.Frame(parframe, border=5, relief="raised")
+        frame.grid(row=0, column=5, rowspan=6, sticky=tk.NW)
+        tk.Label(frame, text="Select ROI").grid(row=0, column=0)
+        self.roiselgui = ttk.Combobox(frame, textvariable=self.roisel)
+        self.roiselgui.grid(row=1, column=0)
+        b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PixMatrix, self.roiselgui))
+        b1.grid(row=2, column=0)
+        b2 = tk.Button(frame, text="plot ROI", command= lambda: self.roihandler.plotroi())
+        b2.grid(row=3, column=0)
+        b3 = tk.Button(frame, text="delete ROI", command= lambda: self.roihandler.delete_roi())
+        b3.grid(row=4, column=0)     
+    
+        # build second clumn for ROI
+        tk.Label(frame, text="Select HSI Image").grid(row=0, column=1)
+        self.hsiselect = ttk.Combobox(frame)
+        self.hsiselect.grid(row=1, column=1)
+        b4 = tk.Button(frame, text="Plot HSI")
+        b4.grid(row=2, column=1)
+        b5 = tk.Button(frame, text="Multiply HSI with ROI")
+        b5.grid(row=3, column=1)
+
     def buid_FitFrame(self, parframe):
         frame = tk.Frame(parframe, border=5, relief="sunken")
         frame.grid(row=0, column=5, rowspan=6, sticky=tk.NW)
@@ -339,17 +367,19 @@ class XYMap:
     # Matrix with Pixels to obtain spectrum
     def build_button_frame(self, placeframe, width=600, height=600):
         # create new subframe
+
         parframe = tk.Frame(placeframe)
-        parframe.pack(side=tk.TOP, anchor=tk.W, expand=False)#, fill=tk.Y)
+        #parframe.pack(side=tk.TOP, anchor=tk.W, expand=False)#, fill=tk.Y)
+        parframe.grid(row=0, column=0, sticky=tk.NW)
 
         # create input GUI, ButtonMatrix is created in buildButtonMatrix in seperate frame
         n = len(self.PixMatrix)
         m = len(self.PixMatrix[0])
-        frame = tk.Frame(parframe)
-        frame.pack(side=tk.RIGHT, anchor=tk.N, expand=False)#fill=tk.BOTH, expand=True)
-        tk.Label(parframe, text='Press Plot Spectrum\nto plot selected Pixel\nPixel Loaded: {} x {}'.format(len(self.SpecDataMatrix[0]), len(self.SpecDataMatrix))).pack(side=tk.TOP, anchor=tk.W)
-        tk.Label(parframe, text='selected Pixel: ').pack(side=tk.TOP, anchor=tk.W)
-        xyframe = tk.Frame(parframe)
+        plotframe = tk.Frame(parframe, border=5, relief="raised")
+        plotframe.grid(row=0, column=0, sticky=tk.NW)
+        tk.Label(plotframe, text='Press Plot Spectrum\nto plot selected Pixel\nPixel Loaded: {} x {}'.format(len(self.SpecDataMatrix[0]), len(self.SpecDataMatrix))).pack(side=tk.TOP, anchor=tk.W)
+        tk.Label(plotframe, text='selected Pixel: ').pack(side=tk.TOP, anchor=tk.W)
+        xyframe = tk.Frame(plotframe)
         xyframe.pack(side=tk.TOP, anchor=tk.W)
         # inside xyframe
         tk.Label(xyframe, text='X =').grid(row=0, column=0)
@@ -364,43 +394,47 @@ class XYMap:
         self.newselx = 0
         self.newsely = 0
 
-        tk.Label(parframe, text="Select Data Set".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
-        self.selectspecpixbox = ttk.Combobox(parframe, values=list(self.speckeys.keys()))
+        tk.Label(plotframe, text="Select Data Set".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
+        self.selectspecpixbox = ttk.Combobox(plotframe, values=list(self.speckeys.keys()))
         self.selectspecpixbox.set(list(self.speckeys.keys())[-1])
         self.selectspecpixbox.pack(side=tk.TOP, anchor=tk.W)
 
-        b1 = tk.Button(parframe, text="Plot Spectrum", command=self.PlotPixelSpectrum)
+        b1 = tk.Button(plotframe, text="Plot Spectrum", command=self.PlotPixelSpectrum)
         b1.pack(side=tk.TOP, anchor=tk.W)
 
         if self.defentries['enable_buttonmatrix'] == True:
             b2 = tk.Button(parframe, text="Create Button Matrix", command= lambda: self.buildButtonMatrix(frame, n, m))
             b2.pack(side=tk.BOTTOM, anchor=tk.W)
 
+        # add new frame for Fit Parameters
+        fitframe = tk.Frame(placeframe, border=5, relief="raised")
+        fitframe.grid(row=0, column=1, sticky=tk.NW)
+
         # fit to spectrum
-        tk.Label(parframe, text="Select Fit function".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
-        self.selectwindowbox = ttk.Combobox(parframe, values=list(self.windowfunctions))
+        tk.Label(fitframe, text="Select Fit function".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
+        self.selectwindowbox = ttk.Combobox(fitframe, values=list(self.windowfunctions))
         self.selectwindowbox.set(self.defentries['selected_fit_function'])
         self.selectwindowbox.pack(side=tk.TOP, anchor=tk.W)
-        b3 = tk.Button(parframe, text="Fit Window to Spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=True))
+        b3 = tk.Button(fitframe, text="Fit Window to Spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=True))
         b3.pack(side=tk.TOP, anchor=tk.W)
         self.sepfitfunct = tk.IntVar()
-        b4 = tk.Button(parframe, text="plot existing fit and spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=False))
+        b4 = tk.Button(fitframe, text="plot existing fit and spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=False))
         b4.pack(side=tk.TOP, anchor=tk.W)
         self.sepfitfunct.set(0)
-        self.sepfitfunctsbut = tk.Checkbutton(parframe, text="Separate Fit Functions", variable=self.sepfitfunct)
+        self.sepfitfunctsbut = tk.Checkbutton(fitframe, text="Separate Fit Functions", variable=self.sepfitfunct)
         self.sepfitfunctsbut.pack(side=tk.TOP, anchor=tk.W)
 
-        # add spacing between buttons
-        self.spacing = tk.Label(parframe, text="")
-        self.spacing.pack(side=tk.TOP, padx=(10, 10))
         # create a select box for the parameters of each fit
-        tk.Label(parframe, text="HSI from Fit Parameter").pack(side=tk.TOP, anchor=tk.W)
-        self.selectfitparambox = ttk.Combobox(parframe, values=self.allfpnamesinone)
+        tk.Label(fitframe, text="HSI from Fit Parameter").pack(side=tk.TOP, anchor=tk.W)
+        self.selectfitparambox = ttk.Combobox(fitframe, values=self.allfpnamesinone)
         self.selectfitparambox.pack(side=tk.TOP, anchor=tk.W)
         self.selectfitparambox.set(self.allfpnamesinone[0]) # set default value
-        b3 = tk.Button(parframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam())
+        b3 = tk.Button(fitframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam())
         b3.pack(side=tk.TOP, anchor=tk.W)
 
+
+        #
+        self.build_roi_frame(placeframe)
         buttons = []
         self.SpecButtons = []
         return buttons
@@ -466,7 +500,7 @@ class XYMap:
 
     # Max Counts Colormap
     def buildandPlotIntCmap(self):
-        self.getPLpixelIntervalMaxIndex()
+        self.getPLpixelIntervalMaxIndex(False)
         self.readfontsize()
         self.writetopixmatrix(self.Intmatrix)
         self.plotPixelMatrixIntensity()
@@ -601,7 +635,147 @@ class XYMap:
                                 except:
                                     print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
                                     worked = True
-                                print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))       
+                                print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))     
+                            self.updatewl()
+
+    def fittoSpecfitparams(self, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
+        # fill matrix with data of the selected enry
+        self.updatewl()
+        x, y, valid = self.validpixelinput()
+        if valid[0] == True and valid[1] == True:
+            if type(self.SpecDataMatrix[y][x]) == SpectrumData:
+                if self.SpecDataMatrix[y][x].dataokay == True:
+                    self.selectwindowboxVari = self.selectwindowbox.get()
+                    self.selectspecboxVari = self.selectspecbox.get()
+                    tries = 1
+                    worked = False
+                    adjmin = True
+                    # if fit does not work, adjust the window size
+                    while tries < nmin+nmax and worked == False:
+                        tries += 1
+                        try:
+                            if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
+                                if np.sum(self.SpecDataMatrix[y][x].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
+                                    self.Intmatrix[y][x] = np.nan
+                                else:
+                                    try:
+                                        self.maxiter = int(self.fitmaxiter.get())
+                                    except:
+                                        print('Maxiter must be int. Using default 1000.')
+                                        self.maxiter = 1000
+                                    self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
+                                    self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[y][x].fitdata[:-1])#[1]
+                                    r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[y][x].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[y][x].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[y][x].fitdata[:-1]))
+                                    a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get())
+                                    # put fitdata into fitparams
+                                    try:
+                                        for k in range(matl.fitkeys[list(matl.fitkeys.keys())[a]][4]):
+                                            self.SpecDataMatrix[y][x].fitparams[a][k] = self.SpecDataMatrix[y][x].fitdata[k]
+                                        # store fitmaxX and fitmaxY in fitparams[-1] and [-2]
+                                        self.SpecDataMatrix[y][x].fitparams[a][-1] = self.SpecDataMatrix[y][x].fitmaxX
+                                        self.SpecDataMatrix[y][x].fitparams[a][-2] = self.SpecDataMatrix[y][x].fitmaxY
+                                        # store aqpixstart and aqpixend in fitparams[-3] and [-4]
+                                        self.SpecDataMatrix[y][x].fitparams[a][-3] = self.aqpixstart
+                                        self.SpecDataMatrix[y][x].fitparams[a][-4] = self.aqpixend
+                                        # store r_squared, ss_res, ss_tot in fitparams[-5] and [-6] and [-7]
+                                        self.SpecDataMatrix[y][x].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)+1] = r_squared
+                                        self.SpecDataMatrix[y][x].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
+                                        self.SpecDataMatrix[y][x].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
+                                    except Exception as e:
+                                        print('Fit parameter update failed in new fitline. {}'.format(str(e)))
+                        
+                                if self.SpecDataMatrix[y][x].fitdata == [None]:
+                                    self.Intmatrix[y][x] = np.nan 
+                                else:
+                                    # check if maximum is within the window and set to Intmatrix
+                                    if self.SpecDataMatrix[y][x].fitmaxX >= self.wlstart and self.SpecDataMatrix[y][x].fitmaxX <= self.wlend:
+                                        worked = True
+                                        self.Intmatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
+                                    else:
+                                        pass
+                                        #print(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY)
+                        except Exception as e:
+                            try:
+                                if adjmin == True:
+                                    self.aqpixstart += incmin
+                                    adjmin = False
+                                else:
+                                    self.aqpixend += incmax
+                                    adjmin = True
+                            except:
+                                print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+                                worked = True
+                            print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))     
+                        self.updatewl()   
+
+        # fill matrix with data of the selected enry:
+        self.updatecountthresh()
+        for i in range(len(self.SpecDataMatrix)):
+            for j in range(len(self.SpecDataMatrix[i])):
+                if type(self.SpecDataMatrix[i][j]) == SpectrumData:
+                    if self.SpecDataMatrix[i][j].dataokay == True:
+                        self.selectwindowboxVari = self.selectwindowbox.get()
+                        self.selectspecboxVari = self.selectspecbox.get()
+                        tries = 1
+                        worked = False
+                        adjmin = True
+                        # if fit does not work, adjust the window size
+                        while tries < nmin+nmax and worked == False:
+                            tries += 1
+                            try:
+                                if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
+                                    if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
+                                        self.Intmatrix[i][j] = np.nan
+                                    else:
+                                        try:
+                                            self.maxiter = int(self.fitmaxiter.get())
+                                        except:
+                                            print('Maxiter must be int. Using default 1000.')
+                                            self.maxiter = 1000
+                                        self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter)
+                                        self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
+                                        r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[i][j].fitdata[:-1]))
+                                        a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get())
+                                        # put fitdata into fitparams
+                                        try:
+                                            for k in range(matl.fitkeys[list(matl.fitkeys.keys())[a]][4]):
+                                                self.SpecDataMatrix[i][j].fitparams[a][k] = self.SpecDataMatrix[i][j].fitdata[k]
+                                            # store fitmaxX and fitmaxY in fitparams[-1] and [-2]
+                                            self.SpecDataMatrix[i][j].fitparams[a][-1] = self.SpecDataMatrix[i][j].fitmaxX
+                                            self.SpecDataMatrix[i][j].fitparams[a][-2] = self.SpecDataMatrix[i][j].fitmaxY
+                                            # store aqpixstart and aqpixend in fitparams[-3] and [-4]
+                                            self.SpecDataMatrix[i][j].fitparams[a][-3] = self.aqpixstart
+                                            self.SpecDataMatrix[i][j].fitparams[a][-4] = self.aqpixend
+                                            # store r_squared in fitparams [-7], [-8], [-9]
+                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)+1] = r_squared
+                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
+                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
+                                        except Exception as e:
+                                            print('Fit parameter update failed in new fitline. {}'.format(str(e)))
+
+                                if self.SpecDataMatrix[i][j].fitdata == [None]:
+                                    self.Intmatrix[i][j] = np.nan 
+                                else:
+                                    # check if maximum is within the window and set to Intmatrix
+                                    if self.SpecDataMatrix[i][j].fitmaxX >= self.wlstart and self.SpecDataMatrix[i][j].fitmaxX <= self.wlend:
+                                        worked = True
+                                        self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                                    else:
+                                        pass
+                                        #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
+                            except Exception as e:
+                                try:
+                                    if adjmin == True:
+                                        self.aqpixstart += incmin
+                                        adjmin = False
+                                    else:
+                                        self.aqpixend += incmax
+                                        adjmin = True
+                                except:
+                                    print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+                                    worked = True
+                                print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))     
+                            self.updatewl()
     
     def fittoMatrix(self, variable='fitmaxX', incmin=1, incmax=-1, nmin=20, nmax=20):
         # fill matrix with data of the selected enry:
@@ -653,6 +827,7 @@ class XYMap:
                                     print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
                                     worked = True
                                 print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))    
+                                
     
     def updatePixelMatrix(self, variable, nonecase=np.nan):
         for i in range(len(self.SpecDataMatrix)):
@@ -811,9 +986,9 @@ class XYMap:
         plt.show()
 
         # ROI editing
-        self.testroi = PlotHSI()
-        print(type(self.PixMatrix), type(self.PixMatrix[0]), type(self.PixMatrix[0][0]))
-        self.testroi.construct(self.PixMatrix)
+        #self.roihandler = Roihandler()
+        #print(type(self.PixMatrix), type(self.PixMatrix[0]), type(self.PixMatrix[0][0]))
+        #self.roihandler.construct(self.PixMatrix)
 
     def plotPixelMatrixSpectral(self):
         fig, ax = plt.subplots()
@@ -853,7 +1028,7 @@ class XYMap:
 
         plt.show()
 
-    def getPLpixelIntervalMaxIndex(self):#getPLpixelSpecMax(self):
+    def getPLpixelIntervalMaxIndex(self, makenan=False):
         # fill matrix with data of the selected enry:
         self.updatewl()
         for i in range(len(self.SpecDataMatrix)):
@@ -869,12 +1044,15 @@ class XYMap:
                             self.Intmatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend])
                         elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                             self.Intmatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend])
+                        if self.Intmatrix[i][j] < self.countthreshv:
+                            if makenan == True:
+                                self.Intmatrix[i][j] = np.nan
                     except Exception as e:
-                        print(str(e))
+                        print(str(e), 'Error in getPLpixelIntervalMaxIndex')
                 if self.Intmatrix[i][j] == np.nan:
                     self.Intmatrix[i][j] = 0
                         
-    def getPLpixelSpecMax(self):#getPLpixelIntervalMaxIndex(self):
+    def getPLpixelSpecMax(self):
         # fill matrix with data of the selected enry:
         self.updatewl()
         self.updatecountthresh()
@@ -1078,21 +1256,25 @@ class XYMap:
                     print('No Data found in Pixel {}, {}'.format(i, j))
         self.plotPixelMatrixSpectral()
         
-class PlotHSI():
+class Roihandler():
     def __init__(self, roilist={}, pixmatrix=[[]]):
-        self.roi_mode = False
+        self.roi_mode = True
         self.roi_points = []
         self.roi_lines = []
         self.fig = None
         self.roilist = roilist
         self.pixmatrix = pixmatrix
-    def construct(self, image):
+        self.pixmatrix = np.transpose(self.pixmatrix)
+    def construct(self, pixmatrix, roiselgui):
+        self.pixmatrix = pixmatrix
+        self.pixmatrix = np.transpose(self.pixmatrix)
+        self.roiselgui = roiselgui
         self.fig, self.ax = plt.subplots()
         self.fig.subplots_adjust(right=0.89)# distance on right side for buttons
-        self.ax.imshow(image, cmap='viridis')
+        self.ax.imshow(pixmatrix, cmap='viridis')
         # plt.axess([left, bottom, width, height])
         self.ax_button_toggle = plt.axes([0.89, 0.95, 0.1, 0.05])
-        self.button_toggle = Button(self.ax_button_toggle, 'Edit ROI')
+        self.button_toggle = Button(self.ax_button_toggle, 'Save ROI')
         self.button_toggle.on_clicked(self.toggle_roi)
         self.ax_button_clear = plt.axes([0.89, 0.89, 0.1, 0.05])
         self.button_clear = Button(self.ax_button_clear, 'Clear ROI')
@@ -1102,33 +1284,31 @@ class PlotHSI():
     def toggle_roi(self, event):
         if self.roi_mode == True:
             self.button_toggle.label.set_text('Edit ROI')
-            print(len(self.roi_points))
             if len(self.roi_points) > 2:
-                print('inserting new roi')
                 nrois = len(list(self.roilist.keys()))
                 for i in range(len(self.roi_points)):
                     self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
-                print('points:', self.roi_points)
                 newroi = deflib.highlight_roi(self.pixmatrix, self.roi_points)
-                print('newroi:', newroi)
+                # transpose newroi
+                #newroi = np.transpose(newroi)
+                self.roilist[str('roi'+str(nrois+1))] = newroi
                 plt.imshow(newroi, cmap='viridis')
                 plt.show()
-                self.roilist[str(nrois+1)] = newroi
+                self.roiselgui['values'] = list(self.roilist.keys())
                 self.roi_points.clear()
             self.roi_mode = False
+            print(len(self.roilist))
         else:
             self.button_toggle.label.set_text('Save ROI')
             self.roi_points.clear()
+            self.clear_roi_lines()
             self.roi_mode = True
+            plt.draw()
 
     def clear_roi(self, event):
         self.clear_roi_points()
         self.clear_roi_lines()
         plt.draw()
-        print("ROI cleared.")
-        print(self.roilist)
-        for i in list(self.roilist.keys()):
-            print(self.roilist[i])
             
     def on_click(self, event):
         if self.roi_mode and event.inaxes == self.ax:
@@ -1147,3 +1327,35 @@ class PlotHSI():
         for line in self.roi_lines:
             line.remove()
         self.roi_lines.clear()
+    
+    def multiroitopixmatrix(pixmatrix, roi):
+        for i in range(len(pixmatrix)):
+            for j in range(len(pixmatrix[i])):
+                if roi[i][j] == np.nan:
+                    pixmatrix[i][j] = np.nan
+        return(pixmatrix)
+    
+    def plotroi(self, fontsize=12):
+        # get selection of self.roiselgui
+        roi = self.roilist[self.roiselgui.get()]
+        fig, ax = plt.subplots()
+        cax = ax.imshow(roi, cmap='viridis')
+        cbar = fig.colorbar(cax, ax=ax)
+        cbar.set_label('ROI', fontsize=fontsize)
+        cbar.ax.tick_params(labelsize=fontsize)
+        ax.set_title('Region of Interest')
+        ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
+        ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
+        plt.show()
+    
+    def delete_roi(self):
+        if self.roiselgui.get() != '':
+            del self.roilist[self.roiselgui.get()]
+            self.roiselgui['values'] = list(self.roilist.keys())
+            if len(self.roiselgui['values']) > 0:
+                self.roiselgui.set(self.roiselgui['values'][0])
+            else:
+                self.roiselgui.set('')
+            plt.show()
+        else:
+            pass
