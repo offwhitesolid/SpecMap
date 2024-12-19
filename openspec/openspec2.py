@@ -212,17 +212,17 @@ def getpowerbyname(name):
     return power, tint
 
 class PowerWLplot:
-    def __init__(self):
+    def __init__(self, Laserspotarea=4.27): # laserspotarea in µm²
         self.openspec = []
         self.colors = ['red', 'blue', 'green', 'orange', 'purple', 'black', 'brown', 'pink', 'gray', 'cyan']
         self.powernW = []
         self.maxint = []
         self.tint = []
+        self.Laserspotarea = Laserspotarea
     def getpowermaxint(self):
         powerN = []
         maxintN = []
         tintN = []
-
         for i in [-1]:#range(len(self.openspec)):
             for j in range(len(list(self.openspec[i].specs.keys()))):
                 powerN.append(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].powernW)
@@ -230,6 +230,9 @@ class PowerWLplot:
                 tintN.append(self.openspec[i].specs[list(self.openspec[i].specs.keys())[j]].tint)
         for i in range(len(maxintN)):
             maxintN[i] /= tintN[i]
+            #maxintN[i] /= self.Laserspotarea
+            powerN[i] /= self.Laserspotarea
+            powerN[i] /= 3 # 3 is the factor that gets lost by the beam splitter and 4 mirrors
         self.powernW.append(powerN)
         self.maxint.append(maxintN)
         self.tint.append(tintN)
@@ -240,27 +243,29 @@ class PowerWLplot:
     def pltpowermaxintlinear(self):
         """Plots the power vs maximum intensity."""
         fig, ax = plt.subplots()
+        labels = ['Increasing Power', 'Decreasing Power']
         for i in range(len(self.powernW)):
             print(i)
-            ax.scatter(self.powernW[i], self.maxint[i], color=self.colors[i], label='Counts {}'.format(i+1))
+            ax.scatter(self.powernW[i], self.maxint[i], color=self.colors[i], label=labels[i])#'Counts {}'.format(i+1))
             # fit a linear regression line to the data
             m, b = np.polyfit(self.powernW[i], self.maxint[i], 1)
             ax.plot(self.powernW[i], m*np.array(self.powernW[i]) + b, color=self.colors[i], label='Fit {}'.format(i+1))
             print("Slope: {:.2f}, Intercept: {:.2f}".format(m, b))
 
         ax.legend()
-        ax.set_xlabel('Power (nW)')
-        ax.set_ylabel('Counts')
-        ax.set_title('Power vs Counts at 2 sec Integration')
+        ax.set_xlabel('Power (nW/$\mu m^2$)')
+        ax.set_ylabel('Counts per second')
+        ax.set_title('$N_1$ Perovskites Excitation Power vs PL counts')
         plt.tight_layout()
         plt.show()
     
     def pltpowermaxintzerotangent(self):
         """Plots the power vs maximum intensity."""
         fig, ax = plt.subplots()
+        labels = ['Increasing Power', 'Decreasing Power']
         for i in range(len(self.powernW)):
             print(i)
-            ax.scatter(self.powernW[i], self.maxint[i], color=self.colors[i], label='Counts {}'.format(i+1))
+            ax.scatter(self.powernW[i], self.maxint[i], color=self.colors[i], label=labels[i])#'Measurement {}'.format(i+1))
             # fit a linear regression line to the data
             #m, b = np.polyfit(self.powernW[i], self.maxint[i], 1)
             #ax.plot(self.powernW[i], m*np.array(self.powernW[i]) + b, color=self.colors[i], label='Fit {}'.format(i+1))
@@ -270,12 +275,27 @@ class PowerWLplot:
             print("Tangent Slope: {:.2f}".format(m))
 
         ax.legend()
-        ax.set_xlabel('Power (nW)')
-        ax.set_ylabel('Counts')
-        ax.set_title('Power vs Counts at 2 sec Integration')
+        ax.set_xlabel('Power (nW/$\mu m^2$)')
+        ax.set_ylabel('Counts per second')
+        ax.set_title('$N_1$ Perovskites Excitation Power vs PL counts')
         plt.tight_layout()
         plt.show()
-        
+    
+    def plotpowermaxintonlypoints(self):
+        """Plots the power vs maximum intensity."""
+        fig, ax = plt.subplots()
+        labels = ['Increasing Power', 'Decreasing Power']
+        for i in range(len(self.powernW)):
+            print(i)
+            ax.scatter(self.powernW[i], self.maxint[i], color=self.colors[i], label=labels[i])#'Measurement {}'.format(i+1))
+            #ax.plot(self.powernW[i], self.maxint[i], color=self.colors[i], label='Fit {}'.format(i+1))
+
+        ax.legend()
+        ax.set_xlabel('Power (nW/$\mu m^2$)')
+        ax.set_ylabel('Counts per second')
+        ax.set_title('$N_1$ Perovskites Excitation Power vs PL counts')
+        plt.tight_layout()
+        plt.show()
     
 # GUI Functionality
 def select_search_dir():
@@ -298,6 +318,10 @@ def loadfiles(PIplot):
 def plotpowermaxintaxpb(PIplot):
     PIplot.pltpowermaxintlinear()
 
+def plotpowermaxnofit(PIplot):
+    PIplot.plotpowermaxintonlypoints()
+
+
 # Example usage:
 # Assuming the text files are located in a folder named "testfiles":
 openspec = OpenSpec("C:/Users/volib/Desktop/Evaluation/code/SpecMap/SpecMap1/openspec/testfiles".replace('\\', '/'))
@@ -307,10 +331,11 @@ root.title("Plot Power vs PL Maximum (2sec Integration)")
 root.geometry("300x150")
 
 # Variables to hold directory paths
-PIplot = PowerWLplot()
+PIplot = PowerWLplot(5.3)
 search_dir_var = tk.StringVar()
 tk.Button(root, text="Select Search Directory", command=select_search_dir).pack()
 tk.Button(root, text="Load Files", command=lambda: loadfiles(PIplot)).pack()
+tk.Button(root, text="Plot Power vs Max Intensity", command=lambda: plotpowermaxnofit(PIplot)).pack()
 tk.Button(root, text="Plot Power vs PL Maximum Linear", command=lambda: plotpowermaxintaxpb(PIplot)).pack()
 tk.Button(root, text="Plot Power vs PL Maximum Zero Tangent", command=lambda: PIplot.pltpowermaxintzerotangent()).pack()
 

@@ -159,14 +159,20 @@ def plot2dfit(data, popt, dx, dy):
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
     ax[0].imshow(data, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', cmap='viridis')
     ax[0].set_title('Original Data')
-    ax[0].set_xlabel('X')
-    ax[0].set_ylabel('Y')
+    ax[0].set_xlabel('X in mum')
+    ax[0].set_ylabel('Y in mum')
     
     # Plot the fitted data
     ax[1].imshow(fit, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', cmap='viridis')
     ax[1].set_title('2D Gaussian Fit')
-    ax[1].set_xlabel('X')
-    ax[1].set_ylabel('Y')
+    ax[1].set_xlabel('X in mum')
+    ax[1].set_ylabel('Y in mum')
+
+    # add colorbars
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.87, 0.15, 0.05, 0.7])
+    fig.colorbar(ax[0].imshow(data, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', cmap='viridis'), cax=cbar_ax)
+    cbar_ax.set_ylabel('Counts')
     
     plt.tight_layout()
     plt.show()

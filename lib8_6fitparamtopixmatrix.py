@@ -178,11 +178,11 @@ class XYMap:
         #if self.defentries['enable_buttonmatrix'] == True:
         self.build_PixMatrix_frame(self.cmapframe)                          # build Pixel Matrix GUI
         self.buildselectboxes(self.cmapframe, list(self.speckeys.keys()))
-        #self.getPLpixelIntervalMax()                                        # build PL Matrix
-        #self.plotPixelMatrix()                                              # Plot PL Matrix 
-        #self.build_roi_frame(self.cmapframe)                                # build ROI GUI
 
         self.updatewl()
+        self.PMmetadata['HSI0'] = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
+        self.UpdateHSIselect()
+
 
     def buildselectboxes(self, frame, values):
         tk.Label(frame, text="Select Data Set".format(self.DataSpecMax)).grid(row=0, column=1)
@@ -306,12 +306,10 @@ class XYMap:
         self.roiselgui = ttk.Combobox(frame, textvariable=self.roisel)
         self.roiselgui.grid(row=1, column=0)
         try:
-            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PixMatrix['HSI0'], self.roiselgui))
-        except: 
-            print('No HSI0 found. Construct New one.')
-            firsthsi = list(self.PixMatrix.keys())[0]
-            self.PixMatrix[firsthsi] = np.zeros((len(self.PixMatrix[firsthsi]), len(self.PixMatrix[firsthsi][0])))
-            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PixMatrix['HSI0'], self.roiselgui))
+            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PixMatrix[self.hsiselect.get()], self.roiselgui))
+        except: # select first HSI
+            self.hsiselect.set(self.PixMatrix.keys()[0])
+            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PixMatrix[self.hsiselect.get()], self.roiselgui))
         b1.grid(row=2, column=0)
         b2 = tk.Button(frame, text="plot ROI", command= lambda: self.roihandler.plotroi())
         b2.grid(row=3, column=0)
@@ -514,7 +512,6 @@ class XYMap:
         self.updatewl()
         self.updatecountthresh()
         self.readfontsize()
-        #self.fittoMatrix('fitmaxX') old
         self.fittoMatrixfitparams('fitmaxX') # new
         self.getPLpixelSpecMax()
         self.writetopixmatrix(self.Intmatrix, str(self.selectspecpixbox.get()))
@@ -589,7 +586,8 @@ class XYMap:
                         # if fit does not work, adjust the window size
                         while tries < nmin+nmax and worked == False:
                             tries += 1
-                            try:
+                            #try:
+                            if True: # debug start
                                 if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                         self.Intmatrix[i][j] = np.nan
@@ -630,7 +628,7 @@ class XYMap:
                                     else:
                                         pass
                                         #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
-                            except Exception as e:
+                            #except Exception as e: # debug end
                                 try:
                                     if adjmin == True:
                                         self.aqpixstart += incmin
@@ -639,9 +637,9 @@ class XYMap:
                                         self.aqpixend += incmax
                                         adjmin = True
                                 except:
-                                    print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+                                    print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in exc1 function {}.\n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e)))
                                     worked = True
-                                print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))     
+                            print("Fit to Matrix Failed at element {}, {} in exc2 function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e))) # print name of function
                             self.updatewl()
 
     def fittoSpecfitparams(self, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
@@ -688,7 +686,7 @@ class XYMap:
                                         self.SpecDataMatrix[y][x].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
                                         self.SpecDataMatrix[y][x].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
                                     except Exception as e:
-                                        print('Fit parameter update failed in new fitline. {}'.format(str(e)))
+                                        print('Fit parameter update failed in new fitline in function {}.{}. {}'.format(self.__name__, self.fittoSpecfitparams.__name__, str(e)))
                         
                                 if self.SpecDataMatrix[y][x].fitdata == [None]:
                                     self.Intmatrix[y][x] = np.nan 
@@ -709,9 +707,9 @@ class XYMap:
                                     self.aqpixend += incmax
                                     adjmin = True
                             except:
-                                print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+                                print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, self.__name__, 'XYMap.fittoSpecfitparams', str(e)))
                                 worked = True
-                            print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))     
+                            print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, 'XYMap.fittoSpecfitparams', str(e)))
                         self.updatewl()   
 
         # fill matrix with data of the selected enry:
@@ -778,9 +776,9 @@ class XYMap:
                                         self.aqpixend += incmax
                                         adjmin = True
                                 except:
-                                    print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+                                    print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, 'XYMap.updatecountthresh', str(e)))
                                     worked = True
-                                print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))     
+                                print("Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, 'XYMap.updatecountthresh', str(e)))     
                             self.updatewl()
     
     def fittoMatrix(self, variable='fitmaxX', incmin=1, incmax=-1, nmin=20, nmax=20):
@@ -830,9 +828,9 @@ class XYMap:
                                         self.aqpixend += incmax
                                         adjmin = True
                                 except:
-                                    print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+                                    print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, 'XYMap.fittoMatrix', str(e)))
                                     worked = True
-                                print("Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))    
+                                print("Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, 'XYMap.fittoMatrix', str(e)))    
                                 
     
     def updatePixelMatrix(self, variable, nonecase=np.nan):
@@ -1000,6 +998,7 @@ class XYMap:
             print('No Pixel Matrix with the given name for PlotPixelMatrixSpectral.')
             PMname = False
             return
+        print('plot PixMatrix {}'.format(PMname))
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
         cax = ax.imshow(self.PixMatrix[PMname], cmap=self.colormap.get())#'viridis')
@@ -1070,6 +1069,7 @@ class XYMap:
                 if type(self.SpecDataMatrix[i][j]) == SpectrumData:
                     try:
                         self.selectspecboxVari = self.selectspecbox.get()
+                        print('SelectSpecBoxVari', self.selectspecboxVari)
                         if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
                             if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                 self.Intmatrix[i][j] = np.nan
@@ -1092,6 +1092,7 @@ class XYMap:
                                 self.Intmatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                     except Exception as e:
                         print('Error in getPLpixelSpecMax', str(e))
+                        sys.exit()
                 else:
                     self.Intmatrix[i][j] = np.nan
 
@@ -1154,6 +1155,7 @@ class XYMap:
         self.mxcoords = []
         self.mycoords = []
         self.PixMatrix = {}
+        self.PMmetadata = {}
         if len(self.specs) == 0:
             messagebox.showerror("Error", 'No valid Data found. Check Data Files.')
         elif len(self.specs) == 1:
@@ -1164,6 +1166,7 @@ class XYMap:
             self.SpecDataMatrix = [[self.specs[0]]]
             PixMatrix = [[0]]
             self.PixMatrix = {}
+            self.PMmetadata = {}
             self.gdx = 0
             self.gdy = 0
         else:
@@ -1186,18 +1189,32 @@ class XYMap:
         self.hsiselect.current(0)
 
     def multiroitopixmatrix(self):
-        pixmatrix = self.PixMatrix[self.hsiselect.get()]
-        roi = self.roihandler.roilist[self.roiselgui.get()]
-        newroiname = "{}{}".format(self.hsiselect.get(), self.roiselgui.get())
+        if len(self.roihandler.roilist) == 0:
+            print('No ROI found. Cannot create HSI.')
+            return
+        else: 
+            roi = self.roihandler.roilist[self.roiselgui.get()]
+            newroiname = "{}{}".format(self.hsiselect.get(), self.roiselgui.get())
+        #pixmatrix = self.PixMatrix[self.hsiselect.get()][:]
+        # Generate a copy filled with np.nan
+        pixmatrix = np.full_like(self.PixMatrix[self.hsiselect.get()], np.nan, dtype=float)
+        print(roi)
+        print(type(roi), type(roi[0]), type(roi[0][0]), roi[0][0])
         for i in range(len(pixmatrix)):
             for j in range(len(pixmatrix[i])):
-                if roi[i][j] == np.nan:
-                    pixmatrix[i][j] = np.nan
+                if np.isnan(roi[i][j]) == False:
+                    pixmatrix[i][j] = self.PixMatrix[self.hsiselect.get()][i][j]
         self.PixMatrix[newroiname] = pixmatrix
+        plt.imshow(pixmatrix)
+        plt.show()
         self.UpdateHSIselect()
     
     def delHSI(self):
-        del self.PixMatrix[self.hsiselect.get()]
+        if len(self.PixMatrix) == 1:
+            messagebox.showerror("Error", 'Cannot delete last HSI.')
+        else:
+            del self.PixMatrix[self.hsiselect.get()]
+            del self.PMmetadata[self.hsiselect.get()]
         self.UpdateHSIselect()
 
     # set the spectra into the array
@@ -1251,14 +1268,18 @@ class XYMap:
             PixelMatrix.append(pixmat)
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
     
-    def writetopixmatrix(self, matrix, name):
-        if name in list(self.PixMatrix.keys()):
-            for i in range(len(matrix)):
-                for j in range(len(matrix[i])):
-                    self.PixMatrix[name][i][j] = matrix[i][j]
-            self.PixMatrix[name] = np.asarray(self.PixMatrix[[name]])
-        else: 
-            print('No Pixel Matrix with the given name for writetopixmatrix.')
+    def writetopixmatrix(self, matrix, name='HSI0'):
+        self.Pixmatrixnames = list(self.PixMatrix.keys())
+        pmi = 0
+        for i in range(len(self.Pixmatrixnames)+1):
+            newpmname = '{}{}'.format('HSI', i) # create name of new HSI
+            if newpmname in self.Pixmatrixnames:
+                pmi += 1
+            else:
+                newpmname = '{}{}'.format('HSI', pmi) # create name of new HSI
+                break
+        self.PixMatrix[newpmname] = np.asarray(matrix) # add new HSI to PixMatrix
+        self.PMmetadata[newpmname] = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
 
     def plotHSIfromfitparam(self, name='HSI0'):
         self.updatewl()
@@ -1269,12 +1290,14 @@ class XYMap:
             except:
                 name = 'HSI0'
         fitvari = self.allfpnamesinone.index(self.selectfitparambox.get())
-        for i in range(len(self.SpecDataMatrix[10][10].fitparams)):
-            print(list(matl.fitkeys.keys())[i], self.SpecDataMatrix[10][10].fitparams[i])
+        #for i in range(len(self.SpecDataMatrix[10][10].fitparams)):
+        #    print(list(matl.fitkeys.keys())[i], self.SpecDataMatrix[10][10].fitparams[i])
 
         # check if name is in PixMatrix and if not, create new entry
-        if name not in list(self.PixMatrix.keys()):
-            self.PixMatrix[name] = np.zeros((len(self.SpecDataMatrix), len(self.SpecDataMatrix[0])))
+        #if name not in list(self.PixMatrix.keys()):
+        #    self.PixMatrix[name] = np.zeros((len(self.SpecDataMatrix), len(self.SpecDataMatrix[0])))
+        #    self.PMmetadata['HSI0'] = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
+
         # get index of fitvari in self.allfitparams
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
@@ -1369,20 +1392,6 @@ class Roihandler():
         for line in self.roi_lines:
             line.remove()
         self.roi_lines.clear()
-    
-    '''
-    def multiroitopixmatrix(self, pixmatrix, roi):
-        pixmatrix = self.PixMatrix[self.hsiselect.get()]
-        roi = self.roilist[self.roiselgui.get()]
-        newroiname = "{}{}".format(self.hsiselect.get()+self.roiselgui.get())
-        for i in range(len(pixmatrix)):
-            for j in range(len(pixmatrix[i])):
-                if roi[i][j] == np.nan:
-                    pixmatrix[i][j] = np.nan
-        self.PixMatrix[newroiname] = pixmatrix
-        self.UpdateHSIselect()
-        return pixmatrix
-    '''
     
     def plotroi(self, fontsize=12):
         # get selection of self.roiselgui

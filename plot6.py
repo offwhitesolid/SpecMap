@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os, sys
 from PIL import Image, ImageTk
-import lib8_5pixmatrixToDictionary as lib # type: ignore
+import lib8_6fitparamtopixmatrix as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib
