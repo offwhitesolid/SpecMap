@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os, sys
 from PIL import Image, ImageTk
-import lib8_7averageHSIspecs as lib # type: ignore
+import lib8_8_fixfit as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib

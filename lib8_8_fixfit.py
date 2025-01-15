@@ -664,7 +664,7 @@ class XYMap:
                             if True: # debug start
                                 if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.Intmatrix[i][j] = 0#np.nan
+                                        self.Intmatrix[i][j] = 0#np.nan test
                                     else:
                                         try:
                                             self.maxiter = int(self.fitmaxiter.get())
@@ -693,7 +693,7 @@ class XYMap:
                                             print('Fit parameter update failed in new fitline. {}'.format(str(e)))
 
                                 if self.SpecDataMatrix[i][j].fitdata == [None]:
-                                    self.Intmatrix[i][j] = 0#np.nan test1
+                                    self.Intmatrix[i][j] = np.nan
                                 else:
                                     # check if maximum is within the window and set to Intmatrix
                                     if self.SpecDataMatrix[i][j].fitmaxX >= self.wlstart and self.SpecDataMatrix[i][j].fitmaxX <= self.wlend:
@@ -1379,10 +1379,14 @@ class XYMap:
                     if self.SpecDataMatrix[i][j].dataokay == True:
                         try:
                             pari, parj = matl.getindexofFitparameter(self.allfpnames, self.selectfitparambox.get())
+                            if pari == None or parj == None:
+                                raise Exception('Parameter not found in fitparams.')
+                            pari = int(pari)
+                            parj = int(parj)
                             if pari != -1 and parj != -1:
                                 self.PixMatrix[name][i][j] = self.SpecDataMatrix[i][j].fitparams[pari][parj]
                             else:
-                                self.PixMatrix[name][i][j] = np.nan
+                                self.PixMatrix[name][i][j] = 0#np.nan test
                                 raise Exception('Parameter not found in fitparams.')
                         except Exception as e:
                             print('Error in plotHSIfromfitparam. {}'.format(str(e)))
