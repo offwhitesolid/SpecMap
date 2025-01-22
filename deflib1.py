@@ -23,7 +23,10 @@ def initdefaults():
         try:
             reqdefaults[i] = defaulttypes[i](loadeddefaults[i])
         except Exception as Error:
-            print(f'Error: {Error} while loading Entries. Using default value: {reqdefaults[i]}')
+            if loadeddefaults[i] == 'None':
+                pass
+            else:
+                print(f'Error: {Error} while loading Entries. Using default value: {i}={reqdefaults[i]}')
     return reqdefaults
 
 def save_defaults(variables):
