@@ -370,7 +370,7 @@ class XYMap:
                         # average HSI to spec for all pixels that are not NaN in the selected HSI
                         PLB[k-self.aqpixstart] += self.SpecDataMatrix[i][j].PLB[k]
         PLB = np.divide(PLB, speccount)
-        self.disspecs[self.createdisspecname()] = PMlib.Spectra(PLB, WL, metadata)
+        self.disspecs[self.createdisspecname()] = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
         # update the selectbox for spectral data
         self.specselect['values'] = list(self.disspecs.keys())
         self.specselect.set(list(self.disspecs.keys())[-1])
@@ -380,11 +380,7 @@ class XYMap:
             specname = 'SpectrumData0'
         else:
             specname = 'SpectrumData' + str(len(self.disspecs))
-        return specname        
-    
-    def addspectraldata(self, specdata, WL):
-        specname = self.createdisspecname()
-        self.disspecs[specname] = PMlib.Spectra(specdata, WL, {}) # add spectral data to disspecs
+        return specname 
     
     def saveSpectrum(self, specname):
         pass # save the selected spectrum to a file
@@ -407,12 +403,7 @@ class XYMap:
             selspec = self.specselect.get()
             selspecdataclass = self.disspecs[specname]
             # plot the selected spectral data
-            plt.figure()
-            plt.plot(selspecdataclass.Spec, selspecdataclass.WL)
-            plt.xlabel('Wavelength [nm]')
-            plt.ylabel('PL')
-            plt.title('Spectral Data')
-            plt.show()
+            self.PlotSpectrum(selspecdataclass.WL, selspecdataclass.Spec, 'Averaged HSI Spectrum')
         except Exception as e:
             print('Error plotting spectral data.', e)
     

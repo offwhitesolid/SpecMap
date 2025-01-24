@@ -10,8 +10,9 @@ class PMclass(): # PixMatrix class
         self.gdy = self.yax[1] - self.yax[0]
 
 class Spectra():
-    def __init__(self, xax, yax, metadata):
+    def __init__(self, xax, yax, metadata, parenthsiname):
         self.WL = xax
         self.Spec = yax
         self.metadata = metadata
+        self.parenthsi = parenthsiname
         self.gdx = self.WL[1] - self.WL[0]
