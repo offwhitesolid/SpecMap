@@ -355,22 +355,33 @@ class XYMap:
         # average all HSI to a single SpectrumData
         self.hsiselected = self.hsiselect.get()
         # get wlstart and wlend from self.hsiselected
-        self.wlstart = self.PMmetadata[self.hsiselected]['wlstart']
-        self.wlend = self.PMmetadata[self.hsiselected]['wlend']
-        self.aqpixstart = self.PMmetadata[self.hsiselected]['aqpixstart']
-        self.aqpixend = self.PMmetadata[self.hsiselected]['aqpixend']
+        self.updatewl()
         # update wlstart and wlend entries on GUI
+        metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
+        WL = self.WL[self.aqpixstart: self.aqpixend]
+        PLB = WL.copy()
+        speccount = 0
+        print('wlstart, wlend', 'aqpixstart, aqpixend', self.wlstart, self.wlend, self.aqpixstart, self.aqpixend)
+        for i in range(len(self.SpecDataMatrix)):
+            for j in range(len(self.SpecDataMatrix[i])):
+                if np.isnan(self.PixMatrix[self.hsiselected].PixMatrix[i][j]) == False:
+                    speccount += 1
+                    for k in range(self.aqpixstart, self.aqpixend):
+                        # average HSI to spec for all pixels that are not NaN in the selected HSI
+                        PLB[k-self.aqpixstart] += self.SpecDataMatrix[i][j].PLB[k]
+        PLB = np.divide(PLB, speccount)
+        self.disspecs[self.createdisspecname()] = PMlib.Spectra(PLB, WL, metadata)
+
     
-    def createdisspecname(self, returnname): # create a new spectral data name
+    def createdisspecname(self): # create a new spectral data name
         if len(self.disspecs) == 0:
             specname = 'SpectrumData0'
         else:
             specname = 'SpectrumData' + str(len(self.disspecs))
-        if returnname == True:
-            return specname        
+        return specname        
     
     def addspectraldata(self, specdata, WL):
-        specname = self.createdisspecname(True)
+        specname = self.createdisspecname()
         self.disspecs[specname] = PMlib.Spectra(specdata, WL, {}) # add spectral data to disspecs
     
     def saveSpectrum(self, specname):
