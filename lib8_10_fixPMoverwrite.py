@@ -371,7 +371,9 @@ class XYMap:
                         PLB[k-self.aqpixstart] += self.SpecDataMatrix[i][j].PLB[k]
         PLB = np.divide(PLB, speccount)
         self.disspecs[self.createdisspecname()] = PMlib.Spectra(PLB, WL, metadata)
-
+        # update the selectbox for spectral data
+        self.specselect['values'] = list(self.disspecs.keys())
+        self.specselect.set(list(self.disspecs.keys())[-1])
     
     def createdisspecname(self): # create a new spectral data name
         if len(self.disspecs) == 0:
