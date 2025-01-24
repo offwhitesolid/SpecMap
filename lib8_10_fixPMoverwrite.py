@@ -588,10 +588,10 @@ class XYMap:
 
     # Max Counts Colormap
     def buildandPlotIntCmap(self):
-        self.getPLpixelIntervalMaxIndex(False)
         self.readfontsize()
         self.writetopixmatrix(self.PixMatrix[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, str(self.selectspecpixbox.get()))
-        self.plotPixelMatrix()
+        self.getPLpixelIntervalMaxIndex(False)
+        self.plotPixelMatrix(self.hsiselect.get())
         self.UpdateHSIselect()
         
     # Spectral Maximum Colormap
@@ -605,14 +605,14 @@ class XYMap:
         self.UpdateHSIselect()
     
         try:
-            self.plotPixelMatrix()
+            self.plotPixelMatrix(self.hsiselect.get())
         except Exception as e:
             print('Plot failed. {}'.format(str(e)))
             plt.cla()
     
     def updateandPlotSpecCmap(self, variable):
         #self.updatePixelMatrix(variable)
-        self.plotPixelMatrix()
+        self.plotPixelMatrix(self.hsiselect.get())
         self.UpdateHSIselect()
 
     def fitwindowtospec(self, variable, newfit=False):
@@ -1037,9 +1037,7 @@ class XYMap:
 
     def plotPixelMatrix(self, HSIname, cmapticks=6):
         fig, ax = plt.subplots()
-        HSIimage = self.PixMatrix[HSIname].PixMatrix
-
-        
+        HSIimage = self.PixMatrix[HSIname].PixMatrix       
 
         # Display the data as an image with a colormap
         cax = ax.imshow(HSIimage, cmap=self.colormap.get()) # aspect='auto' for cubic image
@@ -1290,7 +1288,9 @@ class XYMap:
             roi = self.roihandler.roilist[self.roiselgui.get()]
             newroiname = "{}{}".format(self.hsiselect.get(), self.roiselgui.get())
         # Generate a copy of the selected PixMatrix class
-        pixmatrix = copy.copy(self.PixMatrix[self.hsiselect.get()])
+        lastpixmatrix = self.PixMatrix[self.hsiselect.get()].PixMatrix
+        # create a new PixMatrix with the same dimensions as the original
+        pixmatrix = PMlib.PMclass(np.zeros((lastpixmatrix.shape[0], lastpixmatrix.shape[1]), dtype=float), self.PixAxX, self.PixAxY, self.metadata)
         for i in range(len(pixmatrix.PixMatrix)):
             for j in range(len(pixmatrix.PixMatrix[i])):
                 if np.isnan(roi[i][j]) == True:
@@ -1407,7 +1407,7 @@ class XYMap:
                 else:
                     self.PixMatrix.PixMatrix[name][i][j] = np.nan
                     print('No Data found in Pixel {}, {}'.format(i, j))
-        self.plotPixelMatrix()
+        self.plotPixelMatrix(self.hsiselect.get())
         self.UpdateHSIselect()
         
 class Roihandler():
