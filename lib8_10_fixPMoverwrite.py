@@ -330,7 +330,7 @@ class XYMap:
         tk.Label(frame, text="Select HSI Image").grid(row=0, column=1)
         self.hsiselect = ttk.Combobox(frame)
         self.hsiselect.grid(row=1, column=1)
-        b4 = tk.Button(frame, text="Plot HSI", command= lambda: self.plotPixelMatrix())
+        b4 = tk.Button(frame, text="Plot HSI", command= lambda: self.plotPixelMatrix(self.hsiselect.get()))
         b4.grid(row=2, column=1)
         b5 = tk.Button(frame, text="Multiply HSI with ROI", command= lambda: self.multiroitopixmatrix())
         b5.grid(row=3, column=1)
@@ -1035,10 +1035,14 @@ class XYMap:
         plt.tight_layout()
         plt.show()
 
-    def plotPixelMatrix(self, cmapticks=6):
+    def plotPixelMatrix(self, HSIname, cmapticks=6):
         fig, ax = plt.subplots()
+        HSIimage = self.PixMatrix[HSIname].PixMatrix
+
+        
+
         # Display the data as an image with a colormap
-        cax = ax.imshow(self.PixMatrix[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, cmap=self.colormap.get()) # aspect='auto' for cubic image
+        cax = ax.imshow(HSIimage, cmap=self.colormap.get()) # aspect='auto' for cubic image
         # Add a colorbar to the image
         cbar = fig.colorbar(cax, ax=ax)
         # Set the colorbar label
