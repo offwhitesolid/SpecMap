@@ -11,8 +11,7 @@ class PMclass(): # PixMatrix class
 
 class Spectra():
     def __init__(self, xax, yax, metadata):
-        self.xax = xax
-        self.yax = yax
+        self.WL = xax
+        self.Spec = yax
         self.metadata = metadata
-        self.gdx = self.xax[1] - self.xax[0]
-        self.gdy = self.yax[1] - self.yax[0]
+        self.gdx = self.WL[1] - self.WL[0]

@@ -396,6 +396,7 @@ class XYMap:
             if len(self.disspecs) == 0:
                 pass
             else:
+                self.specselect['values'] = list(self.disspecs.keys())
                 self.specselect.set(list(self.disspecs.keys())[-1])
         except Exception as e:
             print('Error deleting spectral data.', e)
@@ -403,9 +404,15 @@ class XYMap:
     def plotSpectral(self, specname):
         # plot the selected spectral data
         try:
-            self.selspecdata = self.disspecs[specname][0]
-            self.selWL = self.disspecs[specname][1]
+            selspec = self.specselect.get()
+            selspecdataclass = self.disspecs[specname]
             # plot the selected spectral data
+            plt.figure()
+            plt.plot(selspecdataclass.Spec, selspecdataclass.WL)
+            plt.xlabel('Wavelength [nm]')
+            plt.ylabel('PL')
+            plt.title('Spectral Data')
+            plt.show()
         except Exception as e:
             print('Error plotting spectral data.', e)
     
@@ -1272,7 +1279,7 @@ class XYMap:
             self.mxcoords = sorted(self.mxcoords)
             self.mycoords = sorted(self.mycoords)
             PixMatrix, self.SpecDataMatrix, self.PixAxX, self.PixAxY = self.genmatgrid(self.mxcoords, self.mycoords)
-            PixMatrixc = PMlib.PMclass(np.asarray(PixMatrix), self.PixAxX, self.PixAxY, self.PMmetadata)
+            PixMatrixc = PMlib.PMclass(np.asarray(PixMatrix, dtype=float), self.PixAxX, self.PixAxY, self.PMmetadata)
             self.PixMatrix['HSI0'] = PixMatrixc
             self.SpecdataintoMatrix()
     
