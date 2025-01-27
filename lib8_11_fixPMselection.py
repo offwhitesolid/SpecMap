@@ -318,6 +318,7 @@ class XYMap:
         try:
             b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
         except: # select first HSI
+            print('HSI selection failed. Selecting first HSI.')
             self.hsiselect.set(self.PMdict.keys()[0])
             b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
         b1.grid(row=2, column=0)
@@ -619,7 +620,7 @@ class XYMap:
         self.plotPixelMatrix(self.hsiselect.get())
         self.UpdateHSIselect()
 
-    def fitwindowtospec(self, variable, newfit=False):
+    def fitwindowtospec(self, PixMatrix, variable, newfit=False):
         self.updatewl()
         x, y, valid = self.validpixelinput()
         if valid[0] == True and valid[1] == True:
@@ -650,7 +651,7 @@ class XYMap:
                             self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
                             self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixstart, *self.SpecDataMatrix[y][x].fitdata[:-1])
                             self.SpecDataMatrix[y][x].fitmaxX = self.SpecDataMatrix[y][x].fitmaxX*self.DataSpecdL+self.DataSpecMin
-                            self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix = self.SpecDataMatrix[y][x].get_attribute(variable)
+                            PixMatrix = self.SpecDataMatrix[y][x].get_attribute(variable)
                             print('Fit worked, {} {}'.format(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY))
                         
                             #plt.scatter(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY, color='red')
@@ -661,7 +662,7 @@ class XYMap:
         else:
             print(self.SpecDataMatrix[y][x])  
 
-    def fittoMatrixfitparams(self, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
+    def fittoMatrixfitparams(self, PixMatrix, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
         # fill matrix with data of the selected enry:
         self.updatecountthresh()
         for i in range(len(self.SpecDataMatrix)):
@@ -680,7 +681,7 @@ class XYMap:
                             if True: # debug start
                                 if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = np.nan
+                                        PixMatrix[i][j] = np.nan
                                     else:
                                         try:
                                             self.maxiter = int(self.fitmaxiter.get())
@@ -709,12 +710,12 @@ class XYMap:
                                             print('Fit parameter update failed in new fitline. {}'.format(str(e)))
 
                                 if self.SpecDataMatrix[i][j].fitdata == [None]:
-                                    self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = np.nan
+                                    PixMatrix[i][j] = np.nan
                                 else:
                                     # check if maximum is within the window and set to Intmatrix
                                     if self.SpecDataMatrix[i][j].fitmaxX >= self.wlstart and self.SpecDataMatrix[i][j].fitmaxX <= self.wlend:
                                         worked = True
-                                        self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                                        PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
                                     else:
                                         pass
                                         #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
@@ -732,7 +733,7 @@ class XYMap:
                             print("Fit to Matrix Failed at element {}, {} in exc2 function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e))) # print name of function
                             self.updatewl()
 
-    def fittoSpecfitparams(self, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
+    def fittoSpecfitparams(self, PixMatrix, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
         # fill matrix with data of the selected enry
         self.updatewl()
         x, y, valid = self.validpixelinput()
@@ -750,7 +751,7 @@ class XYMap:
                         try:
                             if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                 if np.sum(self.SpecDataMatrix[y][x].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                    self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[y][x] = np.nan
+                                    PixMatrix[y][x] = np.nan
                                 else:
                                     try:
                                         self.maxiter = int(self.fitmaxiter.get())
@@ -779,12 +780,12 @@ class XYMap:
                                         print('Fit parameter update failed in new fitline in function {}.{}. {}'.format(self.__name__, self.fittoSpecfitparams.__name__, str(e)))
                         
                                 if self.SpecDataMatrix[y][x].fitdata == [None]:
-                                    self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[y][x] = np.nan 
+                                    PixMatrix[y][x] = np.nan 
                                 else:
                                     # check if maximum is within the window and set to Intmatrix
                                     if self.SpecDataMatrix[y][x].fitmaxX >= self.wlstart and self.SpecDataMatrix[y][x].fitmaxX <= self.wlend:
                                         worked = True
-                                        self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
+                                        PixMatrix[y][x] = self.SpecDataMatrix[y][x].get_attribute(variable)
                                     else:
                                         pass
                                         #print(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY)
@@ -819,7 +820,7 @@ class XYMap:
                             try:
                                 if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = np.nan
+                                        PixMatrix[i][j] = np.nan
                                     else:
                                         try:
                                             self.maxiter = int(self.fitmaxiter.get())
@@ -848,12 +849,12 @@ class XYMap:
                                             print('Fit parameter update failed in new fitline. {}'.format(str(e)))
 
                                 if self.SpecDataMatrix[i][j].fitdata == [None]:
-                                    self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = np.nan 
+                                    PixMatrix[i][j] = np.nan 
                                 else:
                                     # check if maximum is within the window and set to Intmatrix
                                     if self.SpecDataMatrix[i][j].fitmaxX >= self.wlstart and self.SpecDataMatrix[i][j].fitmaxX <= self.wlend:
                                         worked = True
-                                        self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                                        PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
                                     else:
                                         pass
                                         #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
@@ -871,7 +872,7 @@ class XYMap:
                                 print("Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, 'XYMap.updatecountthresh', str(e)))     
                             self.updatewl()
     
-    def fittoMatrix(self, variable='fitmaxX', incmin=1, incmax=-1, nmin=20, nmax=20):
+    def fittoMatrix(self, PixMatrix, variable='fitmaxX', incmin=1, incmax=-1, nmin=20, nmax=20):
         # fill matrix with data of the selected enry:
         self.updatecountthresh()
         for i in range(len(self.SpecDataMatrix)):
@@ -889,7 +890,7 @@ class XYMap:
                             try:
                                 if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = np.nan
+                                        PixMatrix[i][j] = np.nan
                                     else:
                                         try:
                                             self.maxiter = int(self.fitmaxiter.get())
@@ -900,12 +901,12 @@ class XYMap:
                                         self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
                 
                                 if self.SpecDataMatrix[i][j].fitdata == [None]:
-                                    self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = np.nan 
+                                    PixMatrix[i][j] = np.nan 
                                 else:
                                     # check if maximum is within the window and set to Intmatrix
                                     if self.SpecDataMatrix[i][j].fitmaxX >= self.wlstart and self.SpecDataMatrix[i][j].fitmaxX <= self.wlend:
                                         worked = True
-                                        self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                                        PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
                                     else:
                                         pass
                                         #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
@@ -923,13 +924,13 @@ class XYMap:
                                 print("Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, 'XYMap.fittoMatrix', str(e)))    
                                 
     
-    def updatePixelMatrix(self, variable, nonecase=np.nan):
+    def updatePixelMatrix(self, PixMatrix, variable, nonecase=np.nan):
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 try:
-                    self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                    PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
                 except Exception as e:
-                    self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix[i][j] = nonecase
+                    PixMatrix[i][j] = nonecase
                     print("Update Pixel Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
 
     def readfontsize(self):
@@ -1040,7 +1041,7 @@ class XYMap:
         plt.show()
 
     def plotPixelMatrix(self, HSIname, cmapticks=6):
-        
+        # this is for test porpuse
         print('self.PMdict', len(self.PMdict), self.PMdict.keys())
         for i in self.PMdict.keys():
             fig, ax = plt.subplots()
