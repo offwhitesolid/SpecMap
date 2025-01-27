@@ -1041,7 +1041,7 @@ class XYMap:
 
     def plotPixelMatrix(self, HSIname, cmapticks=6):
         
-        print('self.PMdict', len(self.PMdict))
+        print('self.PMdict', len(self.PMdict), self.PMdict.keys())
         for i in self.PMdict.keys():
             fig, ax = plt.subplots()
             HSIimage = self.PMdict[i].PixMatrix
