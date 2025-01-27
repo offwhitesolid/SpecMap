@@ -522,7 +522,7 @@ class XYMap:
         self.selectfitparambox = ttk.Combobox(fitframe, values=self.allfpnamesinone)
         self.selectfitparambox.pack(side=tk.TOP, anchor=tk.W)
         self.selectfitparambox.set(self.allfpnamesinone[0]) # set default value
-        b3 = tk.Button(fitframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam())
+        b3 = tk.Button(fitframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam(self.PMdict[self.hsiselect.get()].PixMatrix))
         b3.pack(side=tk.TOP, anchor=tk.W)
 
         self.build_roi_frame(placeframe)
@@ -603,9 +603,9 @@ class XYMap:
         self.updatewl()
         self.updatecountthresh()
         self.readfontsize()
-        self.fittoMatrixfitparams('fitmaxX') # new
-        #self.getPLpixelSpecMax()
+        #self.fittoMatrixfitparams('fitmaxX') 
         newpm = self.writetopixmatrix(self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, None)#str(self.selectspecpixbox.get()))
+        self.fittoMatrixfitparams(self.PMdict[newpm].PixMatrix, 'fitmaxX') # new
         self.getPLpixelSpecMax(self.PMdict[newpm].PixMatrix)
         self.UpdateHSIselect()
     
@@ -620,7 +620,8 @@ class XYMap:
         self.plotPixelMatrix(self.hsiselect.get())
         self.UpdateHSIselect()
 
-    def fitwindowtospec(self, PixMatrix, variable, newfit=False):
+    def fitwindowtospec(self, variable, newfit=False):
+        PixMatrix = self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix
         self.updatewl()
         x, y, valid = self.validpixelinput()
         if valid[0] == True and valid[1] == True:
@@ -733,6 +734,7 @@ class XYMap:
                             print("Fit to Matrix Failed at element {}, {} in exc2 function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e))) # print name of function
                             self.updatewl()
 
+    # function currently not in use
     def fittoSpecfitparams(self, PixMatrix, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
         # fill matrix with data of the selected enry
         self.updatewl()
@@ -777,7 +779,7 @@ class XYMap:
                                         self.SpecDataMatrix[y][x].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
                                         self.SpecDataMatrix[y][x].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
                                     except Exception as e:
-                                        print('Fit parameter update failed in new fitline in function {}.{}. {}'.format(self.__name__, self.fittoSpecfitparams.__name__, str(e)))
+                                        print('Fit parameter update failed in new fitline in function {}. {}'.format(self.__name__, str(e)))
                         
                                 if self.SpecDataMatrix[y][x].fitdata == [None]:
                                     PixMatrix[y][x] = np.nan 
@@ -798,9 +800,9 @@ class XYMap:
                                     self.aqpixend += incmax
                                     adjmin = True
                             except:
-                                print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, self.__name__, 'XYMap.fittoSpecfitparams', str(e)))
+                                print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, self.__name__, str(e)))
                                 worked = True
-                            print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, 'XYMap.fittoSpecfitparams', str(e)))
+                            print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
                         self.updatewl()   
 
         # fill matrix with data of the selected enry:
@@ -923,7 +925,7 @@ class XYMap:
                                     worked = True
                                 print("Fit to Matrix Failed at element {}, {} in function {}.\n{}".format(i, j, 'XYMap.fittoMatrix', str(e)))    
                                 
-    
+    # function curently not in use
     def updatePixelMatrix(self, PixMatrix, variable, nonecase=np.nan):
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
@@ -1382,11 +1384,10 @@ class XYMap:
     
     def writetopixmatrix(self, matrix, name=None):
         if name == None or name not in self.PMdict.keys():
-            self.Pixmatrixnames = list(self.PMdict.keys())
             pmi = 0
-            for i in range(len(self.Pixmatrixnames)+1):
+            for i in range(len(list(self.PMdict.keys()))+1):
                 newpmname = '{}{}'.format('HSI', i) # create name of new HSI
-                if newpmname in self.Pixmatrixnames:
+                if newpmname in list(self.PMdict.keys()):
                     pmi += 1
                 else:
                     newpmname = '{}{}'.format('HSI', pmi) # create name of new HSI
@@ -1396,7 +1397,6 @@ class XYMap:
         # add ne PixMatrix to the dictionary with its metadata
         self.PMdict[newpmname] = PMlib.PMclass(np.asarray(matrix), self.PixAxX, self.PixAxY, self.PMmetadata)
         self.PMdict[newpmname].metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
-        self.Pixmatrixnames = list(self.PMdict.keys())
         return newpmname
 
     def plotHSIfromfitparam(self, PixMatrix, name='HSI0'):
