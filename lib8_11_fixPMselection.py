@@ -1187,7 +1187,7 @@ class XYMap:
                         print('SelectSpecBoxVari', self.selectspecboxVari)
                         if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
                             if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                self.PMdict[self.self.hsiselect.get()].PixMatrix[i][j] = np.nan
+                                PixMatrix[i][j] = np.nan
                             else:
                                 PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                         elif self.speckeys[self.selectspecboxVari] == 'BG': #Background
@@ -1280,7 +1280,6 @@ class XYMap:
             self.PixAxY = [0]
             self.SpecDataMatrix = [[self.specs[0]]]
             PixMatrix = [[0]]
-            self.PMdict = {}
             self.PMmetadata = {}
             self.gdx = 0
             self.gdy = 0
@@ -1400,7 +1399,7 @@ class XYMap:
         self.Pixmatrixnames = list(self.PMdict.keys())
         return newpmname
 
-    def plotHSIfromfitparam(self, name='HSI0'):
+    def plotHSIfromfitparam(self, PixMatrix, name='HSI0'):
         self.updatewl()
         self.updatecountthresh()
         if name == None:
@@ -1422,19 +1421,19 @@ class XYMap:
                             pari = int(pari)
                             parj = int(parj)
                             if pari != -1 and parj != -1:
-                                self.PMdict[name].PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitparams[pari][parj]
+                                PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitparams[pari][parj]
                             else:
-                                self.PMdict[name].PixMatrix[i][j] = np.nan
+                                PixMatrix[i][j] = np.nan
                                 raise Exception('Parameter not found in fitparams.')
                         except Exception as e:
                             print('Error in plotHSIfromfitparam. {}'.format(str(e)))
                     else:
-                        self.PMdict.PixMatrix[name][i][j] = np.nan
+                        PixMatrix[name][i][j] = np.nan
                         print('No Data found in Pixel {}, {}'.format(i, j))
                 else:
-                    self.PMdict.PixMatrix[name][i][j] = np.nan
+                    PixMatrix[name][i][j] = np.nan
                     print('No Data found in Pixel {}, {}'.format(i, j))
-        self.plotPixelMatrix(self.PMdict.PixMatrix[name])
+        self.plotPixelMatrix(PixMatrix[name])
         self.UpdateHSIselect()
         
 class Roihandler():
