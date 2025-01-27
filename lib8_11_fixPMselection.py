@@ -1038,6 +1038,23 @@ class XYMap:
         plt.show()
 
     def plotPixelMatrix(self, HSIname, cmapticks=6):
+        
+        print('self.PixMatrix', self.PixMatrix)
+        for i in self.PixMatrix.keys():
+            fig, ax = plt.subplots()
+            HSIimage = self.PixMatrix[i].PixMatrix
+            # Display the data as an image with a colormap
+            cax = ax.imshow(HSIimage, cmap=self.colormap.get()) # aspect='auto' for cubic image
+            # Add a colorbar to the image
+            cbar = fig.colorbar(cax, ax=ax)
+            # Set the colorbar label
+            cbar.set_label('Spectrometer Counts', fontsize=self.fontsize)
+            # Set the ticks of the colormap
+            cbar_ticks=np.linspace(np.amin(self.PixMatrix[i].PixMatrix), np.amax(self.PixMatrix[i].PixMatrix), cmapticks)
+            cbar.set_ticks(cbar_ticks)
+            # Set the font size of the colorbar ticks
+            plt.show()
+
         fig, ax = plt.subplots()
         HSIimage = self.PixMatrix[HSIname].PixMatrix       
 
