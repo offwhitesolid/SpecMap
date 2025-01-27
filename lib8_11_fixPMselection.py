@@ -593,7 +593,8 @@ class XYMap:
     def buildandPlotIntCmap(self):
         self.readfontsize()
         # create a new colormap by copying the selected HSI
-        newpm = self.writetopixmatrix(self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, None)#str(self.selectspecpixbox.get()))
+        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
+        newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
         self.plotPixelMatrix(self.hsiselect.get())
         self.UpdateHSIselect()
@@ -603,8 +604,8 @@ class XYMap:
         self.updatewl()
         self.updatecountthresh()
         self.readfontsize()
-        #self.fittoMatrixfitparams('fitmaxX') 
-        newpm = self.writetopixmatrix(self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, None)#str(self.selectspecpixbox.get()))
+        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
+        newpm = self.writetopixmatrix(lastpm, None)#str(self.selectspecpixbox.get()))
         self.fittoMatrixfitparams(self.PMdict[newpm].PixMatrix, 'fitmaxX') # new
         self.getPLpixelSpecMax(self.PMdict[newpm].PixMatrix)
         self.UpdateHSIselect()
@@ -731,7 +732,7 @@ class XYMap:
                                 except:
                                     print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in exc1 function {}.\n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e)))
                                     worked = True
-                            print("Fit to Matrix Failed at element {}, {} in exc2 function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e))) # print name of function
+                            print("Fit to Matrix Failed at element {}, {} in function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', 'not converged')) # print name of function
                             self.updatewl()
 
     # function currently not in use
@@ -1044,21 +1045,16 @@ class XYMap:
 
     def plotPixelMatrix(self, HSIname, cmapticks=6):
         # this is for test porpuse
+        '''
         print('self.PMdict', len(self.PMdict), self.PMdict.keys())
         for i in self.PMdict.keys():
             fig, ax = plt.subplots()
             HSIimage = self.PMdict[i].PixMatrix
             # Display the data as an image with a colormap
             cax = ax.imshow(HSIimage, cmap=self.colormap.get()) # aspect='auto' for cubic image
-            # Add a colorbar to the image
-            cbar = fig.colorbar(cax, ax=ax)
-            # Set the colorbar label
-            cbar.set_label('Spectrometer Counts', fontsize=self.fontsize)
-            # Set the ticks of the colormap
-            cbar_ticks=np.linspace(np.amin(self.PMdict[i].PixMatrix), np.amax(self.PMdict[i].PixMatrix), cmapticks)
-            cbar.set_ticks(cbar_ticks)
             # Set the font size of the colorbar ticks
             plt.show()
+        '''
 
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
@@ -1302,6 +1298,8 @@ class XYMap:
     def UpdateHSIselect(self):
         self.hsiselect['values'] = list(self.PMdict.keys())
         self.hsiselect.current(0)
+        # select the last HSI
+        self.hsiselect.set(list(self.PMdict.keys())[-1])
 
     def multiroitopixmatrix(self):
         if len(self.roihandler.roilist) == 0:
@@ -1311,15 +1309,13 @@ class XYMap:
             roi = self.roihandler.roilist[self.roiselgui.get()]
             newroiname = "{}{}".format(self.hsiselect.get(), self.roiselgui.get())
         # Generate a copy of the selected PixMatrix class
-        lastpixmatrix = self.PMdict[self.hsiselect.get()].PixMatrix
-        # create a new PixMatrix with the same dimensions as the original
-        pixmatrix = PMlib.PMclass(np.zeros((lastpixmatrix.shape[0], lastpixmatrix.shape[1]), dtype=float), self.PixAxX, self.PixAxY, self.metadata)
-        for i in range(len(pixmatrix.PixMatrix)):
-            for j in range(len(pixmatrix.PixMatrix[i])):
+        lastpixmatrix = copy.deepcopy(self.PMdict[self.hsiselect.get()])
+        for i in range(len(lastpixmatrix.PixMatrix)):
+            for j in range(len(lastpixmatrix.PixMatrix[i])):
                 if np.isnan(roi[i][j]) == True:
-                    pixmatrix.PixMatrix[i][j] = np.nan
-        self.PMdict[newroiname] = pixmatrix
-        plt.imshow(pixmatrix)
+                    lastpixmatrix.PixMatrix[i][j] = np.nan
+        self.PMdict[newroiname] = lastpixmatrix
+        plt.imshow(self.PMdict[newroiname].PixMatrix)
         plt.show()
         self.UpdateHSIselect()
     
@@ -1328,7 +1324,7 @@ class XYMap:
             messagebox.showerror("Error", 'Cannot delete last HSI.')
         else:
             del self.PMdict[self.hsiselect.get()]
-            del self.PMmetadata[self.hsiselect.get()]
+            #del self.PMmetadata[self.hsiselect.get()]
         self.UpdateHSIselect()
 
     # set the spectra into the array

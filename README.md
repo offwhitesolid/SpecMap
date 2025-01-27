@@ -5,7 +5,7 @@ run plotN.py with all necessary modules in a folder ... worla
 (the N in plotN.py is dependent on the version, the higher, the newer the version)
 
 Setup on Github: 
-
+Note: the main branche ist protected. For changes create new patch that contains changes. Then create pull request. After review, merge into main branch. Then create new tag with version number
 Get access to the repository by invitation as a collaborator. 
 
 github clone repository that a colaborator grated me access to edit it locally e. g. in visual studio code
