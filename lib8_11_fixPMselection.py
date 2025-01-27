@@ -591,7 +591,7 @@ class XYMap:
     # Max Counts Colormap
     def buildandPlotIntCmap(self):
         self.readfontsize()
-        self.writetopixmatrix(self.PixMatrix[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, str(self.selectspecpixbox.get()))
+        self.writetopixmatrix(self.PixMatrix[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, None)#str(self.selectspecpixbox.get()))
         self.getPLpixelIntervalMaxIndex(False)
         self.plotPixelMatrix(self.hsiselect.get())
         self.UpdateHSIselect()
@@ -603,7 +603,7 @@ class XYMap:
         self.readfontsize()
         self.fittoMatrixfitparams('fitmaxX') # new
         self.getPLpixelSpecMax()
-        self.writetopixmatrix(self.PixMatrix[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, str(self.selectspecpixbox.get()))
+        self.writetopixmatrix(self.PixMatrix[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, None)#str(self.selectspecpixbox.get()))
         self.UpdateHSIselect()
     
         try:
@@ -1039,7 +1039,7 @@ class XYMap:
 
     def plotPixelMatrix(self, HSIname, cmapticks=6):
         
-        print('self.PixMatrix', self.PixMatrix)
+        print('self.PixMatrix', len(self.PixMatrix))
         for i in self.PixMatrix.keys():
             fig, ax = plt.subplots()
             HSIimage = self.PixMatrix[i].PixMatrix
@@ -1378,16 +1378,19 @@ class XYMap:
             PixelMatrix.append(pixmat)
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
     
-    def writetopixmatrix(self, matrix, name='HSI0'):
-        self.Pixmatrixnames = list(self.PixMatrix.keys())
-        pmi = 0
-        for i in range(len(self.Pixmatrixnames)+1):
-            newpmname = '{}{}'.format('HSI', i) # create name of new HSI
-            if newpmname in self.Pixmatrixnames:
-                pmi += 1
-            else:
-                newpmname = '{}{}'.format('HSI', pmi) # create name of new HSI
-                break
+    def writetopixmatrix(self, matrix, name=None):
+        if name == None or name not in self.PixMatrix.keys():
+            self.Pixmatrixnames = list(self.PixMatrix.keys())
+            pmi = 0
+            for i in range(len(self.Pixmatrixnames)+1):
+                newpmname = '{}{}'.format('HSI', i) # create name of new HSI
+                if newpmname in self.Pixmatrixnames:
+                    pmi += 1
+                else:
+                    newpmname = '{}{}'.format('HSI', pmi) # create name of new HSI
+                    break
+        else: 
+            newpmname = name
         # add ne PixMatrix to the dictionary with its metadata
         self.PixMatrix[newpmname] = PMlib.PMclass(np.asarray(matrix), self.PixAxX, self.PixAxY, self.PMmetadata)
         self.PixMatrix[newpmname].metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
