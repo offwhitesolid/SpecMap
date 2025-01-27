@@ -522,7 +522,7 @@ class XYMap:
         self.selectfitparambox = ttk.Combobox(fitframe, values=self.allfpnamesinone)
         self.selectfitparambox.pack(side=tk.TOP, anchor=tk.W)
         self.selectfitparambox.set(self.allfpnamesinone[0]) # set default value
-        b3 = tk.Button(fitframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam(self.PMdict[self.hsiselect.get()].PixMatrix))
+        b3 = tk.Button(fitframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam())
         b3.pack(side=tk.TOP, anchor=tk.W)
 
         self.build_roi_frame(placeframe)
@@ -1383,14 +1383,13 @@ class XYMap:
         self.PMdict[newpmname].metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
         return newpmname
 
-    def plotHSIfromfitparam(self, PixMatrix, name='HSI0'):
+    def plotHSIfromfitparam(self):
         self.updatewl()
         self.updatecountthresh()
-        if name == None:
-            try: 
-                name = self.hsiselect.get()
-            except:
-                name = 'HSI0'
+        # test
+        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
+        newpm = self.writetopixmatrix(lastpm, None)
+        self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
         fitvari = self.allfpnamesinone.index(self.selectfitparambox.get())
         
         # get index of fitvari in self.allfitparams
@@ -1405,19 +1404,19 @@ class XYMap:
                             pari = int(pari)
                             parj = int(parj)
                             if pari != -1 and parj != -1:
-                                PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitparams[pari][parj]
+                                lastpm[i][j] = self.SpecDataMatrix[i][j].fitparams[pari][parj]
                             else:
-                                PixMatrix[i][j] = np.nan
+                                lastpm[i][j] = np.nan
                                 raise Exception('Parameter not found in fitparams.')
                         except Exception as e:
                             print('Error in plotHSIfromfitparam. {}'.format(str(e)))
                     else:
-                        PixMatrix[name][i][j] = np.nan
+                        lastpm[newpm][i][j] = np.nan
                         print('No Data found in Pixel {}, {}'.format(i, j))
                 else:
-                    PixMatrix[name][i][j] = np.nan
+                    lastpm[newpm][i][j] = np.nan
                     print('No Data found in Pixel {}, {}'.format(i, j))
-        self.plotPixelMatrix(PixMatrix[name])
+        self.plotPixelMatrix(lastpm[newpm])
         self.UpdateHSIselect()
         
 class Roihandler():
