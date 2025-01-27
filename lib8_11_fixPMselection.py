@@ -1044,18 +1044,6 @@ class XYMap:
         plt.show()
 
     def plotPixelMatrix(self, HSIname, cmapticks=6):
-        # this is for test porpuse
-        '''
-        print('self.PMdict', len(self.PMdict), self.PMdict.keys())
-        for i in self.PMdict.keys():
-            fig, ax = plt.subplots()
-            HSIimage = self.PMdict[i].PixMatrix
-            # Display the data as an image with a colormap
-            cax = ax.imshow(HSIimage, cmap=self.colormap.get()) # aspect='auto' for cubic image
-            # Set the font size of the colorbar ticks
-            plt.show()
-        '''
-
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
 
