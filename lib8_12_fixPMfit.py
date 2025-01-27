@@ -1416,7 +1416,9 @@ class XYMap:
                 else:
                     lastpm[newpm][i][j] = np.nan
                     print('No Data found in Pixel {}, {}'.format(i, j))
-        self.plotPixelMatrix(lastpm[newpm])
+        # test
+        self.plotPixelMatrix(newpm)
+        #self.plotPixelMatrix(self.PMdict[newpm].PixMatrix)
         self.UpdateHSIselect()
         
 class Roihandler():
