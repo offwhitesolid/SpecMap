@@ -1043,7 +1043,6 @@ class XYMap:
         plt.show()
 
     def plotPixelMatrix(self, HSIname, cmapticks=6):
-        plt.figure()
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
         # Display the data as an image with a colormap
@@ -1098,7 +1097,6 @@ class XYMap:
 
     def plotPixelMatrixSpectral(self):
         PMname = self.getPixMatrixSelection(self.hsiselect.get())
-        plt.figure()
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
         cax = ax.imshow(self.PMdict[PMname].PixMatrix, cmap=self.colormap.get())#'viridis')
@@ -1289,7 +1287,7 @@ class XYMap:
         self.hsiselect.set(list(self.PMdict.keys())[-1])
 
     def multiroitopixmatrix(self):
-        plt.figure()
+        fig, ax = plt.subplots()
         if len(self.roihandler.roilist) == 0:
             print('No ROI found. Cannot create HSI.')
             return
@@ -1303,8 +1301,8 @@ class XYMap:
                 if np.isnan(roi[i][j]) == True:
                     lastpixmatrix.PixMatrix[i][j] = np.nan
         self.PMdict[newroiname] = lastpixmatrix
-        plt.imshow(self.PMdict[newroiname].PixMatrix)
-        plt.show()
+        fig.imshow(self.PMdict[newroiname].PixMatrix)
+        fig.show()
         self.UpdateHSIselect()
     
     def delHSI(self):
@@ -1431,7 +1429,6 @@ class Roihandler():
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
     def construct(self, pixmatrix, roiselgui):
-        plt.figure()
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
         self.roiselgui = roiselgui
@@ -1448,8 +1445,8 @@ class Roihandler():
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
         plt.show()
     def toggle_roi(self, event):
-        plt.figure()
         if self.roi_mode == True:
+            fig, ax = plt.subplots()
             self.button_toggle.label.set_text('Edit ROI')
             if len(self.roi_points) > 2:
                 nrois = len(list(self.roilist.keys()))
@@ -1459,7 +1456,10 @@ class Roihandler():
                 # transpose newroi
                 #newroi = np.transpose(newroi)
                 self.roilist[str('roi'+str(nrois+1))] = newroi
-                plt.imshow(newroi, cmap='viridis')
+                ax.imshow(newroi, cmap='viridis')
+                # add colorbar to the plot
+                cbar = fig.colorbar(ax, ax=ax)
+
                 plt.show()
                 self.roiselgui['values'] = list(self.roilist.keys())
                 self.roi_points.clear()
