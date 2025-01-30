@@ -1456,9 +1456,9 @@ class Roihandler():
                 # transpose newroi
                 #newroi = np.transpose(newroi)
                 self.roilist[str('roi'+str(nrois+1))] = newroi
-                ax.imshow(newroi, cmap='viridis')
+                cax = ax.imshow(newroi, cmap='viridis')
                 # add colorbar to the plot
-                cbar = fig.colorbar(ax, ax=ax)
+                cbar = fig.colorbar(cax, ax=ax)
 
                 plt.show()
                 self.roiselgui['values'] = list(self.roilist.keys())
