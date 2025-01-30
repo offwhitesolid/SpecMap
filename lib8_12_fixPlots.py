@@ -1043,9 +1043,9 @@ class XYMap:
         plt.show()
 
     def plotPixelMatrix(self, HSIname, cmapticks=6):
+        plt.figure()
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
-
         # Display the data as an image with a colormap
         cax = ax.imshow(HSIimage, cmap=self.colormap.get()) # aspect='auto' for cubic image
         # Add a colorbar to the image
@@ -1098,7 +1098,7 @@ class XYMap:
 
     def plotPixelMatrixSpectral(self):
         PMname = self.getPixMatrixSelection(self.hsiselect.get())
-        print('plot PixMatrix {}'.format(PMname))
+        plt.figure()
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
         cax = ax.imshow(self.PMdict[PMname].PixMatrix, cmap=self.colormap.get())#'viridis')
@@ -1289,6 +1289,7 @@ class XYMap:
         self.hsiselect.set(list(self.PMdict.keys())[-1])
 
     def multiroitopixmatrix(self):
+        plt.figure()
         if len(self.roihandler.roilist) == 0:
             print('No ROI found. Cannot create HSI.')
             return
@@ -1430,6 +1431,7 @@ class Roihandler():
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
     def construct(self, pixmatrix, roiselgui):
+        plt.figure()
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
         self.roiselgui = roiselgui
@@ -1446,6 +1448,7 @@ class Roihandler():
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
         plt.show()
     def toggle_roi(self, event):
+        plt.figure()
         if self.roi_mode == True:
             self.button_toggle.label.set_text('Edit ROI')
             if len(self.roi_points) > 2:
