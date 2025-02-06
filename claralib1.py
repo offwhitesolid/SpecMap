@@ -19,7 +19,6 @@ class imageprocessor():
     
     def fit2dgaussian(self):
         self.g2dpopt = fit_gaussian_2d(self.imagedata, self.dx, self.dy)
-
     
     def buildnotebook(self):
         # load the image 
@@ -39,7 +38,6 @@ class imageprocessor():
         self.plotfitbutton.grid(row=0, column=2)
         self.area = tk.Button(self.image_frame, text='Area', command=lambda: area2dgaussian(self.imagefile, self.g2dpopt, np.exp(-2), self.dx, self.dy))
         self.area.grid(row=0, column=3)
-
 
     def plotimage(self):
         fig, ax = plt.subplots()
