@@ -1045,7 +1045,6 @@ class XYMap:
     def plotPixelMatrix(self, HSIname, cmapticks=6):
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
-
         # Display the data as an image with a colormap
         cax = ax.imshow(HSIimage, cmap=self.colormap.get()) # aspect='auto' for cubic image
         # Add a colorbar to the image
@@ -1098,7 +1097,6 @@ class XYMap:
 
     def plotPixelMatrixSpectral(self):
         PMname = self.getPixMatrixSelection(self.hsiselect.get())
-        print('plot PixMatrix {}'.format(PMname))
         fig, ax = plt.subplots()
         # Display the data as an image with a colormap
         cax = ax.imshow(self.PMdict[PMname].PixMatrix, cmap=self.colormap.get())#'viridis')
@@ -1289,6 +1287,7 @@ class XYMap:
         self.hsiselect.set(list(self.PMdict.keys())[-1])
 
     def multiroitopixmatrix(self):
+        fig, ax = plt.subplots()
         if len(self.roihandler.roilist) == 0:
             print('No ROI found. Cannot create HSI.')
             return
@@ -1302,8 +1301,8 @@ class XYMap:
                 if np.isnan(roi[i][j]) == True:
                     lastpixmatrix.PixMatrix[i][j] = np.nan
         self.PMdict[newroiname] = lastpixmatrix
-        plt.imshow(self.PMdict[newroiname].PixMatrix)
-        plt.show()
+        fig.imshow(self.PMdict[newroiname].PixMatrix)
+        fig.show()
         self.UpdateHSIselect()
     
     def delHSI(self):
@@ -1447,6 +1446,7 @@ class Roihandler():
         plt.show()
     def toggle_roi(self, event):
         if self.roi_mode == True:
+            fig, ax = plt.subplots()
             self.button_toggle.label.set_text('Edit ROI')
             if len(self.roi_points) > 2:
                 nrois = len(list(self.roilist.keys()))
@@ -1456,7 +1456,10 @@ class Roihandler():
                 # transpose newroi
                 #newroi = np.transpose(newroi)
                 self.roilist[str('roi'+str(nrois+1))] = newroi
-                plt.imshow(newroi, cmap='viridis')
+                cax = ax.imshow(newroi, cmap='viridis')
+                # add colorbar to the plot
+                cbar = fig.colorbar(cax, ax=ax)
+
                 plt.show()
                 self.roiselgui['values'] = list(self.roilist.keys())
                 self.roi_points.clear()
