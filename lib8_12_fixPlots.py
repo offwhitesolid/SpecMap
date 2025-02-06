@@ -1301,8 +1301,8 @@ class XYMap:
                 if np.isnan(roi[i][j]) == True:
                     lastpixmatrix.PixMatrix[i][j] = np.nan
         self.PMdict[newroiname] = lastpixmatrix
-        fig.imshow(self.PMdict[newroiname].PixMatrix)
-        fig.show()
+        ax.imshow(self.PMdict[newroiname].PixMatrix)
+        plt.show()
         self.UpdateHSIselect()
     
     def delHSI(self):
