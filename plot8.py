@@ -232,6 +232,7 @@ class FileProcessorApp:
             return
         try:
             # clara 100x scaling factor 56.8 nm /pixel
+            # adjust dx and dy for different scaling factors
             dx = 0.0568*2#0.0568 
             dy = 0.0568*2#0.0568
             self.claraimage = claralib.imageprocessor(self.nodeframes['Clara Image'], file, deflib.loadclaraimage, None, dx, dy)# 0.568, 0.568) 100x scaling
