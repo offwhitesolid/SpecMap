@@ -197,3 +197,24 @@ def find_x_thresh(x0, sigma_x, amplitude, thresh):
     # Solve for x_thresh using the Gaussian formula
     x_thresh = x0 + np.sqrt(-2 * sigma_x**2 * np.log(thresh / amplitude))
     return x_thresh
+
+def loadclaraimage(file):
+    print(file)
+    with open(file) as f:
+        for i in range(34):
+            f.readline()
+        fload = f.readlines()
+    x = []
+    y = []
+    data = []
+    for i in fload:
+        isplit = i.split('\n')[0].split('\t')
+        x.append(float(isplit[0]))
+        for j in range(1, len(isplit)):
+            if isplit[j] == '':
+                pass
+            else:
+                y.append(float(isplit[j]))
+        data.append(y)
+        y = []  
+    return np.asarray(data)
