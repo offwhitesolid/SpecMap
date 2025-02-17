@@ -166,6 +166,7 @@ class FileProcessorApp:
         if defaults['loadonstart'] == True:
             self.spec_loadfiles()
 
+    # testcomment
     def spec_loadfiles(self):
         self.defaults = deflib.initdefaults()
         folder = self.folder_entry.get()
