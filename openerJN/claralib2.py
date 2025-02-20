@@ -303,7 +303,7 @@ class clarafile():
         self.dx = dx
         self.dy = dy
         self.imagedata, self.metadata = loadclaraimage(self.fn, True)
-        print(self.metadata['z'])
+        #print(self.metadata['z'])
     
     
 
