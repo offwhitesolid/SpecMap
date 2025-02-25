@@ -1,7 +1,6 @@
 import numpy as np
-import os, sys, re
+import os, sys
 from scipy.optimize import curve_fit
-from scipy.special import jv
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import tkinter as tk
@@ -22,6 +21,10 @@ class imageprocessor():
     
     def buildnotebook(self):
         # load the image 
+        self.imagedata = self.loadfunct(self.imagefile)
+        # create a new frame for the image processing
+        self.image_frame = tk.Frame(self.Notebook, borderwidth=5, relief="ridge")
+        self.image_frame.grid(row=0, column=0, sticky='nsew')
 
         # create a new frame for the image processing
         self.image_frame = tk.Frame(self.Notebook, borderwidth=5, relief="ridge")
@@ -193,124 +196,3 @@ def find_x_thresh(x0, sigma_x, amplitude, thresh):
     # Solve for x_thresh using the Gaussian formula
     x_thresh = x0 + np.sqrt(-2 * sigma_x**2 * np.log(thresh / amplitude))
     return x_thresh
-
-# loadclaraimage function from deflib1
-def loadclaraimage(file, metadata=False):
-    coord = None
-    if metadata == True:
-        try:
-            coord = float(file.split('\\')[-1].split('.')[0].replace('_', '.')) # z in mum
-        except:
-            print(file.split('\\')[-1].split('.')[0].replace('_', '.'))
-            print('Error: unable to extract z-coordinate from filename')
-
-    with open(file) as f:
-        if metadata == True:
-            mdr = {}
-            for i in range(34):
-                line = f.readline()
-                match = re.match(r"^(.*?):\s+(.+)$", line.strip())
-                if match:
-                    key, value = match.groups()
-                    mdr[key.strip()] = value.strip()
-            mdr['z'] = coord
-        # old: skip the first 34 lines
-        else:
-            for i in range(34):
-                f.readline()
-        fload = f.readlines()
-    x = []
-    y = []
-    data = []
-    for i in fload:
-        isplit = i.split('\n')[0].split('\t')
-        x.append(float(isplit[0]))
-        for j in range(1, len(isplit)):
-            if isplit[j] == '':
-                pass
-            else:
-                y.append(float(isplit[j]))
-        data.append(y)
-        y = []  
-    if metadata == True:
-        return np.asarray(data), mdr
-    else:
-        return np.asarray(data)
-
-def getcimages(dir):
-    # try to load the files with loadlaraimage
-    files = os.listdir(dir)
-    try:
-        files = [f for f in files if f.endswith('.asc')]
-        if len(files) > 0:
-            return files
-    except:
-        print('No files found')
-        return []
-
-class clarakinetics():
-    def __init__(self, Notebook, dir, dx, dy):
-        self.Notebook = Notebook
-        self.dir = dir
-        self.dx = dx
-        self.dy = dy
-        self.files = getcimages(self.dir)
-        self.buildnotebook()
-    
-    def buildnotebook(self):
-        # create a new frame for the kinetics processing
-        self.kinetics_frame = tk.Frame(self.Notebook)
-        self.kinetics_frame.grid(row=0, column=0, sticky='nsew')
-
-        # add entry to select a dir and save on self.sdir
-        self.sdir = tk.StringVar()
-        self.sdir.set(self.dir)
-        self.dirlabel = tk.Label(self.kinetics_frame, text='Directory:')
-        self.dirlabel.grid(row=0, column=0, sticky='w')
-        self.direntry = tk.Entry(self.kinetics_frame, textvariable=self.sdir, width=100)
-        self.direntry.grid(row=0, column=1, sticky='w')
-        # add a button to browse the files
-        self.loadbutton = tk.Button(self.kinetics_frame, text='Browse', command=self.browsefiles)
-        self.loadbutton.grid(row=0, column=2, sticky='w')
-        # add a button to load the files
-        self.loadbutton = tk.Button(self.kinetics_frame, text='Load', command=self.loadfiles)
-        self.loadbutton.grid(row=0, column=3, sticky='w')
-
-    def updloaddir(self):
-        self.dir = self.sdir.get()
-
-        self.cfnames = getcimages(self.dir)
-        print('Loaded', len(self.cfnames), 'files')
-        #self.loadfiles()
-    
-    def loadfiles(self):
-        self.cimages = []
-        self.cfnames = []
-        self.cfnames = getcimages(self.dir)
-        print(self.dir)
-        for i in range(len(self.cfnames)):
-            self.cimages.append(clarafile(self.dir+"\\"+self.cfnames[i], self.dx, self.dy))
-        
-        print('Loaded', len(self.cimages), 'files')
-
-    def browsefiles(self):
-        self.dir = tk.filedialog.askdirectory()
-        self.sdir.set(self.dir)
-
-class clarafile():
-    def __init__(self, file, dx, dy):
-        self.fn = file
-        self.dx = dx
-        self.dy = dy
-        self.imagedata, self.metadata = loadclaraimage(self.fn, True)
-        #print(self.metadata['z'])
-    
-    
-
-
-
-
-
-
-
-        
