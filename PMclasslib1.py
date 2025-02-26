@@ -1,4 +1,5 @@
 import numpy as np
+import json
 
 class PMclass(): # PixMatrix class
     def __init__(self, PixMatrix, xax, yax, metadata):
@@ -16,3 +17,30 @@ class Spectra():
         self.metadata = metadata
         self.parenthsi = parenthsiname
         self.gdx = self.WL[1] - self.WL[0]
+        self.header = dict_to_string(self.metadata, format="lines")
+        # add to header: "wavelength in nm" \t "intensity in counts"
+        self.header = self.header + "\n wavelenth in nm \t intensity in counts"
+    
+    def save(self, filename):
+        np.savetxt(filename, np.column_stack((self.Spec, self.WL)), delimiter='\t', header=self.header)
+
+def dict_to_string(header_dict, format="json"):
+    """
+    Convert a dictionary to a string format suitable for np.savetxt headers.
+
+    Parameters:
+    - header_dict (dict): Dictionary to convert.
+    - format (str): "json" for compact JSON, "lines" for human-readable lines.
+
+    Returns:
+    - str: Formatted string representation of the dictionary.
+    """
+    if not isinstance(header_dict, dict):
+        raise TypeError("Input must be a dictionary")
+
+    if format == "json":
+        return json.dumps(header_dict)  # Compact JSON format
+    elif format == "lines":
+        return "\n".join([f"{k}: {v}" for k, v in header_dict.items()])  # Human-readable format
+    else:
+        raise ValueError("Invalid format. Choose 'json' or 'lines'.")

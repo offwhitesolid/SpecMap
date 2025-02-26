@@ -385,7 +385,10 @@ class XYMap:
         return specname 
     
     def saveSpectrum(self, specname):
-        pass # save the selected spectrum to a file
+        savename = tk.filedialog.asksaveasfilename(defaultextension='.txt', filetypes=[('Text files', '*.txt')])
+        if savename:
+            self.disspecs[specname].save(savename)
+
     
     def delSpecData(self, specname): # self.disspecs is type dict
         # delete the selected spectral data
@@ -591,6 +594,9 @@ class XYMap:
     # Max Counts Colormap
     def buildandPlotIntCmap(self):
         self.readfontsize()
+        self.updatecountthresh()
+        # update spec min and max values
+        self.updatewl()
         # create a new colormap by copying the selected HSI
         lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)
@@ -1263,10 +1269,10 @@ class XYMap:
             self.PixAxY = [0]
             self.SpecDataMatrix = [[self.specs[0]]]
             PixMatrix = [[0]]
-            self.PMmetadata = {}
             self.gdx = 0
             self.gdy = 0
         else:
+            #self.PMmetadata[self.hsiselect.get()] = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
             for i in self.specs:
                 if i is not None:
                     if i.data['x-position'] not in self.mxcoords:
@@ -1301,7 +1307,8 @@ class XYMap:
                 if np.isnan(roi[i][j]) == True:
                     lastpixmatrix.PixMatrix[i][j] = np.nan
         self.PMdict[newroiname] = lastpixmatrix
-        fig.imshow(self.PMdict[newroiname].PixMatrix)
+        #fig.imshow(self.PMdict[newroiname].PixMatrix) error
+        ax.imshow(self.PMdict[newroiname].PixMatrix)
         fig.show()
         self.UpdateHSIselect()
     
@@ -1428,6 +1435,7 @@ class Roihandler():
         self.roilist = roilist
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
+
     def construct(self, pixmatrix, roiselgui):
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
@@ -1444,6 +1452,8 @@ class Roihandler():
         self.button_clear.on_clicked(self.clear_roi)
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
         plt.show()
+        self.selnewestroi()
+
     def toggle_roi(self, event):
         if self.roi_mode == True:
             fig, ax = plt.subplots()
@@ -1488,8 +1498,10 @@ class Roihandler():
                                             [self.roi_points[-2][1], y], 'r-')
                 self.roi_lines.append(line_plot)
             plt.draw()
+
     def clear_roi_points(self):
         self.roi_points.clear()
+
     def clear_roi_lines(self):
         for line in self.roi_lines:
             line.remove()
@@ -1512,10 +1524,13 @@ class Roihandler():
         if self.roiselgui.get() != '':
             del self.roilist[self.roiselgui.get()]
             self.roiselgui['values'] = list(self.roilist.keys())
-            if len(self.roiselgui['values']) > 0:
-                self.roiselgui.set(self.roiselgui['values'][0])
-            else:
-                self.roiselgui.set('')
+            self.selnewestroi()
             plt.show()
         else:
             pass
+    
+    def selnewestroi(self):
+        if len(self.roilist) > 0:
+            self.roiselgui.set(list(self.roilist.keys())[-1])
+        else:
+            self.roiselgui.set('')
