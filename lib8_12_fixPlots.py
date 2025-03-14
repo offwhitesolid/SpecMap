@@ -13,6 +13,7 @@ from matplotlib.widgets import Button
 import matplotlib.patches as mpatches
 from scipy.optimize import curve_fit
 from scipy.special import wofz
+from tkinter import filedialog
 import mathlib3 as matl # type: ignore
 import deflib1 as deflib # type: ignore
 import PMclasslib1 as PMlib # type: ignore
@@ -352,6 +353,52 @@ class XYMap:
         b10 = tk.Button(frame, text="Delete selected Spectral Data", command= lambda:
                           self.delSpecData(self.specselect.get()))
         b10.grid(row=4, column=2)
+        # add entry for a correction spectrum
+        tk.Label(frame, text="Correction Spectrum").grid(row=6, column=2)
+
+        # Button to select correction spectrum file
+        b11 = tk.Button(frame, text="Select Correction Spec File", command=self.select_correction_spectrum_file)
+        b11.grid(row=7, column=2)
+        b11 = tk.Button(frame, text="Correct Spectrum", command= lambda: self.correctSpectrum(self.specselect.get()))
+        b11.grid(row=8, column=2)
+    
+    def select_correction_spectrum_file(self):
+        self.correctionspecname = filedialog.askopenfilename(filetypes=[("Correction spectrum", "*")])
+
+    def correctSpectrum(self, specname):
+        # correct the selected spectrum with the entered correction spectrum
+        try:
+            correctionname = self.correctionspecname
+        except Exception as e:
+            print('Error correcting spectrum.', e)
+        # load the correction spectrum
+        self.loadcorrectionSpectrum(correctionname)
+        # correct the selected spectrum with the correction spectrum. Make sure to match the WL by interpolation
+        self.disspecs['{}_corrected'.format(self.createdisspecname())] = deflib.correct_spectrum(self.disspecs[specname], self.correctionWL, self.correctionSpec, self.WL)
+        # update the combobox with the new spectrum name
+        self.specselect['values'] = list(self.disspecs.keys())
+        self.specselect.set(list(self.disspecs.keys())[-1])
+    
+    def loadcorrectionSpectrum(self, specname):
+        try: 
+            correctionname = self.correctionspecname
+        except Exception as e:
+            print('Error loading correction spectrum.', e)
+            return
+        # load a correction spectrum
+        with open(correctionname, 'r') as file:
+            _ = file.readline()
+            lines = file.readlines()
+        WL = []
+        spec = []
+        for line in lines:
+            line = line.strip()
+            if line:
+                parts = line.split('\n')[0].split('\t')
+                WL.append(float(parts[0]))
+                spec.append(float(parts[1]))
+        self.correctionWL = WL
+        self.correctionSpec = spec
     
     def averageHSItoSpecData(self):
         # average all HSI to a single SpectrumData

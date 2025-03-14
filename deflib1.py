@@ -303,6 +303,35 @@ def highlight_roi(Mat, points):
     result[inside_mask] = 1
     return np.transpose(result)
 
+def correct_spectrum(spec, wl, speccorrect, wlcorrect):
+    """
+    Corrects a spectrum by interpolating a correction spectrum to match the original wavelength axis.
+
+    Parameters:
+    - spec (array-like): The original spectrum values.
+    - wl (array-like): The wavelength axis of the original spectrum.
+    - speccorrect (array-like): The correction spectrum values.
+    - wlcorrect (array-like): The wavelength axis of the correction spectrum.
+
+    Returns:
+    - corrected_spec (np.ndarray): The corrected spectrum.
+    """
+    
+    # Ensure wl and wlcorrect are numpy arrays
+    wl = np.array(wl)
+    wlcorrect = np.array(wlcorrect)
+    # interpolate the correction spectrum to match the original wavelength axis
+    specc = np.interp(wl, wlcorrect, speccorrect)
+
+    
+    # Interpolate the correction spectrum to match the original wavelength axis
+    #interpolated_correction = np.interp(wl, wlcorrect, speccorrect)
+
+    # Subtract the interpolated correction spectrum from the original spectrum
+    corrected_spec = np.array(spec) - specc #interpolated_correction
+
+    return corrected_spec
+
 def remove_nan(arr):
     # Remove NaN values from the array and return it
     reta = []
