@@ -316,13 +316,46 @@ def correct_spectrum(spec, wl, speccorrect, wlcorrect):
     Returns:
     - corrected_spec (np.ndarray): The corrected spectrum.
     """
+    # check if the wavelength axes are sorted
+    if not np.all(np.diff(wl) > 0):
+        raise ValueError("Wavelength axis is not sorted.")
+    if not np.all(np.diff(wlcorrect) > 0):
+        raise ValueError("Correction wavelength axis is not sorted.")
+    
+    if wl[0] < wlcorrect[0]:
+        # insert one element at the beginning of wlcorrect
+        wlcorrect = np.insert(wlcorrect, 0, wlcorrect[0]-0.001)
+        speccorrect = np.insert(speccorrect, 0, 0)
+    if wl[-1] > wlcorrect[-1]:
+        # append one element at the end of wlcorrect
+        wlcorrect = np.append(wlcorrect, wlcorrect[-1]+0.001)
+        speccorrect = np.append(speccorrect, 0)
     
     # Ensure wl and wlcorrect are numpy arrays
     wl = np.array(wl)
     wlcorrect = np.array(wlcorrect)
+    dwlcorrect = np.diff(wlcorrect)
+    dwl = np.diff(wl)
+    # get the most frequent element of dwl
+    dwlv = most_freq_element(dwl)
+    
+    # append dwl to dwlcorrect
+    dwlcorrect = np.append(dwlcorrect, dwlv)
+
+    # calculate smallest common divisor
+    gcd = np.gcd.reduce(dwlcorrect.astype(int))
+    # create a new wlcorrect with kgv
+    wlcorrectinter = np.arange(wlcorrect[0], wlcorrect[-1], gcd)
+
+    # interpolate speccorrect to match the new wlcorrect
+    corrected_interp_spec = np.interp(wlcorrectinter, wlcorrect, speccorrect)
+    # interpolate the original spectrum to match the new wlcorrect
+    spec_wlc = np.interp(wlcorrectinter, wl, spec)
+    # subtract the interpolated correction spectrum from the interpolated original spectrum
+    corrected_spec = spec_wlc - corrected_interp_spec
+
     # interpolate the correction spectrum to match the original wavelength axis
     specc = np.interp(wl, wlcorrect, speccorrect)
-
     
     # Interpolate the correction spectrum to match the original wavelength axis
     #interpolated_correction = np.interp(wl, wlcorrect, speccorrect)
@@ -331,6 +364,46 @@ def correct_spectrum(spec, wl, speccorrect, wlcorrect):
     corrected_spec = np.array(spec) - specc #interpolated_correction
 
     return corrected_spec
+
+def loadexpspec(fname):
+    #Loads a spectrum from a file.
+    wavelengths = []
+    intensities = []
+    
+    with open(fname, 'r') as file:
+        for line in file:
+            # Skip comment lines
+            if line.startswith('#'):
+                continue
+            
+            # Parse data lines
+            parts = line.strip().split()
+            if len(parts) == 2:
+                try:
+                    wavelength = float(parts[0])
+                    intensity = float(parts[1])
+                    wavelengths.append(wavelength)
+                    intensities.append(intensity)
+                except ValueError:
+                    continue  # Skip lines that can't be parsed
+    return wavelengths, intensities
+
+def testcorrect_spectrum():
+    # spec in "C:\Users\volib\Documents\spectra\spect1.txt"
+    wl, spec = loadexpspec("C:/Users/volib/Documents/spectra/spect1.txt")
+    # corectspec in "C:\Users\volib\Documents\spectra\correctspec_t2.txt"
+    wlcorrect, speccorrect = loadexpspec("C:/Users/volib/Documents/spectra/correctionspec_t2.txt")
+    # Correct the spectrum
+    corrected_spec = correct_spectrum(spec, wl, speccorrect, wlcorrect)
+    # plot the corrected spectrum and the original spectrum
+    plt.figure(figsize=(10, 6))
+    plt.plot(wl, spec, label='Original Spectrum')
+    plt.plot(wl, corrected_spec, label='Corrected Spectrum')
+    plt.xlabel('Wavelength (nm)')
+    plt.ylabel('Intensity')
+    plt.title('Spectrum Correction')
+    plt.legend()
+    plt.show()
 
 def remove_nan(arr):
     # Remove NaN values from the array and return it
@@ -469,8 +542,7 @@ defaulttypes = {
     'loadonstart': bool
 }
 
-# check definitions 
-if __name__ == '__main__':
+def testdefaults():
     for i in list(defaults.keys()):
         if i not in list(defaulttypes.keys()):
             print(f'{i} not in defaulttypes')
@@ -478,3 +550,14 @@ if __name__ == '__main__':
             print(f'{i} not in defaults')
         if defaulttypes[i] != type(defaults[i]):
             print(f'{i} not the same type')
+
+# check definitions 
+if __name__ == '__main__':
+    try:
+        testdefaults()
+        print('All definitions are correct')
+    except Exception as Error:
+        print('Error while loading defaults')
+        print(f'Error: {Error}')
+    
+    testcorrect_spectrum()

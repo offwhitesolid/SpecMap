@@ -372,12 +372,23 @@ class XYMap:
         except Exception as e:
             print('Error correcting spectrum.', e)
         # load the correction spectrum
-        self.loadcorrectionSpectrum(correctionname)
+        #self.loadcorrectionSpectrum(correctionname)
+        self.correctionWL, self.correctionSpec = deflib.loadexpspec(correctionname)
+
+        # plot the correction spectrum
+        plt.plot(self.correctionWL, self.correctionSpec)
+        plt.plot(self.disspecs[specname].WL, self.disspecs[specname].Spec)
+        plt.show()
+
         # correct the selected spectrum with the correction spectrum. Make sure to match the WL by interpolation
-        self.disspecs['{}_corrected'.format(self.createdisspecname())] = deflib.correct_spectrum(self.disspecs[specname], self.correctionWL, self.correctionSpec, self.WL)
+        corrected_spec = deflib.correct_spectrum(self.disspecs[specname].Spec, self.disspecs[specname].WL, self.correctionSpec, self.correctionWL)
+        self.disspecs['{}_corrected'.format(self.createdisspecname())] = copy.deepcopy(self.disspecs[specname])
+        self.disspecs['{}_corrected'.format(self.createdisspecname())].Spec = corrected_spec
         # update the combobox with the new spectrum name
+        # todo: fix this
         self.specselect['values'] = list(self.disspecs.keys())
         self.specselect.set(list(self.disspecs.keys())[-1])
+        #self.disspecs['{}_corrected'.format(self.createdisspecname())].Spec = corrected_spec
     
     def loadcorrectionSpectrum(self, specname):
         try: 
@@ -455,7 +466,7 @@ class XYMap:
             selspec = self.specselect.get()
             selspecdataclass = self.disspecs[specname]
             # plot the selected spectral data
-            self.PlotSpectrum(selspecdataclass.WL, selspecdataclass.Spec, 'Averaged HSI Spectrum')
+            self.PlotSpectrum(selspecdataclass.Spec, selspecdataclass.WL, 'Averaged HSI Spectrum')
         except Exception as e:
             print('Error plotting spectral data.', e)
     
