@@ -382,8 +382,9 @@ class XYMap:
 
         # correct the selected spectrum with the correction spectrum. Make sure to match the WL by interpolation
         corrected_spec = deflib.correct_spectrum(self.disspecs[specname].Spec, self.disspecs[specname].WL, self.correctionSpec, self.correctionWL)
-        self.disspecs['{}_corrected'.format(self.createdisspecname())] = copy.deepcopy(self.disspecs[specname])
-        self.disspecs['{}_corrected'.format(self.createdisspecname())].Spec = corrected_spec
+        spname = '{}_corrected'.format(self.createdisspecname())
+        self.disspecs[spname] = copy.deepcopy(self.disspecs[specname])
+        self.disspecs[spname].Spec = corrected_spec
         # update the combobox with the new spectrum name
         # todo: fix this
         self.specselect['values'] = list(self.disspecs.keys())
@@ -439,7 +440,10 @@ class XYMap:
         if len(self.disspecs) == 0:
             specname = 'SpectrumData0'
         else:
-            specname = 'SpectrumData' + str(len(self.disspecs))
+            i = 0
+            while 'SpectrumData{}'.format(i) in self.disspecs.keys():
+                i += 1
+            specname = 'SpectrumData' + str(i)
         return specname 
     
     def saveSpectrum(self, specname):
