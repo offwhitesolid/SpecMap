@@ -3,14 +3,14 @@ from tkinter import ttk
 from tkinter import filedialog, messagebox
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
-import os, sys
+import os, sys, pickle
 from PIL import Image, ImageTk
 import lib8_12_fixPlots as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib
 import export1 as xplib
-import pickle
+import newtonspeclib1 as newtonlib
 
 # default values for GUI
 defaults = deflib.initdefaults()
@@ -46,7 +46,7 @@ class FileProcessorApp:
     def createbuttons(self, Notebook):
         # Specmap Load Frame
         self.open_frame = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
-        self.open_frame.pack(anchor='nw')#fill='both', expand=True)
+        self.open_frame.grid(row=0, column=0)
         # Folder selection
         self.SpecMapLoad_label = tk.Label(self.open_frame, text="Select folder with spectra for Hyperspectral processing")
         self.SpecMapLoad_label.pack()
@@ -116,12 +116,9 @@ class FileProcessorApp:
         self.cosmicwidthentry.grid(row=3, column=1)
         self.cosmicwidthentry.insert(0, defaults['cosmic_width'])
     
-        # space between frames
-        tk.Frame(Notebook, height=10).pack()
-
         # Clara load frame  
         self.claraloadframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
-        self.claraloadframe.pack(anchor='nw')#fill='both', expand=True)
+        self.claraloadframe.grid(row=1, column=0)
         # Folder selection
         self.clara_label = tk.Label(self.claraloadframe, text="Select folder with spectra for Clara processing")
         self.clara_label.pack()
@@ -143,7 +140,7 @@ class FileProcessorApp:
 
         # frame to save the current hsi object
         self.saveframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
-        self.saveframe.pack(anchor='e')
+        self.saveframe.grid(row=2, column=0)
         # save the current hsi object
         self.save_label = tk.Label(self.saveframe, text="Save the current Data object")
         self.save_label.pack()
@@ -163,8 +160,29 @@ class FileProcessorApp:
         self.load_button = tk.Button(self.saveframe, text="Load", command=lambda: self.loadhsisaved(self.loadhsipath.get()))
         self.load_button.pack()
 
+        # frame to load Newton spectrum
+        self.newtonframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
+        self.newtonframe.grid(row=0, column=1)
+        # Newton spectrum load
+        self.newton_label = tk.Label(self.newtonframe, text="Select Newton spectrum file")
+        self.newton_label.grid(row=0, column=0)
+        self.newton_file_label = tk.Label(self.newtonframe, text="Select File")
+        self.newton_file_label.grid(row=1, column=0)
+        self.newton_file_entrystr = tk.StringVar()
+        self.newton_file_entry = tk.Entry(self.newtonframe, textvariable=self.newton_file_entrystr, width=60)
+        self.newton_file_entry.grid(row=1, column=1)
+        self.newton_file_entry.insert(0, defaults['newton_spectrum'])
+        self.newton_process_button = tk.Button(self.newtonframe, text="Load data", command=self.newtonloadfiles)
+        self.newton_process_button.grid(row=1, column=2)
+        self.newton_folder_button = tk.Button(self.newtonframe, text="Browse", command= lambda: deflib.select_file(self.newton_file_entrystr))
+        self.newton_folder_button.grid(row=1, column=3)
+    
         if defaults['loadonstart'] == True:
             self.spec_loadfiles()
+
+    def newtonloadfiles(self):
+        file = self.newton_file_entry.get()
+        self.newtonclass = newtonlib.newtonspecopener(self.nodeframes['Newton Spectrum'], file)
 
     # testcomment
     def spec_loadfiles(self):

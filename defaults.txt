@@ -1,7 +1,7 @@
 data_file = C:/Users/volib/Desktop/Evaluation/data/2024/Perovskite/N1_Sndoping/Pb-Sn_99-1/spec/20250314/HSI20250314_HSI_1
 filename = HSI
-windowsize_X = 900
-windowsize_Y = 500
+windowsize_X = 1200
+windowsize_Y = 800
 file_extension = .txt
 multiple_Background = False
 linear_Background = True

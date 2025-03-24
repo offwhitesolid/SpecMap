@@ -2,6 +2,7 @@ import numpy as np
 from scipy.ndimage import median_filter
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 from tkinter import filedialog
 from scipy.ndimage import median_filter
 import pandas as pd
@@ -12,7 +13,8 @@ import matplotlib.pyplot as plt
 
 # comment how cremove_cosmics works
 
-Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export']
+Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'Settings']
+# Default values for the application
 DEFAULTS_FILE = 'defaults.txt'
 
 # load defaults
@@ -479,7 +481,7 @@ defaults={
     'cosmic_method': 'Linear Interpolation',
     # Clara Image Frame
     'clara_image': 'C:/Users/mol95ww/Desktop/Evaluation/data/2024/qdot_100fach/Laser_in_zpos/145_0.asc',
-
+    'newton_spectrum': 'C:/Users/mol95ww/Desktop/Evaluation/data/2024/Perovskite/N1_Sndoping/Pb-Sn_0_0625/PL_Sn_Image_0_0625_1250g_500lnm_470-1030nm.asc',
     # Hyperspectra Notebook
     # cmap frame
     'lowest_wavelength': 500, 
@@ -519,6 +521,7 @@ defaulttypes = {
     'cosmic_width': int,
     'cosmic_method': str,
     'clara_image': str,
+    'newton_spectrum': str,
     # Hyperspectra Notebook
     'lowest_wavelength': float,
     'highest_wavelength': float,
@@ -539,7 +542,7 @@ defaulttypes = {
     'Matrix_grid_dx': float,
     'Matrix_grid_dy': float,
     'enable_buttonmatrix': bool, 
-    'loadonstart': bool
+    'loadonstart': bool,
 }
 
 def testdefaults():
@@ -561,3 +564,14 @@ if __name__ == '__main__':
         print(f'Error: {Error}')
     
     testcorrect_spectrum()
+
+def newton_loadfiles(file):
+    if not file:
+        messagebox.showerror("Error", "Please select a file")
+        return
+    try:
+        data = np.loadtxt(file, skiprows=34)
+    except Exception as Error:
+        print(f'Error: {Error}')
+    
+    return data
