@@ -22,7 +22,7 @@ class Spectra():
         self.header = self.header + "\n wavelenth in nm \t intensity in counts"
     
     def save(self, filename):
-        np.savetxt(filename, np.column_stack((self.Spec, self.WL)), delimiter='\t', header=self.header)
+        np.savetxt(filename, np.column_stack((self.WL, self.Spec)), delimiter='\t', header=self.header)
 
 def dict_to_string(header_dict, format="json"):
     """

@@ -450,7 +450,6 @@ class XYMap:
         savename = tk.filedialog.asksaveasfilename(defaultextension='.txt', filetypes=[('Text files', '*.txt')])
         if savename:
             self.disspecs[specname].save(savename)
-
     
     def delSpecData(self, specname): # self.disspecs is type dict
         # delete the selected spectral data
