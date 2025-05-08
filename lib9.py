@@ -437,13 +437,19 @@ class XYMap:
         self.specselect.set(list(self.disspecs.keys())[-1])
     
     def createdisspecname(self): # create a new spectral data name
+        HSIname = self.hsiselect.get()
+        if HSIname == '':
+            specname = 'SpectrumData'
+        else: 
+            specname = HSIname
+
         if len(self.disspecs) == 0:
-            specname = 'SpectrumData0'
+            specname = f'{specname}0'#'SpectrumData0'
         else:
             i = 0
-            while 'SpectrumData{}'.format(i) in self.disspecs.keys():
+            while '{}{}'.format(specname, i) in self.disspecs.keys():
                 i += 1
-            specname = 'SpectrumData' + str(i)
+            specname = '{}{}'.format(specname, i)
         return specname 
     
     def saveSpectrum(self, specname):
