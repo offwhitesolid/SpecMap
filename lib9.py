@@ -300,7 +300,6 @@ class XYMap:
         frame = tk.Frame(parframe, border=5, relief="sunken")
         frame.grid(row=0, column=4, rowspan=6, sticky=tk.NW)
         tk.Label(frame, text="Process Pixel Matrix".format(self.DataSpecMin)).grid(row=0, column=0)
-
         b1= tk.Button(frame, text="fit rotated 2D Gaussian to Matrix", command= lambda: self.fit2drotgausstopixmatrix())
         b1.grid(row=1, column=0)
         b2= tk.Button(frame, text="fit 2D Gaussian to Matrix", command= lambda: self.fit2dgausstopixmatrix())

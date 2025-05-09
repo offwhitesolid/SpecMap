@@ -380,7 +380,6 @@ def fitgaussiand2dtomatrixrot(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000
     if plotfit == True:
         fig, ax = plt.subplots()
         plt.imshow(data_fited, cmap=colormap)
-        plt.colorbar()
 
         # Get current ticks
         current_xticks = np.arange(data.shape[1])
@@ -397,6 +396,14 @@ def fitgaussiand2dtomatrixrot(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000
         # Set the axis labels auto adjust
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_major_locator(MaxNLocator(nbins=6))  # Adjust the number of bins to fit the plot size
+        # Set the title and labels
+        ax.set_title('Fitted Gaussian 2D')
+        ax.set_xlabel('X-axis in \u03bcm')
+        ax.set_ylabel('Y-axis in \u03bcm')
+        # label the colormap with the units counts
+        cbar = plt.colorbar()
+        cbar.set_label('Counts')
+
         plt.show()
 
 def fitgaussian2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
@@ -430,6 +437,13 @@ def fitgaussian2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
         # Set the axis labels auto adjust
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_major_locator(MaxNLocator(nbins=6))  # Adjust the number of bins to fit the plot size
+        # Set the title and labels
+        ax.set_title('Fitted Gaussian 2D')
+        ax.set_xlabel('X-axis in \u03bcm')
+        ax.set_ylabel('Y-axis in \u03bcm')
+        # label the colormap with the units counts
+        cbar = plt.colorbar()
+        cbar.set_label('Counts')
         plt.show()
 
 

@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import tkinter as tk
 
+cl_scalings = {'20x': 0.568, '50x': 0.2272, '100x': 0.0568}
+
 class imageprocessor():
     def __init__(self, Notebook, imagefile, loadfunct, metadata, dx, dy):
         self.Notebook = Notebook
@@ -125,9 +127,9 @@ def area2dgaussian(data, popt, thresh, dx, dy):
     ybelowthresh = find_x_thresh(y0, sigma_y, amplitude, thresh)
     xsize = abs(x0 - xbelowthresh)/2
     ysize = abs(y0 - ybelowthresh)/2
-    print('fit widht x and y:', xsize, ysize, 'dx and dy:', dx, dy, 'x0, y0:', x0, y0, 'xsize, ysize:', xsize, ysize, 'xbelowthresh, ybelowthresh:', xbelowthresh, ybelowthresh)
+    print('fit widht x and y in mum:', xsize, ysize, 'dx and dy:', dx, dy, 'x0, y0:', x0, y0, 'xsize, ysize:', xsize, ysize, 'xbelowthresh, ybelowthresh:', xbelowthresh, ybelowthresh)
     # Calculate the area of ellipse 
-    print('Area of ellipse:', round(np.pi * xsize * ysize, 3))
+    print('Area of ellipse:', round(np.pi * xsize * ysize, 3), 'mum^2')
     return np.pi * sigma_x * sigma_y
 
 def plot2dfit(data, popt, dx, dy):
@@ -197,3 +199,4 @@ def find_x_thresh(x0, sigma_x, amplitude, thresh):
     # Solve for x_thresh using the Gaussian formula
     x_thresh = x0 + np.sqrt(-2 * sigma_x**2 * np.log(thresh / amplitude))
     return x_thresh
+

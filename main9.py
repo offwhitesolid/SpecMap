@@ -134,6 +134,11 @@ class FileProcessorApp:
         self.cl_process_button.pack(side=tk.RIGHT, anchor='center')
         spacer = tk.Frame(self.claraloadframe, width=10)
         spacer.pack(side=tk.RIGHT, anchor='center')
+        # add combobox to select the clara scaling factors (20x, 50x, 100x)
+        self.cl_scaling_label = tk.Label(self.claraloadframe, text="Scaling Factor").pack(side=tk.LEFT, anchor='center')
+        self.cl_scaling = ttk.Combobox(self.claraloadframe, values=list(claralib.cl_scalings.keys()), width=10)
+        self.cl_scaling.pack(side=tk.LEFT, anchor='center')
+        self.cl_scaling.set(list(claralib.cl_scalings.keys())[0])
         # Process button
         self.cl_folder_button = tk.Button(self.claraloadframe, text="Browse", command= lambda: deflib.select_file(self.cl_file_entrystr))
         self.cl_folder_button.pack(side=tk.RIGHT, anchor='center')
@@ -254,6 +259,10 @@ class FileProcessorApp:
             # adjust dx and dy for different scaling factors
             dx = 0.0568*2#0.0568 
             dy = 0.0568*2#0.0568
+            scaling = self.cl_scaling.get()
+            if scaling in claralib.cl_scalings.keys():
+                dx = claralib.cl_scalings[scaling]
+                dy = claralib.cl_scalings[scaling]
             self.claraimage = claralib.imageprocessor(self.nodeframes['Clara Image'], file, deflib.loadclaraimage, None, dx, dy)# 0.568, 0.568) 100x scaling
         except Exception as error:
             messagebox.showerror("Error", "Could not load Clara image. {}".format(error))
