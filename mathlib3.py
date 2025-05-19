@@ -296,6 +296,8 @@ def fitgaussiantospec(start, end, WL, PLB, maxfev=10000, guess=None):
         initialguess = [np.max(y), x[np.argmax(y)], np.std(x)]
     else:
         initialguess = guess
+    #print('initialguess:', initialguess)
+    #print('generated guess:', [np.max(y), x[np.argmax(y)], np.std(x)])
     fitdata, pcov = curve_fit(gaussianwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit = fitdata
     return amp_fit, cen_fit, wid_fit, pcov

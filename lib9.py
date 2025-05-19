@@ -783,7 +783,7 @@ class XYMap:
                                             self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
                                             self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
                                             # store the fit parameters in an array
-                                            self.fitbackup = self.SpecDataMatrix[i][j].fitparams[a]
+                                            self.fitbackup = self.SpecDataMatrix[i][j].fitdata[0][:]
                                         except Exception as e:
                                             print('Fit parameter update failed in new fitline. {}'.format(str(e)))
                                             # retry the fit with 

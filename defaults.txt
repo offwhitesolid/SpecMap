@@ -1,4 +1,4 @@
-data_file = C:/Users/volib/Desktop/Evaluation/data/2024/Perovskite/N1_Sndoping/Pb-Sn_99-1/spec/20250314/HSI20250314_HSI_1
+data_file = C:/Users/volib/Desktop/Evaluation/data/VP/test7_MoS2_ML_2sec/test7_MoS2_ML_2sec
 filename = HSI
 windowsize_X = 1200
 windowsize_Y = 800
