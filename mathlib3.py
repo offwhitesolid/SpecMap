@@ -230,59 +230,77 @@ def estimate_double_lorentz_params(x, y):
     return A1_init, mu1_init, gamma1_init, A2_init, mu2_init, gamma2_init
 
 # fit window functions to data  
-def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000):
+def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000, guess=None):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = estimate_double_gaussian_params(x, y)
+    if guess is None:
+        initialguess = estimate_double_gaussian_params(x, y)
+    else:
+        initialguess = guess
     #[np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)] #old fit estimate
     fitdata, pcov = curve_fit(double_gaussianwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit, pcov
 
-def fitdoublelorentztospec(start, end, WL, PLB, maxfev=10000):
+def fitdoublelorentztospec(start, end, WL, PLB, maxfev=10000, guess=None):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = estimate_double_lorentz_params(x, y)
+    if guess is None:
+        initialguess = estimate_double_lorentz_params(x, y)
+    else:
+        initialguess = guess
     #[np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)] old fit estimate
     fitdata, pcov = curve_fit(double_lorentzwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit, pcov
 
-def fitdoublevoigttospec(start, end, WL, PLB, maxfev=10000):
+def fitdoublevoigttospec(start, end, WL, PLB, maxfev=10000, guess=None):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = estimate_double_voigt_params(x, y)
+    if guess is None:
+        initialguess = estimate_double_voigt_params(x, y)
+    else:
+        initialguess = guess
     #[np.max(y), x[np.argmax(y)], np.std(x), np.std(x), np.max(y), x[np.argmax(y)], np.std(x), np.std(x)] old fit estimate
     fitdata, pcov = curve_fit(double_voigtwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, gamma1_fit, amp2_fit, cen2_fit, wid2_fit, gamma2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, gamma1_fit, amp2_fit, cen2_fit, wid2_fit, gamma2_fit, pcov
 
-def fitvoigttospec(start, end, WL, PLB, maxfev=10000):
+def fitvoigttospec(start, end, WL, PLB, maxfev=10000, guess=None):
     x = WL[start: end]
     y = PLB[start: end]
     #initialguess = [np.max(y), x[np.argmax(y)], np.std(x)*2, np.std(x)]
-    initialguess = estimate_voigt_params(x, y)
+    if guess is None:
+        initialguess = estimate_voigt_params(x, y)
+    else:
+        initialguess = guess
     fitdata, pcov = curve_fit(voigtwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit, gamma_fit = fitdata
     return amp_fit, cen_fit, wid_fit, gamma_fit, pcov
 
-def fitlorentztospec(start, end, WL, PLB, maxfev=10000):
+def fitlorentztospec(start, end, WL, PLB, maxfev=10000, guess=None):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = [np.max(y), x[np.argmax(y)], np.std(x)*2.4]
+    if guess is None:
+        initialguess = [np.max(y), x[np.argmax(y)], np.std(x)*2.4]
+    else:
+        initialguess = guess
     fitdata, pcov = curve_fit(lorentzwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit = fitdata
     return amp_fit, cen_fit, wid_fit, pcov
 
-def fitgaussiantospec(start, end, WL, PLB, maxfev=10000):
+def fitgaussiantospec(start, end, WL, PLB, maxfev=10000, guess=None):
     x = WL[start: end]
     y = PLB[start: end]
-    initialguess = [np.max(y), x[np.argmax(y)], np.std(x)]
+    if guess is None:
+        initialguess = [np.max(y), x[np.argmax(y)], np.std(x)]
+    else:
+        initialguess = guess
     fitdata, pcov = curve_fit(gaussianwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit = fitdata
     return amp_fit, cen_fit, wid_fit, pcov
     
-def fitlinetospec(start, end, WL, PLB, maxfev=10000):
+def fitlinetospec(start, end, WL, PLB, maxfev=10000, guess=None):
     x = WL[start: end]
     y = PLB[start: end]
     a_guess = (np.max(y) - np.min(y)) / (np.max(x) - np.min(x))
