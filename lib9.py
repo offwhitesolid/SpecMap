@@ -741,12 +741,13 @@ class XYMap:
 
         # fill matrix with data of the selected enry:
         self.updatecountthresh()
+        # update wlstart and wlend
+        self.selectwindowboxVari = self.selectwindowbox.get()
+        self.selectspecboxVari = self.selectspecbox.get()
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 if type(self.SpecDataMatrix[i][j]) == SpectrumData:
                     if self.SpecDataMatrix[i][j].dataokay == True:
-                        self.selectwindowboxVari = self.selectwindowbox.get()
-                        self.selectspecboxVari = self.selectspecbox.get()
                         tries = 1
                         worked = False
                         adjmin = True
@@ -800,7 +801,7 @@ class XYMap:
                                     else:
                                         pass
                                         #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
-                            #except Exception as e: # debug end
+                                #except Exception as e: # debug end
                                 try:
                                     if adjmin == True:
                                         self.aqpixstart += incmin
@@ -1114,7 +1115,7 @@ class XYMap:
             except:
                 plt.show()
         plt.xlabel('Wavelength / nm', fontsize=self.fontsize)
-        plt.ylabel('Intensity', fontsize=self.fontsize)
+        plt.ylabel('Intensity / counts', fontsize=self.fontsize)
         plt.title('Spectrograph Data', fontsize=self.fontsize)
         plt.legend(fontsize=self.fontsize)
         plt.tick_params(axis='both', which='major', labelsize=self.fontsize)
@@ -1247,7 +1248,6 @@ class XYMap:
                 if type(self.SpecDataMatrix[i][j]) == SpectrumData:
                     try:
                         self.selectspecboxVari = self.selectspecbox.get()
-                        print('SelectSpecBoxVari', self.selectspecboxVari)
                         if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
                             if np.sum(self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend]) < self.countthreshv:
                                 PixMatrix[i][j] = np.nan

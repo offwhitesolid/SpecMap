@@ -1,5 +1,5 @@
 data_file = C:/Users/volib/Desktop/Evaluation/data/VP/test7_MoS2_ML_2sec/test7_MoS2_ML_2sec
-filename = HSI
+filename = spectrum
 windowsize_X = 1200
 windowsize_Y = 800
 file_extension = .txt
@@ -10,8 +10,8 @@ cosmic_threshold = 150
 cosmic_width = 10
 cosmic_method = Linear Interpolation
 clara_image = //Nas-akh/pc104_plm/Data/Moritz Limbacher/claratest/laserfocus50x/laser in focus50x.asc
-lowest_wavelength = 550
-highest_wavelength = 700
+lowest_wavelength = 620
+highest_wavelength = 690
 colormap_threshold = 10000
 fontsize = 12
 maxfev = 5000

@@ -315,21 +315,24 @@ def fitlinetospec(start, end, WL, PLB, maxfev=10000, guess=None):
 # get maxima of fitted functions
 def getmaxdoublegaussian(xmin, xmax, amp1, cen1, wid1, amp2, cen2, wid2):
     # use newton method to find max
-    x = Newtonmax(lambda x: -double_gaussianwind(x, amp1, cen1, wid1, amp2, cen2, wid2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
-    y = double_gaussianwind(xmax, amp1, cen1, wid1, amp2, cen2, wid2)
+    #x = Newtonmax(lambda x: -double_gaussianwind(x, amp1, cen1, wid1, amp2, cen2, wid2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
+    #y = double_gaussianwind(xmax, amp1, cen1, wid1, amp2, cen2, wid2)
+    x, y = Maxbyinsert(lambda x: -double_gaussianwind(x, amp1, cen1, wid1, amp2, cen2, wid2), [xmin, xmax], 10000)
     #success, x, fun = find_max_of_fit(lambda x: -double_gaussianwind(x, amp1, cen1, wid1, amp2, cen2, wid2), xmin=xmin, xmax=xmax)
     return x, y # -fun
 
 
 def getmaxdoublelorentz(xmin, xmax, amp1, cen1, wid1, amp2, cen2, wid2):
-    x = Newtonmax(lambda x: -double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
-    y = double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2)
+    #x = Newtonmax(lambda x: -double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
+    #y = double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2)
+    x, y = Maxbyinsert(lambda x: -double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2), [xmin, xmax], 10000)
     #success, x, fun = find_max_of_fit(lambda x: -double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2), xmin=xmin, xmax=xmax)
     return x, y #-fun
 
 def getmaxdoublevoigt(xmin, xmax, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2):
-    x = Newtonmax(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
-    y = double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
+    #x = Newtonmax(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
+    #y = double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2)
+    x, y = Maxbyinsert(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), [xmin, xmax], 10000)
     #success, x, fun = find_max_of_fit(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), xmin=xmin, xmax=xmax)
     return x, y
     
@@ -499,6 +502,16 @@ def Newtonmax(f, x0, tol=1e-8, maxiter=10000, xmin=0, xmax=1000):
         iter += 1
     return x0
 
+def Maxbyinsert(f, wl, npoints):
+    # Find the maximum of a function by inserting points
+    # f: function to be maximized
+    # wl: wavelength range
+    # npoints: number of points to be inserted
+    x = np.linspace(wl[0], wl[1], npoints)
+    y = f(x)
+    max_index = np.argmin(y)
+    return x[max_index], y[max_index]
+
 # another method to find the maximum of a function in an interval
 def find_max_of_fit(fitfunc, tol=1e-6, maxiter=10000, xmin=500, xmax=600):
     #Find the maximum of a fitted function within the interval [xmin, xmax].
@@ -589,7 +602,7 @@ def getindexofFitparameter(fl, fitname):
 # key: window function name
 # value: list of window function, fit function, and function to get maxima of the fit function
 # parnum: number of parameters for the fit function
-fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit', 3],
+fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit', 3,],
            'gaussian':[gaussianwind, fitgaussiantospec, getmaxgaussian, 'Gaussian fit', 3], 
            'voigt':[voigtwind, fitvoigttospec, getmaxvoigt, 'Voigt fit', 4], 
            'linear':[linearwind, fitlinetospec, getmaxlinear, 'Linear fit', 2], 
