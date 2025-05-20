@@ -735,7 +735,7 @@ class XYMap:
         else:
             print(self.SpecDataMatrix[y][x])  
 
-    def fittoMatrixfitparams(self, PixMatrix, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
+    def fittoMatrixfitparams(self, PixMatrix, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20, mode='fullHSI'):
         # init empty self.fitbakup
         self.fitbackup = None
 
@@ -748,48 +748,53 @@ class XYMap:
             for j in range(len(self.SpecDataMatrix[i])):
                 if type(self.SpecDataMatrix[i][j]) == SpectrumData:
                     if self.SpecDataMatrix[i][j].dataokay == True:
+                        self.SpecDataMatrix[i][j].dofit = True
                         tries = 1
                         worked = False
                         adjmin = True
                         # if fit does not work, adjust the window size
-                        while tries < nmin+nmax and worked == False:
+                        while tries < nmin+nmax and worked == False and self.SpecDataMatrix[i][j].dofit == True:
                             tries += 1
                             #try:
                             if True: # debug start
                                 if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
-                                    if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        PixMatrix[i][j] = np.nan
-                                    else:
-                                        try:
-                                            self.maxiter = int(self.fitmaxiter.get())
-                                        except:
-                                            print('Maxiter must be int. Using default 1000.')
-                                            self.maxiter = 1000
-                                        self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter, self.fitbackup) # asdftest added fitbackup
-                                        self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
-                                        r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[i][j].fitdata[:-1]))
-                                        a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get())
-                                        # put fitdata into fitparams
-                                        try:
-                                            for k in range(matl.fitkeys[list(matl.fitkeys.keys())[a]][4]):
-                                                self.SpecDataMatrix[i][j].fitparams[a][k] = self.SpecDataMatrix[i][j].fitdata[k]
-                                            # store fitmaxX and fitmaxY in fitparams[-1] and [-2]
-                                            self.SpecDataMatrix[i][j].fitparams[a][-1] = self.SpecDataMatrix[i][j].fitmaxX
-                                            self.SpecDataMatrix[i][j].fitparams[a][-2] = self.SpecDataMatrix[i][j].fitmaxY
-                                            # store aqpixstart and aqpixend in fitparams[-3] and [-4]
-                                            self.SpecDataMatrix[i][j].fitparams[a][-3] = self.aqpixstart
-                                            self.SpecDataMatrix[i][j].fitparams[a][-4] = self.aqpixend
-                                            # store r_squared in fitparams [-7], [-8], [-9]
-                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)+1] = r_squared
-                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
-                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
-                                            # store the fit parameters in an array
-                                            self.fitbackup = self.SpecDataMatrix[i][j].fitdata[0][:]
-                                        except Exception as e:
-                                            print('Fit parameter update failed in new fitline. {}'.format(str(e)))
-                                            # retry the fit with 
-                                            if self.fitbackup != []:
-                                                pass
+                                    if mode == 'fullHSI':
+                                        if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
+                                            PixMatrix[i][j] = np.nan
+                                            self.SpecDataMatrix[i][j].dofit = False
+                                            # break the while loop
+                                            break
+                                        else: 
+                                            try:
+                                                self.maxiter = int(self.fitmaxiter.get())
+                                            except:
+                                                print('Maxiter must be int. Using default 1000.')
+                                                self.maxiter = 1000
+                                            self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter, self.fitbackup) # asdftest added fitbackup
+                                            self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
+                                            r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[i][j].fitdata[:-1]))
+                                            a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get())
+                                            # put fitdata into fitparams
+                                            try:
+                                                for k in range(matl.fitkeys[list(matl.fitkeys.keys())[a]][4]):
+                                                    self.SpecDataMatrix[i][j].fitparams[a][k] = self.SpecDataMatrix[i][j].fitdata[k]
+                                                # store fitmaxX and fitmaxY in fitparams[-1] and [-2]
+                                                self.SpecDataMatrix[i][j].fitparams[a][-1] = self.SpecDataMatrix[i][j].fitmaxX
+                                                self.SpecDataMatrix[i][j].fitparams[a][-2] = self.SpecDataMatrix[i][j].fitmaxY
+                                                # store aqpixstart and aqpixend in fitparams[-3] and [-4]
+                                                self.SpecDataMatrix[i][j].fitparams[a][-3] = self.aqpixstart
+                                                self.SpecDataMatrix[i][j].fitparams[a][-4] = self.aqpixend
+                                                # store r_squared in fitparams [-7], [-8], [-9]
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)+1] = r_squared
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
+                                                # store the fit parameters in an array
+                                                self.fitbackup = self.SpecDataMatrix[i][j].fitdata[0][:]
+                                            except Exception as e:
+                                                print('Fit parameter update failed in new fitline. {}'.format(str(e)))
+                                                # retry the fit with 
+                                                if self.fitbackup != []:
+                                                    pass
 
                                 if self.SpecDataMatrix[i][j].fitdata == [None]:
                                     PixMatrix[i][j] = np.nan
