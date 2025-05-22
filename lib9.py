@@ -339,6 +339,15 @@ class XYMap:
         b6 = tk.Button(frame, text="Delete selected HSI", command= lambda: self.delHSI())
         b6.grid(row=4, column=1)
 
+        b7 = tk.Button(frame, text="Save selected HSI", command= lambda: self.saveHSI())
+        b7.grid(row=5, column=1)
+
+        b8 = tk.Button(frame, text="Load HSI", command= lambda: self.loadHSI())
+        b8.grid(row=6, column=1)
+
+        b9 = tk.Button(frame, text="Export HSI to .csv", command= lambda: self.exportHSI())
+        b9.grid(row=7, column=1)
+
         # build third column for Spectral Data
         tk.Label(frame, text="Select Spectral Data").grid(row=0, column=2)
         self.specselect = ttk.Combobox(frame)
@@ -363,6 +372,46 @@ class XYMap:
     
     def select_correction_spectrum_file(self):
         self.correctionspecname = filedialog.askopenfilename(filetypes=[("Correction spectrum", "*")])
+    
+    def saveHSI(self):
+        # pickle the selected HSI to a file
+        filename = tk.filedialog.asksaveasfilename(defaultextension='.pkl', filetypes=[('Pickle files', '*.pkl')])
+        if filename:
+            # pickle the selected HSI to filename
+            selhsi = self.hsiselect.get()
+            if selhsi in self.PMdict.keys():
+                with open(filename, 'wb') as f:
+                    pickle.dump(self.PMdict[selhsi], f)
+    
+    def loadHSI(self):
+        # load a pickle file and add it to the HSI list
+        filename = tk.filedialog.askopenfilename(filetypes=[('Pickle files', '*.pkl')])
+        if filename:
+            with open(filename, 'rb') as f:
+                hsi = pickle.load(f)
+            hsiname = f'HSI{len(self.PMdict)}'
+            # add the loaded HSI to the HSI list
+            self.PMdict[hsiname] = hsi
+            self.hsiselect['values'] = list(self.PMdict.keys())
+            self.hsiselect.set(hsiname)
+    
+    def exportHSI(self): # export the selected HSI to a .csv file
+        filename = tk.filedialog.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
+        if filename:
+            selhsi = self.hsiselect.get()
+            # create a string from the metadata 'key': 'value' pairs
+            metadata = '\n'.join([f'{key}: {value}' for key, value in self.PMdict[selhsi].metadata.items()])
+            # write the metadata to the file
+            with open(filename, 'w') as f:
+                f.write(metadata + '\n')
+                # write the HSI data to the file
+                for row in self.PMdict[selhsi].PixMatrix:
+                    # Convert np.nan to 'Nan', otherwise str(value)
+                    formatted_row = [
+                        'Nan' if (isinstance(val, float) and np.isnan(val)) else str(val)
+                        for val in row
+                    ]
+                    f.write(';'.join(formatted_row) + '\n')
 
     def correctSpectrum(self, specname):
         # correct the selected spectrum with the entered correction spectrum
@@ -770,10 +819,10 @@ class XYMap:
                                             except:
                                                 print('Maxiter must be int. Using default 1000.')
                                                 self.maxiter = 1000
-                                            self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter, self.fitbackup) # asdftest added fitbackup
+                                            self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter, self.fitbackup)
                                             self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
                                             r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[i][j].fitdata[:-1]))
-                                            a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get())
+                                            a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get()) # a is the index of the fit function
                                             # put fitdata into fitparams
                                             try:
                                                 for k in range(matl.fitkeys[list(matl.fitkeys.keys())[a]][4]):
@@ -789,7 +838,7 @@ class XYMap:
                                                 self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
                                                 self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
                                                 # store the fit parameters in an array
-                                                self.fitbackup = self.SpecDataMatrix[i][j].fitdata[0][:]
+                                                self.fitbackup = self.SpecDataMatrix[i][j].fitdata
                                             except Exception as e:
                                                 print('Fit parameter update failed in new fitline. {}'.format(str(e)))
                                                 # retry the fit with 
@@ -818,6 +867,9 @@ class XYMap:
                                     print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in exc1 function {}.\n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e)))
                                     worked = True
                             print("Fit to Matrix Failed at element {}, {} in function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', 'not converged')) # print name of function
+                            # print the fit parameters
+                            print('Fit Parameters:', self.SpecDataMatrix[i][j].fitdata)
+                            print('Last fit parameters:', self.fitbackup)
                             self.updatewl()
 
     # function currently not in use
@@ -1362,6 +1414,7 @@ class XYMap:
             self.mycoords = sorted(self.mycoords)
             PixMatrix, self.SpecDataMatrix, self.PixAxX, self.PixAxY = self.genmatgrid(self.mxcoords, self.mycoords)
             PixMatrixc = PMlib.PMclass(np.asarray(PixMatrix, dtype=float), self.PixAxX, self.PixAxY, self.PMmetadata)
+            PixMatrixc.name = 'HSI0'
             self.PMdict['HSI0'] = PixMatrixc
             self.SpecdataintoMatrix()
     
@@ -1385,6 +1438,7 @@ class XYMap:
             for j in range(len(lastpixmatrix.PixMatrix[i])):
                 if np.isnan(roi[i][j]) == True:
                     lastpixmatrix.PixMatrix[i][j] = np.nan
+        lastpixmatrix.name = newroiname
         self.PMdict[newroiname] = lastpixmatrix
         #fig.imshow(self.PMdict[newroiname].PixMatrix) error
         ax.imshow(self.PMdict[newroiname].PixMatrix)
@@ -1462,8 +1516,9 @@ class XYMap:
                     break
         else: 
             newpmname = name
-        # add ne PixMatrix to the dictionary with its metadata
+        # add new PixMatrix to the dictionary with its metadata
         self.PMdict[newpmname] = PMlib.PMclass(np.asarray(matrix), self.PixAxX, self.PixAxY, self.PMmetadata)
+        self.PMdict[newpmname].name = newpmname
         self.PMdict[newpmname].metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
         return newpmname
 

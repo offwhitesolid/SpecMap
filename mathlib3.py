@@ -236,7 +236,7 @@ def fitdoublegaussiantospec(start, end, WL, PLB, maxfev=10000, guess=None):
     if guess is None:
         initialguess = estimate_double_gaussian_params(x, y)
     else:
-        initialguess = guess
+        initialguess = guess[0:6]
     #[np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)] #old fit estimate
     fitdata, pcov = curve_fit(double_gaussianwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit = fitdata
@@ -248,7 +248,7 @@ def fitdoublelorentztospec(start, end, WL, PLB, maxfev=10000, guess=None):
     if guess is None:
         initialguess = estimate_double_lorentz_params(x, y)
     else:
-        initialguess = guess
+        initialguess = guess[0:6]
     #[np.max(y), x[np.argmax(y)], np.std(x), np.max(y), x[np.argmax(y)], np.std(x)] old fit estimate
     fitdata, pcov = curve_fit(double_lorentzwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, amp2_fit, cen2_fit, wid2_fit = fitdata
@@ -260,7 +260,7 @@ def fitdoublevoigttospec(start, end, WL, PLB, maxfev=10000, guess=None):
     if guess is None:
         initialguess = estimate_double_voigt_params(x, y)
     else:
-        initialguess = guess
+        initialguess = guess[0:8]
     #[np.max(y), x[np.argmax(y)], np.std(x), np.std(x), np.max(y), x[np.argmax(y)], np.std(x), np.std(x)] old fit estimate
     fitdata, pcov = curve_fit(double_voigtwind, x, y, p0=initialguess, maxfev=maxfev)
     amp1_fit, cen1_fit, wid1_fit, gamma1_fit, amp2_fit, cen2_fit, wid2_fit, gamma2_fit = fitdata
@@ -273,7 +273,7 @@ def fitvoigttospec(start, end, WL, PLB, maxfev=10000, guess=None):
     if guess is None:
         initialguess = estimate_voigt_params(x, y)
     else:
-        initialguess = guess
+        initialguess = guess[0:4]
     fitdata, pcov = curve_fit(voigtwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit, gamma_fit = fitdata
     return amp_fit, cen_fit, wid_fit, gamma_fit, pcov
@@ -284,7 +284,7 @@ def fitlorentztospec(start, end, WL, PLB, maxfev=10000, guess=None):
     if guess is None:
         initialguess = [np.max(y), x[np.argmax(y)], np.std(x)*2.4]
     else:
-        initialguess = guess
+        initialguess = guess[0:3]
     fitdata, pcov = curve_fit(lorentzwind, x, y, p0=initialguess, maxfev=maxfev)
     amp_fit, cen_fit, wid_fit = fitdata
     return amp_fit, cen_fit, wid_fit, pcov
@@ -295,7 +295,7 @@ def fitgaussiantospec(start, end, WL, PLB, maxfev=10000, guess=None):
     if guess is None:
         initialguess = [np.max(y), x[np.argmax(y)], np.std(x)]
     else:
-        initialguess = guess
+        initialguess = guess[0:3]
     #print('initialguess:', initialguess)
     #print('generated guess:', [np.max(y), x[np.argmax(y)], np.std(x)])
     fitdata, pcov = curve_fit(gaussianwind, x, y, p0=initialguess, maxfev=maxfev)
