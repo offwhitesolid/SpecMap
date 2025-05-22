@@ -116,7 +116,7 @@ class SpectrumData:
         if len(self.PL) == 0:
             self.openDstate.append(None)
         self.setOK()
-
+        # remove cosmic rays todo: add nearest neighbor method
         if self.removecosmics == True:
             try:
                 self.PLB = deflib.cosmicfuncts[self.removecosmicsmethod](self.PLB, self.cosmicthreshold, self.cosmicpixels)

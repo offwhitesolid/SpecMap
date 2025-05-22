@@ -21,9 +21,14 @@ class FileProcessorApp:
         self.defaults = defaults
         self.root = root
         self.root.title("File Processor")
+        self.multiple_BG = tk.IntVar()
+        self.linearBG = tk.IntVar()
+        self.removecosmicsBool = tk.IntVar()
         self.createmenue()
         self.windownotebook(deflib.Notebooks)
         self.createbuttons(self.nodeframes['Load Data'])
+
+
 
     def createmenue(self):
         # Create the menu bar
@@ -83,12 +88,10 @@ class FileProcessorApp:
         # add extra frame for background selection onto loadframe
         self.bgframe = tk.Frame(self.loadframe, borderwidth=2, relief="sunken")
         self.bgframe.grid(row=0, column=0)
-        self.multiple_BG = tk.IntVar()
         self.multiple_BG.set(defaults['multiple_Background'])
         self.chkmultiple = tk.Checkbutton(self.bgframe, text="Multiple Backgrounds", variable=self.multiple_BG)
         self.chkmultiple.grid(row=0, column=0)
 
-        self.linearBG = tk.IntVar()
         self.linearBG.set(defaults['linear_Background'])
         self.linearBGcheck = tk.Checkbutton(self.bgframe, text="Linear Background", variable=self.linearBG)
         self.linearBGcheck.grid(row=1, column=0)
@@ -99,7 +102,6 @@ class FileProcessorApp:
         self.cosmicframe = tk.Frame(self.loadframe, borderwidth=2, relief="sunken")
         self.cosmicframe.grid(row=0, column=1)
 
-        self.removecosmicsBool = tk.IntVar()
         self.removecosmicsBool.set(defaults['remove_cosmics'])
         self.removecosmics = tk.Checkbutton(self.cosmicframe, text="Remove Cosmics", variable=self.removecosmicsBool)
         self.removecosmics.grid(row=0, column=0)

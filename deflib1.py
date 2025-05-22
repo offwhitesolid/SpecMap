@@ -132,21 +132,22 @@ def remove_cosmics_spline(data, thresh, width):
 def remove_cosmics_nearest_neighbor(data, thresh, width):
     # Identify where the absolute value of the difference is greater than the threshold
     diff = np.diff(data)
-    cosmic_indices = np.where(np.abs(diff) > thresh)[0]
-    
+    #cosmic_indices = np.where(np.abs(diff) > thresh)[0]
+
+    cosmic_indices = np.where(np.abs(data) > thresh)[0]
+    # Identify the start and end of cosmic rays
+    start_indices = np.where(np.diff(cosmic_indices) != 1)[0]
+    end_indices = np.append(start_indices[1:], len(cosmic_indices) - 1)
+    cosmic_ranges = [(cosmic_indices[start], cosmic_indices[end]) for start, end in zip(start_indices, end_indices)]
+
     # Copy the data to avoid modifying the original array
     interpolated_data = np.copy(data)
-    
-    for start in cosmic_indices:
-        end_range = min(start + width, len(data) - 1)
-        
-        # Identify the end of the cosmic within the given width
-        for end in range(start + 1, end_range + 1):
-            if np.abs(data[end] - data[start]) < thresh:
-                break
-        
-        # Replace cosmic rays with the nearest neighbor value
-        interpolated_data[start:end+1] = data[end]
+
+    print(cosmic_ranges)
+    print(interpolated_data)
+
+    #print(len(interpolated_data), print(len(interpolated_data[0])))
+
     
     return interpolated_data
 
@@ -450,7 +451,7 @@ cosmicfuncts = {'Linear Interpolation': remove_cosmics_linear,
                 'Median Filter': remove_cosmics_median_filter, 
                 #'Rolling Mean': remove_cosmics_rolling_mean, 
                 #'Spline Interpolation': remove_cosmics_spline,
-                'Nearest Neighbor': remove_cosmics_nearest_neighbor
+                'Nearest Neighbor average': remove_cosmics_nearest_neighbor, 
                 } 
 # Rolling Mean showed not to be good for cosmic removal
 # Spline Interpolation showed not to be good for cosmic removal and took like forever to perform
