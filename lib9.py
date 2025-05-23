@@ -169,7 +169,6 @@ class XYMap:
         self.DataSpecdL = self.specs[0].data['Delta Wavelength (nm)']       # delta Lambda
         self.wlstart = self.defentries['lowest_wavelength']                 # lowest wavelength
         self.wlend = self.defentries['highest_wavelength']                  # highest wavelength
-        self.newpmname = None
         self.allfpnames = matl.getlistofallFitparameters()
         self.allfpnamesinone = matl.getlistofallFitparaminone()
         self.speckeys = {'Wavelength axis': 'WL', 'Background (BG)': 'BG',
@@ -1314,6 +1313,7 @@ class XYMap:
 
     def loadfiles(self):
         # read WL axis once for all files (must be same for all datafiles)
+        lines = ['0']
         gotWL = False
         gotBG = False
         i = 0
@@ -1485,6 +1485,7 @@ class XYMap:
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
     
     def writetopixmatrix(self, matrix, name=None):
+        newpmname = 'HSI0'
         if name == None or name not in self.PMdict.keys():
             pmi = 0
             for i in range(len(list(self.PMdict.keys()))+1):

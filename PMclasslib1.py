@@ -2,13 +2,14 @@ import numpy as np
 import json
 
 class PMclass(): # PixMatrix class
-    def __init__(self, PixMatrix, xax, yax, metadata):
+    def __init__(self, PixMatrix, xax, yax, metadata, name=''):
         self.PixMatrix = PixMatrix
         self.xax = xax
         self.yax = yax
         self.metadata = metadata
         self.gdx = self.xax[1] - self.xax[0]
         self.gdy = self.yax[1] - self.yax[0]
+        self.name = name
 
 class Spectra():
     def __init__(self, yax, xax, metadata, parenthsiname):

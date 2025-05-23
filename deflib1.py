@@ -584,6 +584,7 @@ if __name__ == '__main__':
     testcorrect_spectrum()
 
 def newton_loadfiles(file):
+    data = None
     if not file:
         messagebox.showerror("Error", "Please select a file")
         return

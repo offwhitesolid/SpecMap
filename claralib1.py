@@ -32,8 +32,8 @@ class imageprocessor():
         # create a new frame for the image processing
         self.image_frame = tk.Frame(self.Notebook, borderwidth=5, relief="ridge")
         self.image_frame.grid(row=0, column=0, sticky='nsew')
-        self.plotimage = tk.Button(self.image_frame, text='Plot Image', command=self.plotimage)
-        self.plotimage.grid(row=0, column=0)
+        self.plotimageb = tk.Button(self.image_frame, text='Plot Image', command=self.plotimage)
+        self.plotimageb.grid(row=0, column=0)
         self.fitg2Dbutton = tk.Button(self.image_frame, text='Fit 2D Gaussian', command=lambda: self.fit2dgaussian())
         self.fitg2Dbutton.grid(row=0, column=1)
         self.plotfitbutton = tk.Button(self.image_frame, text='Plot Fit', command=lambda: plot2dfit(self.imagedata, self.g2dpopt, self.dx, self.dy))
@@ -170,7 +170,7 @@ def plot2dfit(data, popt, dx, dy):
 
     # add colorbars
     fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.87, 0.15, 0.05, 0.7])
+    cbar_ax = fig.add_axes((0.87, 0.15, 0.05, 0.7))
     fig.colorbar(ax[0].imshow(data, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', cmap='viridis'), cax=cbar_ax)
     cbar_ax.set_ylabel('Counts')
     
