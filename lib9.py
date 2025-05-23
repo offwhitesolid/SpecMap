@@ -611,7 +611,7 @@ class XYMap:
         b3 = tk.Button(fitframe, text="Fit Window to Spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=True))
         b3.pack(side=tk.TOP, anchor=tk.W)
         self.sepfitfunct = tk.BooleanVar()
-        b4 = tk.Button(fitframe, text="plot existing fit and spectrum", command=lambda: self.plotfitandSpec('fitmaxX'))
+        b4 = tk.Button(fitframe, text="plot existing fit and spectrum", command=lambda: self.runPlotFitSpectrum())
         b4.pack(side=tk.TOP, anchor=tk.W)
         self.sepfitfunct.set(False)
         self.sepfitfunctsbut = tk.Checkbutton(fitframe, text="Seperate Fit Functions", variable=self.sepfitfunct)
@@ -1129,8 +1129,23 @@ class XYMap:
         # collect entries and run PlotFitSpectrum
         #self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]]
         self.updatewl()
+        data = None
         x, y, valid = self.validpixelinput()
-        PlotFitSpectrum(x, y, ['', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0])
+        if valid[0] == True and valid[1] == True:
+            if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
+                data = self.SpecDataMatrix[y][x].WL
+                self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Wavelength')
+            elif self.speckeys[self.selectspecboxVari] == 'BG': #Background
+                data = self.SpecDataMatrix[y][x].BG
+                self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Background Counts')
+            elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
+                data = self.SpecDataMatrix[y][x].PL
+                self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrometer Counts')
+            elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
+                data = self.SpecDataMatrix[y][x].PLB[self.aqpixstart: self.aqpixend]
+            self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
+                             
+
                                
 
 
