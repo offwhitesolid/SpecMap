@@ -144,6 +144,7 @@ class SpectrumData:
 # create XY Map that contains the Pixels 
 class XYMap:
     def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults):
+        self.name = 'XYMap'
         self.defentries = defentries
         self.remcosmicfunc = cosmicmethod
         self.removecosmics = removecosmics
@@ -685,9 +686,9 @@ class XYMap:
 
     def updateselectionentries(self):
         self.selectPixX.delete(0, tk.END)
-        self.selectPixX.insert(0, self.newselx)
+        self.selectPixX.insert(0, str(self.newselx))
         self.selectPixY.delete(0, tk.END)
-        self.selectPixY.insert(0, self.newsely)
+        self.selectPixY.insert(0, str(self.newsely))
 
     # Max Counts Colormap
     def buildandPlotIntCmap(self):
@@ -728,6 +729,7 @@ class XYMap:
         PixMatrix = self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix
         self.updatewl()
         x, y, valid = self.validpixelinput()
+        data = None
         if valid[0] == True and valid[1] == True:
             if type(self.SpecDataMatrix[y][x]) == SpectrumData:
                 if self.SpecDataMatrix[y][x].dataokay == True:
