@@ -9,6 +9,7 @@ from tkinter import messagebox
 #from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.widgets import Cursor
 from matplotlib.widgets import Button
+from matplotlib.ticker import AutoLocator
 import matplotlib.patches as mpatches
 from scipy.optimize import curve_fit
 from scipy.special import wofz
@@ -168,6 +169,7 @@ class XYMap:
         self.DataSpecdL = self.specs[0].data['Delta Wavelength (nm)']       # delta Lambda
         self.wlstart = self.defentries['lowest_wavelength']                 # lowest wavelength
         self.wlend = self.defentries['highest_wavelength']                  # highest wavelength
+        self.newpmname = None
         self.allfpnames = matl.getlistofallFitparameters()
         self.allfpnamesinone = matl.getlistofallFitparaminone()
         self.speckeys = {'Wavelength axis': 'WL', 'Background (BG)': 'BG',
@@ -847,7 +849,7 @@ class XYMap:
                                     else:
                                         self.aqpixend += incmax
                                         adjmin = True
-                                except:
+                                except Exception as e:
                                     print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in exc1 function {}.\n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e)))
                                     worked = True
                             print("Fit to Matrix Failed at element {}, {} in function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', 'not converged')) # print name of function
@@ -922,9 +924,9 @@ class XYMap:
                                     self.aqpixend += incmax
                                     adjmin = True
                             except:
-                                print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, self.__name__, str(e)))
+                                print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(x, y, self.__class__.__name__, str(e)))
                                 worked = True
-                            print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(i, j, str(e)))
+                            print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {}.\n{}".format(x, y, str(e)))
                         self.updatewl()   
 
         # fill matrix with data of the selected enry:
@@ -1142,8 +1144,8 @@ class XYMap:
                 plt.plot(x, matl.lorentzwind(x, fitfunc[0][0], fitfunc[0][1], fitfunc[0][2]), label='Lorentz 1', color='red')
                 plt.plot(x, matl.lorentzwind(x, fitfunc[0][3], fitfunc[0][4], fitfunc[0][5]), label='Lorentz 2', color='green')
             elif self.selectwindowboxVari == 'double voigt':
-                plt.plot(x, matl.voigtwind(x, fitfunc[0][0], fitfunc[0][1], fitfunc[0][2]), label='Voigt 1', color='red')
-                plt.plot(x, matl.voigtwind(x, fitfunc[0][3], fitfunc[0][4], fitfunc[0][5]), label='Voigt 2', color='green')
+                plt.plot(x, matl.voigtwind(x, fitfunc[0][0], fitfunc[0][1], fitfunc[0][2], fitfunc[0][3]), label='Voigt 1', color='red')
+                plt.plot(x, matl.voigtwind(x, fitfunc[0][4], fitfunc[0][5], fitfunc[0][6], fitfunc[0][7]), label='Voigt 2', color='green')
         else:  
             try:
                 for i in range(len(fitdata)):
@@ -1185,9 +1187,9 @@ class XYMap:
         ax.set_yticks(np.arange(len(yticks)))
         ax.set_xticklabels(np.round(xticks, 4))
         ax.set_yticklabels(np.round(yticks, 4))
-        # automatic displayed ticks
-        ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
-        ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        # automatic displayed ticks with autolocator
+        ax.xaxis.set_major_locator(AutoLocator())
+        ax.yaxis.set_major_locator(AutoLocator())
         # Set the font size of the ticks on both axes
         ax.tick_params(axis='both', which='major', labelsize=self.fontsize)
         plt.tight_layout()
@@ -1237,9 +1239,9 @@ class XYMap:
         ax.set_xticklabels(np.round(xticks, 4))
         ax.set_yticklabels(np.round(yticks, 4))
 
-        # automatic displayed ticks
-        ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
-        ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        # automatic displayed ticks with autolocator
+        ax.xaxis.set_major_locator(AutoLocator())
+        ax.yaxis.set_major_locator(AutoLocator())
         # Set the font size of the ticks on both axes
         ax.tick_params(axis='both', which='major', labelsize=self.fontsize)
         # Create a legend
@@ -1556,10 +1558,10 @@ class Roihandler():
         self.fig.subplots_adjust(right=0.89)# distance on right side for buttons
         self.ax.imshow(pixmatrix, cmap='viridis')
         # plt.axess([left, bottom, width, height])
-        self.ax_button_toggle = plt.axes([0.89, 0.95, 0.1, 0.05])
+        self.ax_button_toggle = plt.axes((0.89, 0.95, 0.1, 0.05))
         self.button_toggle = Button(self.ax_button_toggle, 'Save ROI')
         self.button_toggle.on_clicked(self.toggle_roi)
-        self.ax_button_clear = plt.axes([0.89, 0.89, 0.1, 0.05])
+        self.ax_button_clear = plt.axes((0.89, 0.89, 0.1, 0.05))
         self.button_clear = Button(self.ax_button_clear, 'Clear ROI')
         self.button_clear.on_clicked(self.clear_roi)
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)

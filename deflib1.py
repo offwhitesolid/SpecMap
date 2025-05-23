@@ -233,6 +233,23 @@ def create_menu(root, menu_bar):
     menu_bar.add_cascade(label="View", menu=view_menu)
     view_menu.add_command(label="Toggle View", command=view_toggle)
 
+def on_click(event, PixMatrix):
+    """
+    Handles mouse click events on a matplotlib figure.
+    Prints the coordinates and value at the clicked position in PixMatrix.
+    """
+    if event.inaxes:
+        try:
+            x = int(round(event.xdata))
+            y = int(round(event.ydata))
+            if 0 <= y < len(PixMatrix) and 0 <= x < len(PixMatrix[0]):
+                value = PixMatrix[y][x]
+                print(f"Clicked at (x={x}, y={y}), value: {value}")
+            else:
+                print(f"Clicked at (x={x}, y={y}), but out of bounds.")
+        except Exception as e:
+            print(f"Error handling click event: {e}")
+
 def select_file(entry_var):
     file_path = filedialog.askopenfilename()
     if file_path:

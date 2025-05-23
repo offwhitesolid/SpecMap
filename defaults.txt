@@ -1,4 +1,5 @@
-data_file = C:/Users/volib/Desktop/Evaluation/data/VP/test7_MoS2_ML_2sec/test7_MoS2_ML_2sec
+data_file = C:/Users/volib/Desktop/Projects/PCP_Microscopy/Datasets/MoS2_test/okay/Z150_dx05_dy05_areascan3 
+# C:/Users/volib/Desktop/Evaluation/data/VP/test7_MoS2_ML_2sec/test7_MoS2_ML_2sec
 filename = spectrum
 windowsize_X = 1200
 windowsize_Y = 800
