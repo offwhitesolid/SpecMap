@@ -529,17 +529,7 @@ def find_max_of_fit(fitfunc, tol=1e-6, maxiter=10000, xmin=500, xmax=600):
             x0 += 10
     #print(result.x, -result.fun)
     #return result.success, result.x, -result.fun
-    return result.seccess, result.x, fitfunc(result.x)
-
-# calculate the r_squared between fit and data
-# r_squared = 1 - (ss_res / ss_tot) 
-def calc_r_squared(fit, data): # args: data, y_fit(data)
-    ss_res = np.sum((data - fit)**2)
-    ss_tot = np.sum((data - np.mean(data))**2)
-    r_squared = 1 - (ss_res / ss_tot)
-    return r_squared, ss_res, ss_tot
-# ss_res is the sum of the squared residuals
-# ss_tot is the total sum of squares
+    return result.success, result.x, fitfunc(result.x) # type: ignore   
 
 # calculate the r_squared between fit and data
 # r_squared = 1 - (ss_res / ss_tot) 
