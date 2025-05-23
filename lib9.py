@@ -144,7 +144,6 @@ class SpectrumData:
 # create XY Map that contains the Pixels 
 class XYMap:
     def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults):
-        self.name = 'XYMap'
         self.defentries = defentries
         self.remcosmicfunc = cosmicmethod
         self.removecosmics = removecosmics
@@ -902,7 +901,7 @@ class XYMap:
                                         self.SpecDataMatrix[y][x].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
                                         self.SpecDataMatrix[y][x].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
                                     except Exception as e:
-                                        print('Fit parameter update failed in new fitline in function {}. {}'.format(self.__name__, str(e)))
+                                        print('Fit parameter update failed in new fitline in function {}. {}'.format(self.__class__.__name__, str(e)))
                         
                                 if self.SpecDataMatrix[y][x].fitdata == [None]:
                                     PixMatrix[y][x] = np.nan 
