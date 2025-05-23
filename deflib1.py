@@ -162,7 +162,7 @@ def most_freq_element(arr):
             count_dict[value] = 1
     # Find the element with the highest count
     max_count = 0
-    most_frequent = None
+    most_frequent = 1
     for key, count in count_dict.items():
         if count > max_count:
             max_count = count

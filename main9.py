@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+#from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os, sys, pickle
 from PIL import Image, ImageTk
 import lib9 as lib # type: ignore
@@ -216,7 +216,7 @@ class FileProcessorApp:
             try:
                 self.cmapframe.destroy()
                 self.specframe.destroy()
-                del Nanomap
+                del self.Nanomap
             except:
                 pass
             self.cmapframe = tk.Frame(self.nodeframes['Hyperspectra'], width=100, height=50, borderwidth=5, relief="raised")
@@ -238,7 +238,7 @@ class FileProcessorApp:
 
             self.Nanomap = lib.XYMap(
                 files_processed, self.cmapframe, self.specframe, 
-                self.multiple_BG.get(), self.linearBG.get(), self.removecosmicsBool.get(), 
+                bool(self.multiple_BG.get()), bool(self.linearBG.get()), bool(self.removecosmicsBool.get()), 
                 self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get(), 
                 self.defaults,
                 )

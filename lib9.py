@@ -6,14 +6,16 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  
-NavigationToolbar2Tk)
+#from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.widgets import Cursor
 from matplotlib.widgets import Button
 import matplotlib.patches as mpatches
 from scipy.optimize import curve_fit
 from scipy.special import wofz
-from tkinter import filedialog
+from tkinter import filedialog as tkfd
+# import for tk.messagebox
+import tkinter.messagebox as tkmb
+
 import mathlib3 as matl # type: ignore
 import deflib1 as deflib # type: ignore
 import PMclasslib1 as PMlib # type: ignore
@@ -157,12 +159,15 @@ class XYMap:
         self.fitkeys = matl.fitkeys
         self.countthreshv = self.defentries['colormap_threshold']
         self.loadfiles()
+        self.PMdict = {}                                                    # Pixel Matrix Dictionary
         self.disspecs = {}                                                  # displayed spectra Objects contains [spec][wl]{metadata}
         self.cmapframe = cmapframe                                          # Colormap Frame
         self.specframe = specframe                                          # Spectrum Frame
         self.DataSpecMin = np.amin(self.WL)                                 # Spectrum Start
         self.DataSpecMax = np.amax(self.WL[-1])                             # Spectrum End
         self.DataSpecdL = self.specs[0].data['Delta Wavelength (nm)']       # delta Lambda
+        self.wlstart = self.defentries['lowest_wavelength']                 # lowest wavelength
+        self.wlend = self.defentries['highest_wavelength']                  # highest wavelength
         self.allfpnames = matl.getlistofallFitparameters()
         self.allfpnamesinone = matl.getlistofallFitparaminone()
         self.speckeys = {'Wavelength axis': 'WL', 'Background (BG)': 'BG',
@@ -209,7 +214,7 @@ class XYMap:
             messagebox.showerror("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
         passt = False
         if self.wlstart > self.wlend:
-            tk.messagebox.showerror('ERROR', 'Lowest Wavelength must be smaller than Highest Wavelength! Reconsider Input!')
+            tkmb.showerror('ERROR', 'Lowest Wavelength must be smaller than Highest Wavelength! Reconsider Input!')
             self.wlstart = self.DataSpecMin
             self.proc_spec_min.delete(0, tk.END)
             self.proc_spec_min.insert(0, self.DataSpecMin)
@@ -218,23 +223,23 @@ class XYMap:
             self.proc_spec_max.insert(0, self.DataSpecMax)
         elif self.wlstart < self.DataSpecMin:
             passt = True
-            tk.messagebox.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
+            tkmb.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
             self.wlstart = self.DataSpecMin
             self.proc_spec_min.delete(0, tk.END)
             self.proc_spec_min.insert(0, self.DataSpecMin)
             if self.wlend > self.DataSpecMax:
-                tk.messagebox.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
+                tkmb.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
                 self.wlend = self.DataSpecMax
                 self.proc_spec_max.delete(0, tk.END)
                 self.proc_spec_max.insert(0, self.DataSpecMax)
         elif self.wlend > self.DataSpecMax:
             passt = True
-            tk.messagebox.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
+            tkmb.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
             self.wlend = self.DataSpecMax
             self.proc_spec_max.delete(0, tk.END)
             self.proc_spec_max.insert(0, self.DataSpecMax)
             if self.wlstart < self.DataSpecMin:
-                tk.messagebox.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
+                tkmb.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
                 self.wlstart = self.DataSpecMin
                 self.proc_spec_min.delete(0, tk.END)
                 self.proc_spec_min.insert(0, self.DataSpecMin)
@@ -248,9 +253,9 @@ class XYMap:
     def updateproc_spec_max(self):
         try:
             self.proc_spec_min.delete(0, tk.END)
-            self.proc_spec_min.insert(0, self.wlstart)
+            self.proc_spec_min.insert(0, str(self.wlstart))
             self.proc_spec_max.delete(0, tk.END)
-            self.proc_spec_max.insert(0, self.wlend)
+            self.proc_spec_max.insert(0, str(self.wlend))
         except Exception as e:
             messagebox.showerror("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
         self.updatewl()
@@ -282,7 +287,7 @@ class XYMap:
         tk.Label(frame, text="Plot font size".format(self.DataSpecMin)).grid(row=2, column=2)
         self.CMFont = tk.Entry(frame)
         self.CMFont.grid(row=3, column=2)
-        self.CMFont.insert(0, self.fontsize)
+        self.CMFont.insert(0, str(self.fontsize))
 
         # scipy fit maxiter
         tk.Label(frame, text="Max tries for fit").grid(row=4, column=2)
@@ -318,7 +323,7 @@ class XYMap:
             b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
         except: # select first HSI
             print('HSI selection failed. Selecting first HSI.')
-            self.hsiselect.set(self.PMdict.keys()[0])
+            self.hsiselect.set(str(list(self.PMdict.keys())[0]))
             b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
         b1.grid(row=2, column=0)
         b2 = tk.Button(frame, text="plot ROI", command= lambda: self.roihandler.plotroi())
@@ -371,11 +376,12 @@ class XYMap:
         b11.grid(row=8, column=2)
     
     def select_correction_spectrum_file(self):
-        self.correctionspecname = filedialog.askopenfilename(filetypes=[("Correction spectrum", "*")])
+        self.correctionspecname = tkfd.askopenfilename(filetypes=[("Correction spectrum", "*")])
+        self.loadcorrectionSpectrum()
     
     def saveHSI(self):
         # pickle the selected HSI to a file
-        filename = tk.filedialog.asksaveasfilename(defaultextension='.pkl', filetypes=[('Pickle files', '*.pkl')])
+        filename = tkfd.asksaveasfilename(defaultextension='.pkl', filetypes=[('Pickle files', '*.pkl')])
         if filename:
             # pickle the selected HSI to filename
             selhsi = self.hsiselect.get()
@@ -385,7 +391,7 @@ class XYMap:
     
     def loadHSI(self):
         # load a pickle file and add it to the HSI list
-        filename = tk.filedialog.askopenfilename(filetypes=[('Pickle files', '*.pkl')])
+        filename = tkfd.askopenfilename(filetypes=[('Pickle files', '*.pkl')])
         if filename:
             with open(filename, 'rb') as f:
                 hsi = pickle.load(f)
@@ -396,7 +402,7 @@ class XYMap:
             self.hsiselect.set(hsiname)
     
     def exportHSI(self): # export the selected HSI to a .csv file
-        filename = tk.filedialog.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
+        filename = tkfd.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
         if filename:
             selhsi = self.hsiselect.get()
             # create a string from the metadata 'key': 'value' pairs
@@ -415,13 +421,9 @@ class XYMap:
 
     def correctSpectrum(self, specname):
         # correct the selected spectrum with the entered correction spectrum
-        try:
-            correctionname = self.correctionspecname
-        except Exception as e:
-            print('Error correcting spectrum.', e)
-        # load the correction spectrum
-        #self.loadcorrectionSpectrum(correctionname)
-        self.correctionWL, self.correctionSpec = deflib.loadexpspec(correctionname)
+        if self.correctionspecname == '':
+            self.correctionspecname = tkfd.askopenfilename(filetypes=[('Correction spectrum', '*')])
+        self.correctionWL, self.correctionSpec = deflib.loadexpspec(self.correctionspecname)
 
         # plot the correction spectrum
         plt.plot(self.correctionWL, self.correctionSpec)
@@ -439,14 +441,9 @@ class XYMap:
         self.specselect.set(list(self.disspecs.keys())[-1])
         #self.disspecs['{}_corrected'.format(self.createdisspecname())].Spec = corrected_spec
     
-    def loadcorrectionSpectrum(self, specname):
-        try: 
-            correctionname = self.correctionspecname
-        except Exception as e:
-            print('Error loading correction spectrum.', e)
-            return
+    def loadcorrectionSpectrum(self):
         # load a correction spectrum
-        with open(correctionname, 'r') as file:
+        with open(self.correctionspecname, 'r') as file:
             _ = file.readline()
             lines = file.readlines()
         WL = []
@@ -501,7 +498,7 @@ class XYMap:
         return specname 
     
     def saveSpectrum(self, specname):
-        savename = tk.filedialog.asksaveasfilename(defaultextension='.txt', filetypes=[('Text files', '*.txt')])
+        savename = tkfd.asksaveasfilename(defaultextension='.txt', filetypes=[('Text files', '*.txt')])
         if savename:
             self.disspecs[specname].save(savename)
     
@@ -527,28 +524,13 @@ class XYMap:
         except Exception as e:
             print('Error plotting spectral data.', e)
     
-    def pltoselspecvsselWL(self):
-        # plot the selected spectral data vs the selected WL
-        fig, ax = plt.subplots()
-        ax.plot(self.selWL, self.selspecdata)
-        ax.set_xlabel('Wavelength [nm]')
-        ax.set_ylabel('Intensity [counts]')
-        ax.set_title('Spectral Data')
-        plt.show()
-    
     def build_plotfitparamframe(self, parframe):
         frame = tk.Frame(parframe, border=5, relief="sunken")
         frame.grid(row=0, column=6, rowspan=6, sticky=tk.NW)
         tk.Label(frame, text="Plot Fit Parameters".format(self.DataSpecMin)).grid(row=0, column=0)
-        updatefitparamsbutton = tk.Button(frame, text="Update Fit Parameters", command= lambda: self.updatefitparamplot())
         # add selectbox for fit parameters
         self.selectfitparambox = ttk.Combobox(frame, values=['FWHM', 'Center X', 'Center Y'])
     
-    def updatefitplotparamplots(self):
-        # obtain parameters from all fits that can be obtain and update self.selectfitparambox with them
-        #self.selectfitparambox.set('FWHM')
-        pass
-
     def fit2dgausstopixmatrix(self):
         try: 
             self.maxiter = int(self.fitmaxiter.get())
@@ -649,6 +631,7 @@ class XYMap:
         
         # fram = Tkinter frame, n = len(self.PMdict[i].PixMatrix), m = len(self.PMdict[i].PixMatrix[0])
     def buildButtonMatrix(self, frame, n, m):
+
         # create new subframe
         butmatframe = tk.Frame(frame)
         butmatframe.pack(side=tk.TOP, anchor=tk.W, fill=tk.BOTH, expand=True)
@@ -716,8 +699,8 @@ class XYMap:
         lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
-        self.plotPixelMatrix(self.hsiselect.get())
         self.UpdateHSIselect()
+        self.plotPixelMatrix(self.hsiselect.get())
         
     # Spectral Maximum Colormap
     def buildandPlotSpecCmap(self):
@@ -1099,18 +1082,13 @@ class XYMap:
                 messagebox.showerror("Error", "No Pixel on Y-Position.")
         except Exception as e:
             messagebox.showerror("Error", '{} Insert valid Y-Position.'.format(str(e)))
-        return(x, y, valid)
+        return(int(x), int(y), valid)
 
     # Function to handle click events of the image
     def on_click(self, event, image):
-        # Check if the click was within the axes
         if event.inaxes:
-            # Get the coordinates of the click in pixel space
-            self.newselx = int(event.xdata)
-            self.newsely = int(event.ydata)
-            #print("Clicked pixel: ({0}, {1}) - Value: {2}".format(self.newselx, self.newsely, image[self.newsely][self.newselx]))
-            self.selectPixX.insert(0, self.newselx)
-            self.selectPixY.insert(0, self.newsely)
+            self.newselx = round(event.xdata)
+            self.newsely = round(event.ydata)
             self.updateselectionentries()
 
     def PlotPixelSpectrum(self):
@@ -1389,7 +1367,6 @@ class XYMap:
     def autogenmatrix(self):
         self.mxcoords = []
         self.mycoords = []
-        self.PMdict = {}
         self.PMmetadata = {}
         if len(self.specs) == 0:
             messagebox.showerror("Error", 'No valid Data found. Check Data Files.')
