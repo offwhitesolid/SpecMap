@@ -610,11 +610,11 @@ class XYMap:
         self.selectwindowbox.pack(side=tk.TOP, anchor=tk.W)
         b3 = tk.Button(fitframe, text="Fit Window to Spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=True))
         b3.pack(side=tk.TOP, anchor=tk.W)
-        self.sepfitfunct = tk.IntVar()
-        b4 = tk.Button(fitframe, text="plot existing fit and spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=False))
+        self.sepfitfunct = tk.BooleanVar()
+        b4 = tk.Button(fitframe, text="plot existing fit and spectrum", command=lambda: self.plotfitandSpec('fitmaxX'))
         b4.pack(side=tk.TOP, anchor=tk.W)
-        self.sepfitfunct.set(0)
-        self.sepfitfunctsbut = tk.Checkbutton(fitframe, text="Separate Fit Functions", variable=self.sepfitfunct)
+        self.sepfitfunct.set(False)
+        self.sepfitfunctsbut = tk.Checkbutton(fitframe, text="Seperate Fit Functions", variable=self.sepfitfunct)
         self.sepfitfunctsbut.pack(side=tk.TOP, anchor=tk.W)
 
         # create a select box for the parameters of each fit
@@ -726,7 +726,6 @@ class XYMap:
         self.UpdateHSIselect()
 
     def fitwindowtospec(self, variable, newfit=False):
-        PixMatrix = self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix
         self.updatewl()
         x, y, valid = self.validpixelinput()
         data = None
@@ -758,7 +757,6 @@ class XYMap:
                             self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
                             self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixstart, *self.SpecDataMatrix[y][x].fitdata[:-1])
                             self.SpecDataMatrix[y][x].fitmaxX = self.SpecDataMatrix[y][x].fitmaxX*self.DataSpecdL+self.DataSpecMin
-                            PixMatrix = self.SpecDataMatrix[y][x].get_attribute(variable)
                             print('Fit worked, {} {}'.format(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY))
                         
                             #plt.scatter(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY, color='red')
@@ -1127,6 +1125,17 @@ class XYMap:
         plt.tight_layout()
         plt.show()
 
+    def runPlotFitSpectrum(self):
+        # collect entries and run PlotFitSpectrum
+        #self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]]
+        self.updatewl()
+        x, y, valid = self.validpixelinput()
+        PlotFitSpectrum(x, y, ['', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0])
+                               
+
+
+
+
     def PlotFitSpectrum(self, x, y, label, fitdata, fitfunc):
         self.readfontsize()
         plt.figure(figsize=(10, 6))
@@ -1134,7 +1143,7 @@ class XYMap:
         #plt.plot(x, fitfunc(*fitdata), label='Fitted function', color='red')
         #plt.plot(x, fitfunc(x, *fitdata), label='Fitted function', color='red')
         self.selectwindowboxVari = self.selectwindowbox.get()
-        if self.sepfitfunct.get() == 1:
+        if self.sepfitfunct.get() == True:
             # plot double window function seperately
             if self.selectwindowboxVari == 'double gaussian':
                 plt.plot(x, matl.gaussianwind(x, fitfunc[0][0], fitfunc[0][1], fitfunc[0][2]), label='Gaussian 1', color='red')
@@ -1145,6 +1154,12 @@ class XYMap:
             elif self.selectwindowboxVari == 'double voigt':
                 plt.plot(x, matl.voigtwind(x, fitfunc[0][0], fitfunc[0][1], fitfunc[0][2], fitfunc[0][3]), label='Voigt 1', color='red')
                 plt.plot(x, matl.voigtwind(x, fitfunc[0][4], fitfunc[0][5], fitfunc[0][6], fitfunc[0][7]), label='Voigt 2', color='green')
+            else:
+                try:
+                    for i in range(len(fitdata)):
+                        plt.plot(x, fitfunc[i](x, *fitdata[i]), label=label[i+1], color='red')  
+                except:
+                    plt.show()
         else:  
             try:
                 for i in range(len(fitdata)):
