@@ -28,8 +28,6 @@ class FileProcessorApp:
         self.windownotebook(deflib.Notebooks)
         self.createbuttons(self.nodeframes['Load Data'])
 
-
-
     def createmenue(self):
         # Create the menu bar
         menu_bar = tk.Menu(root)
