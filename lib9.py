@@ -16,6 +16,7 @@ from scipy.special import wofz
 from tkinter import filedialog as tkfd
 # import for tk.messagebox
 import tkinter.messagebox as tkmb
+import threading as thre
 
 import mathlib3 as matl # type: ignore
 import deflib1 as deflib # type: ignore
@@ -802,7 +803,23 @@ class XYMap:
                                             except:
                                                 print('Maxiter must be int. Using default 1000.')
                                                 self.maxiter = 1000
-                                            self.SpecDataMatrix[i][j].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter, self.fitbackup)
+                                            # fit function to spectrum using threading
+                                            # run self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter, self.fitbackup) in a seperate thread
+                                            # Create and start thread to run fit
+                                            fit_thread = thre.Thread(target=lambda: setattr(
+                                                self.SpecDataMatrix[i][j],
+                                                'fitdata', 
+                                                self.fitkeys[self.selectwindowboxVari][1](
+                                                    self.aqpixstart,
+                                                    self.aqpixend, 
+                                                    self.SpecDataMatrix[i][j].WL,
+                                                    self.SpecDataMatrix[i][j].PLB,
+                                                    self.maxiter,
+                                                    self.fitbackup
+                                                )
+                                            ))
+                                            fit_thread.start()
+                                            fit_thread.join() # Wait for thread to complete
                                             self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
                                             r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[i][j].fitdata[:-1]))
                                             a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get()) # a is the index of the fit function
