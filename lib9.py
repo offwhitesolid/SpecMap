@@ -764,7 +764,7 @@ class XYMap:
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
                         
                     except Exception as e:
-                        print('Fit filed. {}'.format(str(e)))
+                        print('Fit failed. {}'.format(str(e)))
         else:
             print(self.SpecDataMatrix[y][x])  
 
