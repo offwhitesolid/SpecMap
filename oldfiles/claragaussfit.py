@@ -83,7 +83,7 @@ def fitgaussiand2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, pos, savedir, m
 
 def fit2dgausstopixmatrix(data, gdx, gdy, pos=0):
     try:
-        fitgaussiand2dtomatrix(data, True, gdx, gdy, 'viridis', pos, savedir=None maxfev=10000)
+        fitgaussiand2dtomatrix(data, True, gdx, gdy, 'viridis', pos, savedir=None, maxfev=10000)
         #fitdata, pcov, fwhmx, fwhmy = matl.fitgaussiand2dtomatrix(self.PixMatrix, maxfev=self.maxiter)
         #print(fitdata, pcov, fwhmx, fwhmy)
 

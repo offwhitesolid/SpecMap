@@ -12,10 +12,7 @@ import claralib1 as claralib
 import export1 as xplib
 import newtonspeclib1 as newtonlib
 
-# default values for GUI
-defaults = deflib.initdefaults()
 
-print('Starting...')
 class FileProcessorApp:
     def __init__(self, root, defaults):
         self.defaults = defaults
@@ -329,6 +326,11 @@ class FileProcessorApp:
 
 if __name__ == "__main__":
     # Create the main window
+
+    # default values for GUI
+    defaults = deflib.initdefaults()
+    print('Starting...')
+
     root = tk.Tk()
     root.geometry('{}x{}'.format(int(defaults['windowsize_X']), int(defaults['windowsize_Y'])))
     frame = tk.Frame(root)

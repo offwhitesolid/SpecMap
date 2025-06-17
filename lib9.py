@@ -17,6 +17,8 @@ from tkinter import filedialog as tkfd
 # import for tk.messagebox
 import tkinter.messagebox as tkmb
 import threading as thre
+from multiprocessing import Pool
+from functools import partial
 
 import mathlib3 as matl # type: ignore
 import deflib1 as deflib # type: ignore
@@ -44,6 +46,7 @@ class SpectrumData:
         self.cosmicthreshold = cosmicthreshold
         self.cosmicpixels = cosmicpixels
         self.WL = WL
+        self.dofit = False # set True if fit is done
         if self.loadeachbg == True:
             self.BG = []
         else:
@@ -768,7 +771,7 @@ class XYMap:
         else:
             print(self.SpecDataMatrix[y][x])  
 
-    def fittoMatrixfitparams(self, PixMatrix, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20, mode='fullHSI'):
+    def fittoMatrixfitparams(self, PixMatrix, variable='fitmaxX', incmin=0.01, incmax=-0.01, nmin=20, nmax=20, mode='fullHSI'):
         # init empty self.fitbakup
         self.fitbackup = None
 
@@ -840,7 +843,7 @@ class XYMap:
                                                 # store the fit parameters in an array
                                                 self.fitbackup = self.SpecDataMatrix[i][j].fitdata
                                             except Exception as e:
-                                                print('Fit parameter update failed in new fitline. {}'.format(str(e)))
+                                                #print('Fit parameter update failed in new fitline. {}'.format(str(e)))
                                                 # retry the fit with 
                                                 if self.fitbackup != []:
                                                     pass
@@ -864,12 +867,10 @@ class XYMap:
                                         self.aqpixend += incmax
                                         adjmin = True
                                 except Exception as e:
-                                    print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in exc1 function {}.\n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e)))
+                                    #print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in exc1 function {}.\n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e)))
                                     worked = True
-                            print("Fit to Matrix Failed at element {}, {} in function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', 'not converged')) # print name of function
+                            #print("Fit to Matrix Failed at element {}, {} in function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', 'not converged')) # print name of function
                             # print the fit parameters
-                            print('Fit Parameters:', self.SpecDataMatrix[i][j].fitdata)
-                            print('Last fit parameters:', self.fitbackup)
                             self.updatewl()
 
     # function currently not in use
@@ -1409,10 +1410,24 @@ class XYMap:
                 for i in range(len(self.BG)):
                     self.BG[i] = av
 
-        for i in self.fnames:
-            specobj = SpectrumData(i, self.WL, self.BG, self.loadeachbg, self.linearbg, self.removecosmics,  self.cosmicthreshold, self.cosmicpixels, self.remcosmicfunc)
-            if specobj.dataokay == True:
-                self.specs.append(specobj)
+        # Create a partial function with fixed arguments
+        create_spec = partial(SpectrumData, 
+                    WL=self.WL, 
+                    BG=self.BG, 
+                    loadeachbg=self.loadeachbg, 
+                    linearbg=self.linearbg, 
+                    removecosmics=self.removecosmics, 
+                    cosmicthreshold=self.cosmicthreshold, 
+                    cosmicpixels=self.cosmicpixels, 
+                    removecosmicmethod=self.remcosmicfunc)
+
+        # Use Pool to parallelize the processing
+        with Pool() as pool:
+            # Map the function to all filenames
+            spec_objects = pool.map(create_spec, self.fnames)
+            
+            # Filter only valid objects
+            self.specs = [spec for spec in spec_objects if spec.dataokay]
 
     def autogenmatrix(self):
         self.mxcoords = []
