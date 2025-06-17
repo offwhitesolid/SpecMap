@@ -17,8 +17,6 @@ from tkinter import filedialog as tkfd
 # import for tk.messagebox
 import tkinter.messagebox as tkmb
 import threading as thre
-from multiprocessing import Pool
-from functools import partial
 
 import mathlib3 as matl # type: ignore
 import deflib1 as deflib # type: ignore
@@ -67,6 +65,16 @@ class SpectrumData:
         self.fitmaxY = np.nan
         self.fitdata = [None] # only fit parameter are stored, not the fit itself
         self.fitparams = matl.buildfitparas() # store all fit parameters
+        self.fitparamunits = matl.buildfitparas('units')
+
+        # test:
+        print('fitparams:', self.fitparams)
+        print('fitparamunits:', self.fitparamunits)
+        # quit all running threads
+        #sys.exit()
+        #for thread in thre.enumerate():
+        #    if thread is not thre.main_thread():
+        #        thread.join(timeout=1.0)
 
     def _read_file(self):
         with open(self.filename, 'r') as file:
@@ -791,8 +799,7 @@ class XYMap:
                         # if fit does not work, adjust the window size
                         while tries < nmin+nmax and worked == False and self.SpecDataMatrix[i][j].dofit == True:
                             tries += 1
-                            #try:
-                            if True: # debug start
+                            if True: 
                                 if self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                                     if mode == 'fullHSI':
                                         if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
@@ -843,7 +850,6 @@ class XYMap:
                                                 # store the fit parameters in an array
                                                 self.fitbackup = self.SpecDataMatrix[i][j].fitdata
                                             except Exception as e:
-                                                #print('Fit parameter update failed in new fitline. {}'.format(str(e)))
                                                 # retry the fit with 
                                                 if self.fitbackup != []:
                                                     pass
@@ -858,7 +864,6 @@ class XYMap:
                                     else:
                                         pass
                                         #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
-                                #except Exception as e: # debug end
                                 try:
                                     if adjmin == True:
                                         self.aqpixstart += incmin
@@ -869,8 +874,6 @@ class XYMap:
                                 except Exception as e:
                                     #print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in exc1 function {}.\n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e)))
                                     worked = True
-                            #print("Fit to Matrix Failed at element {}, {} in function {} \n{}".format(i, j, 'XYMap.fittoMatrixfitparams', 'not converged')) # print name of function
-                            # print the fit parameters
                             self.updatewl()
 
     # function currently not in use
@@ -1162,12 +1165,6 @@ class XYMap:
             elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                 data = self.SpecDataMatrix[y][x].PLB[self.aqpixstart: self.aqpixend]
             self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
-                             
-
-                               
-
-
-
 
     def PlotFitSpectrum(self, x, y, label, fitdata, fitfunc):
         self.readfontsize()
@@ -1208,7 +1205,7 @@ class XYMap:
         plt.tight_layout()
         plt.show()
 
-    def plotPixelMatrix(self, HSIname, cmapticks=6):
+    def plotPixelMatrix(self, HSIname, leglabel='Spectrometer Counts'):
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
         # Display the data as an image with a colormap
@@ -1216,10 +1213,7 @@ class XYMap:
         # Add a colorbar to the image
         cbar = fig.colorbar(cax, ax=ax)
         # Set the colorbar label
-        cbar.set_label('Spectrometer Counts', fontsize=self.fontsize)
-        # Set the ticks of the colormap
-        #cbar_ticks=np.linspace(np.amin(self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix), np.amax(self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix), cmapticks)
-        #cbar.set_ticks(cbar_ticks)
+        cbar.set_label(leglabel, fontsize=self.fontsize)
         # Set the font size of the colorbar ticks
         cbar.ax.tick_params(labelsize=self.fontsize)
         # Set the plot title
@@ -1410,24 +1404,26 @@ class XYMap:
                 for i in range(len(self.BG)):
                     self.BG[i] = av
 
-        # Create a partial function with fixed arguments
-        create_spec = partial(SpectrumData, 
-                    WL=self.WL, 
-                    BG=self.BG, 
-                    loadeachbg=self.loadeachbg, 
-                    linearbg=self.linearbg, 
-                    removecosmics=self.removecosmics, 
-                    cosmicthreshold=self.cosmicthreshold, 
-                    cosmicpixels=self.cosmicpixels, 
-                    removecosmicmethod=self.remcosmicfunc)
+        ''' old version
+        for i in self.fnames:
+            specobj = SpectrumData(i, self.WL, self.BG, self.loadeachbg, self.linearbg, self.removecosmics,  self.cosmicthreshold, self.cosmicpixels, self.remcosmicfunc)
+            if specobj.dataokay == True:
+                self.specs.append(specobj)
+        '''
+        # parallel loading of spectra
+        self.parallel_load_spectra()
 
-        # Use Pool to parallelize the processing
-        with Pool() as pool:
-            # Map the function to all filenames
-            spec_objects = pool.map(create_spec, self.fnames)
-            
-            # Filter only valid objects
-            self.specs = [spec for spec in spec_objects if spec.dataokay]
+    def parallel_load_spectra(self):
+        threads = []
+        lock = thre.Lock()  # To avoid race conditions when modifying self.specs
+
+        for fname in self.fnames:
+            t = thre.Thread(target=load_spectrum, args=(fname, self, lock))
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join()
 
     def autogenmatrix(self):
         self.mxcoords = []
@@ -1568,11 +1564,9 @@ class XYMap:
     def plotHSIfromfitparam(self):
         self.updatewl()
         self.updatecountthresh()
-        # test
         lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
-        fitvari = self.allfpnamesinone.index(self.selectfitparambox.get())
         
         # get index of fitvari in self.allfitparams
         for i in range(len(self.SpecDataMatrix)):
@@ -1711,3 +1705,19 @@ class Roihandler():
             self.roiselgui.set(list(self.roilist.keys())[-1])
         else:
             self.roiselgui.set('')
+
+def load_spectrum(fname, instance, lock):
+    specobj = SpectrumData(
+        fname,
+        instance.WL,
+        instance.BG,
+        instance.loadeachbg,
+        instance.linearbg,
+        instance.removecosmics,
+        instance.cosmicthreshold,
+        instance.cosmicpixels,
+        instance.remcosmicfunc
+    )
+    if specobj.dataokay:
+        with lock:
+            instance.specs.append(specobj)

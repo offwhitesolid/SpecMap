@@ -11,6 +11,7 @@ import deflib1 as deflib
 import claralib1 as claralib
 import export1 as xplib
 import newtonspeclib1 as newtonlib
+import threading as thr
 
 
 class FileProcessorApp:
@@ -323,6 +324,15 @@ class FileProcessorApp:
                 print('No Nanomap object to load data into')
                 return
 
+def pressclose(root):
+    # Get all running threads
+    for thread in thr.enumerate():
+        # Skip the main thread
+        if thread is not thr.main_thread():
+            # Set daemon to True so thread terminates when main program exits
+            thread.daemon = True
+    # Destroy the root window
+    root.destroy()
 
 if __name__ == "__main__":
     # Create the main window
@@ -335,6 +345,9 @@ if __name__ == "__main__":
     root.geometry('{}x{}'.format(int(defaults['windowsize_X']), int(defaults['windowsize_Y'])))
     frame = tk.Frame(root)
     app = FileProcessorApp(root, defaults)
+
+    # Set the protocol for closing the window
+    root.protocol("WM_DELETE_WINDOW", lambda: pressclose(root))
 
     # Run the application
     root.mainloop()

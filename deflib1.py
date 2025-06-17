@@ -594,3 +594,4 @@ def newton_loadfiles(file):
         print(f'Error: {Error}')
     
     return data
+
