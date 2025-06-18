@@ -1502,6 +1502,7 @@ class XYMap:
         self.PMdict[newpmname] = PMlib.PMclass(np.asarray(matrix), self.PixAxX, self.PixAxY, self.PMmetadata)
         self.PMdict[newpmname].name = newpmname
         self.PMdict[newpmname].metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
+        self.PMdict[newpmname].units = {'x': 'um', 'y': 'um', 'wl': 'nm', 'z': ''}
         return newpmname
 
     def plotHSIfromfitparam(self):

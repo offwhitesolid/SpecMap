@@ -2,7 +2,7 @@ import numpy as np
 import json
 
 class PMclass(): # PixMatrix class
-    def __init__(self, PixMatrix, xax, yax, metadata, name=''):
+    def __init__(self, PixMatrix, xax, yax, metadata, name='', units='', description='', data_type=''):
         self.PixMatrix = PixMatrix
         self.xax = xax
         self.yax = yax
@@ -10,6 +10,9 @@ class PMclass(): # PixMatrix class
         self.gdx = self.xax[1] - self.xax[0]
         self.gdy = self.yax[1] - self.yax[0]
         self.name = name
+        self.units = units
+        self.description = description
+        self.data_type = data_type
 
 class Spectra():
     def __init__(self, yax, xax, metadata, parenthsiname):

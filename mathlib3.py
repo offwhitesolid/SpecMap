@@ -677,6 +677,20 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'double gaussian': fitkeys['double gaussian'][6][:] + unitstoaddfit,
             'double voigt': fitkeys['double voigt'][6][:] + unitstoaddfit}
 
+# fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
+# fitunitparis: dict of the fit parameters and their units. Key of getlist
+fitunitparis = {}
+all_fit_params = getlistofallFitparameters()
+print(all_fit_params)
+for i in range(len(all_fit_params)):
+    fit_type = list(fitkeys.keys())[i]
+    #print(i, fit_type, all_fit_params[i])
+    #for j, param_name in enumerate(all_fit_params[i]):
+    #    if j < fitkeys[fit_type][4]:  # Regular fit parameters
+    #        fitunitparis[param_name] = fitunits[fit_type][j]
+    #    else:  # Additional parameters (ss_res, ss_tot, etc.)
+    #        fitunitparis[param_name] = fitunits[fit_type][j]
+
 if __name__ == '__main__':
     print('This is a library of window functions and their corresponding fit functions.')
     print('Use the fitkeys dictionary to access the functions.')
@@ -685,6 +699,10 @@ if __name__ == '__main__':
     print('Fit units:')
     for key in fitunits.keys():
         print(f"{key}: {fitunits[key]}")
+
+    print('Fit unit paris:')
+    for key in fitunitparis.keys():
+        print(f"{key}: {fitunitparis[key]}")
     
     ''' print fit parameters:
     print('Fit parameters:')
@@ -698,6 +716,6 @@ if __name__ == '__main__':
     '''
 
     #print fit parameters:
-    print(getlistofallFitparameters())
-    print(len(getlistofallFitparameters()))
+    #print(getlistofallFitparameters())
+    #print(len(getlistofallFitparameters()))
     
