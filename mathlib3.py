@@ -262,7 +262,10 @@ def fitdoublevoigttospec(start, end, WL, PLB, maxfev=10000, guess=None):
     else:
         initialguess = guess[0:8]
     #[np.max(y), x[np.argmax(y)], np.std(x), np.std(x), np.max(y), x[np.argmax(y)], np.std(x), np.std(x)] old fit estimate
-    fitdata, pcov = curve_fit(double_voigtwind, x, y, p0=initialguess, maxfev=maxfev)
+    fitdata, pcov = curve_fit(double_voigtwind, x, y, p0=initialguess, maxfev=maxfev,
+                              # tighten fith convergence by setting bounds
+                              ftol = 1e-10, xtol=1e-10, gtol=1e-10,
+                              )
     amp1_fit, cen1_fit, wid1_fit, gamma1_fit, amp2_fit, cen2_fit, wid2_fit, gamma2_fit = fitdata
     return amp1_fit, cen1_fit, wid1_fit, gamma1_fit, amp2_fit, cen2_fit, wid2_fit, gamma2_fit, pcov
 
@@ -618,9 +621,6 @@ def buildfitparas():
         fa.append([])#[np.nan])
         for j in range(0, fitkeys[i][4]+len(addtofitparms)):
             fa[-1].append(np.nan)
-        #fa.append([])#[np.nan])
-        for j in range(0, fitkeys[i][4]+len(addtofitparms)):
-            fa[-1].append(np.nan)
     return fa
 
 # return a list of all fit parameters by their names
@@ -686,19 +686,18 @@ if __name__ == '__main__':
     for key in fitunits.keys():
         print(f"{key}: {fitunits[key]}")
     
+    ''' print fit parameters:
     print('Fit parameters:')
     for key in fitkeys.keys():
         print(f"{key}: {fitkeys[key][5]}")
 
-    ''' print fit keys:'''
+    #print fit keys:
     print('Fit keys:')
     for key in fitkeys.keys():
         print(key)
-
+    '''
 
     #print fit parameters:
-    print(getlistofallFitparameters())
-    print(len(getlistofallFitparameters()))
     print(getlistofallFitparameters())
     print(len(getlistofallFitparameters()))
     
