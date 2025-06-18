@@ -481,9 +481,9 @@ class XYMap:
             for j in range(len(self.SpecDataMatrix[i])):
                 if np.isnan(self.PMdict[self.hsiselected].PixMatrix[i][j]) == False:
                     speccount += 1
-                    for k in range(self.aqpixstart, self.aqpixend):
+                    for k in range(int(self.aqpixstart), int(self.aqpixend)):
                         # average HSI to spec for all pixels that are not NaN in the selected HSI
-                        PLB[k-self.aqpixstart] += self.SpecDataMatrix[i][j].PLB[k]
+                        PLB[k-int(self.aqpixstart)] += self.SpecDataMatrix[i][j].PLB[k]
         PLB = np.divide(PLB, speccount)
         self.disspecs[self.createdisspecname()] = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
         # update the selectbox for spectral data
