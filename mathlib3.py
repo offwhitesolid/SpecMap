@@ -482,6 +482,73 @@ def fitgaussian2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
     bwy_end = y0 + sigma_y*np.sqrt(2)
     print('Beam Waist X = {} mum, Beam Waist Y = {} mum'.format(abs(bwx_end-bwx_start), abs(bwy_end-bwy_start)))
 
+# FWHM functions
+def getlorentzfwhm(fitparams):
+    # returns the FWHM of a lorentzian fit
+    # fitparams: amp, cen, wid
+    amp, cen, wid = fitparams[0:3]
+    fwhm = 2 * wid
+    return fwhm
+
+def getgaussianfwhm(fitparams):
+    # returns the FWHM of a gaussian fit
+    # fitparams: amp, cen, wid
+    amp, cen, wid = fitparams[0:3]
+    fwhm = 2 * np.sqrt(2 * np.log(2)) * wid
+    return fwhm
+
+def getvoigtfwhm(fitparams):
+    # returns the FWHM of a voigt fit
+    # fitparams: amp, cen, wid, gamma
+    amp, cen, wid, gamma = fitparams[0:4]
+    # FWHM of a Voigt profile is not straightforward, so it is calculated on a grid using the fwhmbygrid function
+    # 
+    fwhm = fwhmbygrid(wid, cen - 5 * wid, cen + 5 * wid, npoints=10000)
+    return fwhm
+
+def getdoublegaussianfwhm(fitparams):
+    # returns the FWHM of a double gaussian fit
+    # fitparams: amp1, cen1, wid1, amp2, cen2, wid2
+    amp1, cen1, wid1, amp2, cen2, wid2 = fitparams[0:6]
+    fwhm1 = 2 * np.sqrt(2 * np.log(2)) * wid1
+    fwhm2 = 2 * np.sqrt(2 * np.log(2)) * wid2
+    return fwhm1 + fwhm2
+
+def getdoublelorentzfwhm(fitparams):
+    # returns the FWHM of a double lorentzian fit
+    # fitparams: amp1, cen1, wid1, amp2, cen2, wid2
+    amp1, cen1, wid1, amp2, cen2, wid2 = fitparams[0:6]
+    fwhm1 = 2 * wid1
+    fwhm2 = 2 * wid2
+    return fwhm1 + fwhm2
+
+def getdoublevoigtfwhm(fitparams):
+    # returns the FWHM of a double voigt fit
+    # fitparams: amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2
+    amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2 = fitparams[0:8]
+    # FWHM of a Voigt profile is not straightforward, so it is calculated on a grid using the fwhmbygrid function
+    fwhm1 = fwhmbygrid(lambda x: voigtwind(x, amp1, cen1, wid1, gamma1), cen1 - 5 * wid1, cen1 + 5 * wid1)
+    fwhm2 = fwhmbygrid(lambda x: voigtwind(x, amp2, cen2, wid2, gamma2), cen2 - 5 * wid2, cen2 + 5 * wid2)
+    return fwhm1 + fwhm2
+
+
+def fwhmbygrid(f, wlstart, wlend, npoints=100000):
+    # Generate x values
+    x = np.linspace(wlstart, wlend, npoints)
+    # Calculate y values
+    y = f(x)
+    # Find the maximum y value
+    ymax = np.max(y)
+    # Find the half maximum value
+    half_max = ymax / 2
+    # Find where y crosses half_max
+    left_idx = np.where(y > half_max)[0][0]  # First index where y > half max
+    right_idx = np.where(y > half_max)[0][-1]  # Last index where y > half max
+    # Calculate FWHM
+    fwhm = x[right_idx] - x[left_idx]
+    return fwhm
+
+
 # newton's method to find the maximum of a function
 def Newtonmax(f, x0, tol=1e-8, maxiter=10000, xmin=0, xmax=1000):
     # Initialize the iteration counter
@@ -545,58 +612,35 @@ def calc_r_squared(fit, data): # args: data, y_fit(data)
 addtofitparms = ['ss_res', 'ss_tot', 'r_squared', 'fwhm', 'pixstart', 'pixend', 'wlstart', 'wlend', 'max_x', 'max_y'] # Note: this one is essential to exist
 unitstoaddfit = ['Counts', 'Counts', '', 'nm', 'nm', 'nm', 'nm', 'nm', 'nm'] # add further units to the array after r_squared
 # add further parameters to the array after r_squared
-def buildfitparas(param='parameters'):
+def buildfitparas():
     fa = []
-    if param == 'units':
-        for i in fitkeys.keys():
-            fa.append([fitkeys[i][3]])
-            for j in range(0, fitkeys[i][4]):
-                fa[-1].append(fitkeys[i][6][j])
-            fa.append([])
-            for j in range(0, fitkeys[i][4]):
-                fa[-1].append(fitkeys[i][6][j])
     for i in fitkeys.keys():
-        fa.append([np.nan])
+        fa.append([])#[np.nan])
         for j in range(0, fitkeys[i][4]+len(addtofitparms)):
             fa[-1].append(np.nan)
-        fa.append([np.nan])
+        #fa.append([])#[np.nan])
         for j in range(0, fitkeys[i][4]+len(addtofitparms)):
             fa[-1].append(np.nan)
     return fa
 
 # return a list of all fit parameters by their names
-def getlistofallFitparameters(param='parameters'):
+def getlistofallFitparameters():
     fl = []
-    if param == 'units':
-        for i in fitkeys.keys():
-            fl.append([])
-            for j in range(0, fitkeys[i][4]):
-                fl[-1].append(fitkeys[i][5][j])
-            for j in range(0, len(addtofitparms)):
-                fl[-1].append(addtofitparms[j])
-    else: # parameters
-        for i in fitkeys.keys():
-            fl.append([])
-            for j in range(0, fitkeys[i][4]):
-                fl[-1].append(i + ' ' + str(j))
-            for j in range(0, len(addtofitparms)):
-                fl[-1].append(i + ' ' + addtofitparms[j])
+    for i in fitkeys.keys():
+        fl.append([])
+        for j in range(0, fitkeys[i][4]):
+            fl[-1].append(i + ' ' + str(j))
+        for j in range(0, len(addtofitparms)):
+            fl[-1].append(i + ' ' + addtofitparms[j])
     return fl
 
-def getlistofallFitparaminone(param='parameters'):
+def getlistofallFitparaminone():
     fl = []
-    if param == 'units':
-        for i in fitkeys.keys():
-            for j in range(0, fitkeys[i][4]):
-                fl.append(fitkeys[i][5][j])
-            for j in range(0, len(addtofitparms)):
-                fl.append(addtofitparms[j])
-    else: # parameters
-        for i in fitkeys.keys():
-            for j in range(0, fitkeys[i][4]):
-                fl.append(i + ' ' + str(j))
-            for j in range(0, len(addtofitparms)):
-                fl.append(i + ' ' + addtofitparms[j])
+    for i in fitkeys.keys():
+        for j in range(0, fitkeys[i][4]):
+            fl.append(i + ' ' + str(j))
+        for j in range(0, len(addtofitparms)):
+            fl.append(i + ' ' + addtofitparms[j])
     return fl
     
 def getindexofFitparameter(fl, fitname):# fl is a list of all fit parameters, returns the index of the fit parameter in the list
@@ -610,19 +654,51 @@ def getindexofFitparameter(fl, fitname):# fl is a list of all fit parameters, re
 # key: window function name
 # value: list of window function, fit function, and function to get maxima of the fit function
 # parnum: number of parameters for the fit function
-fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit', 3, ['Lorentzian amplitude', 'Lorentzian center', 'Lorentzian width'], ['Counts', 'nm', 'nm']],
-           'gaussian':[gaussianwind, fitgaussiantospec, getmaxgaussian, 'Gaussian fit', 3, ['Gaussian amplitude', 'Gaussian center', 'Gaussian width'], ['Counts', 'nm', 'nm']],
-           'voigt':[voigtwind, fitvoigttospec, getmaxvoigt, 'Voigt fit', 4, ['Voigt amplitude', 'Voigt center', 'Voigt width', 'Voigt gamma'], ['Counts', 'nm', 'nm', 'nm']], 
+
+'''
+Note about the fit
+fitparamunits array contains the following:
+
+
+'''
+fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit', 3, ['Lorentzian amplitude', 'Lorentzian center', 'Lorentzian width'], ['Counts', 'nm', 'nm'], getlorentzfwhm],
+           'gaussian':[gaussianwind, fitgaussiantospec, getmaxgaussian, 'Gaussian fit', 3, ['Gaussian amplitude', 'Gaussian center', 'Gaussian width'], ['Counts', 'nm', 'nm'], getgaussianfwhm],
+           'voigt':[voigtwind, fitvoigttospec, getmaxvoigt, 'Voigt fit', 4, ['Voigt amplitude', 'Voigt center', 'Voigt width', 'Voigt gamma'], ['Counts', 'nm', 'nm', 'nm'], getvoigtfwhm], 
            'linear':[linearwind, fitlinetospec, getmaxlinear, 'Linear fit', 2, ['Linear slope', 'Linear offset'], ['nm', 'Counts']],
-           'double lorentz':[double_lorentzwind, fitdoublelorentztospec, getmaxdoublelorentz, 'Double Lorentz fit', 6, ['Double Lorentzian amplitude 1', 'Double Lorentzian center 1', 'Double Lorentzian width 1', 'Double Lorentzian amplitude 2', 'Double Lorentzian center 2', 'Double Lorentzian width 2'], ['Counts', 'nm', 'nm', 'Counts', 'nm', 'nm']], 
-           'double gaussian':[double_gaussianwind, fitdoublegaussiantospec, getmaxdoublegaussian, 'Double Gaussian fit', 6, ['Double Gaussian amplitude 1', 'Double Gaussian center 1', 'Double Gaussian width 1', 'Double Gaussian amplitude 2', 'Double Gaussian center 2', 'Double Gaussian width 2'], ['Counts', 'nm', 'nm', 'Counts', 'nm', 'nm']], 
-           'double voigt':[double_voigtwind, fitdoublevoigttospec, getmaxdoublevoigt, 'Double Voigt fit', 8, ['Double Voigt amplitude 1', 'Double Voigt center 1', 'Double Voigt width 1', 'Double Voigt gamma 1', 'Double Voigt amplitude 2', 'Double Voigt center 2', 'Double Voigt width 2', 'Double Voigt gamma 2'], ['Counts', 'nm', 'nm', 'nm', 'Counts', 'nm', 'nm', 'nm']]}
+           'double lorentz':[double_lorentzwind, fitdoublelorentztospec, getmaxdoublelorentz, 'Double Lorentz fit', 6, ['Double Lorentzian amplitude 1', 'Double Lorentzian center 1', 'Double Lorentzian width 1', 'Double Lorentzian amplitude 2', 'Double Lorentzian center 2', 'Double Lorentzian width 2'], ['Counts', 'nm', 'nm', 'Counts', 'nm', 'nm'], getdoublelorentzfwhm], 
+           'double gaussian':[double_gaussianwind, fitdoublegaussiantospec, getmaxdoublegaussian, 'Double Gaussian fit', 6, ['Double Gaussian amplitude 1', 'Double Gaussian center 1', 'Double Gaussian width 1', 'Double Gaussian amplitude 2', 'Double Gaussian center 2', 'Double Gaussian width 2'], ['Counts', 'nm', 'nm', 'Counts', 'nm', 'nm'], getdoublegaussianfwhm], 
+           'double voigt':[double_voigtwind, fitdoublevoigttospec, getmaxdoublevoigt, 'Double Voigt fit', 8, ['Double Voigt amplitude 1', 'Double Voigt center 1', 'Double Voigt width 1', 'Double Voigt gamma 1', 'Double Voigt amplitude 2', 'Double Voigt center 2', 'Double Voigt width 2', 'Double Voigt gamma 2'], ['Counts', 'nm', 'nm', 'nm', 'Counts', 'nm', 'nm', 'nm'], getdoublevoigtfwhm]}
+
+fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
+            'gaussian': fitkeys['gaussian'][6][:] + unitstoaddfit,
+            'voigt': fitkeys['voigt'][6][:] + unitstoaddfit,
+            'linear': fitkeys['linear'][6][:] + unitstoaddfit,
+            'double lorentz': fitkeys['double lorentz'][6][:] + unitstoaddfit,
+            'double gaussian': fitkeys['double gaussian'][6][:] + unitstoaddfit,
+            'double voigt': fitkeys['double voigt'][6][:] + unitstoaddfit}
 
 if __name__ == '__main__':
     print('This is a library of window functions and their corresponding fit functions.')
     print('Use the fitkeys dictionary to access the functions.')
 
+    ''' print fit units:'''
+    print('Fit units:')
+    for key in fitunits.keys():
+        print(f"{key}: {fitunits[key]}")
+    
+    print('Fit parameters:')
+    for key in fitkeys.keys():
+        print(f"{key}: {fitkeys[key][5]}")
+
+    ''' print fit keys:'''
+    print('Fit keys:')
+    for key in fitkeys.keys():
+        print(key)
+
+
+    #print fit parameters:
     print(getlistofallFitparameters())
     print(len(getlistofallFitparameters()))
     print(getlistofallFitparameters())
     print(len(getlistofallFitparameters()))
+    

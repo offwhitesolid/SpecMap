@@ -36,7 +36,7 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'magnification']
 
 class SpectrumData:
-    def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, removecosmicmethod=list(deflib.cosmicfuncts.keys())[0]):
+    def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, removecosmicmethod=list(deflib.cosmicfuncts.keys())[0], fitunits=matl.fitunits):
         self.removecosmicsmethod = removecosmicmethod
         self.loadeachbg = loadeachbg
         self.linearbg = linearbg
@@ -64,17 +64,25 @@ class SpectrumData:
         self.fitmaxX = np.nan
         self.fitmaxY = np.nan
         self.fitdata = [None] # only fit parameter are stored, not the fit itself
+        # what is inside fitdata after the fit is done? 
+        # a sub array for each fit function (look at matl.fitkeys)
+        # each array contains the fit output parameters (fitkeys[function][4], which is the number of parameters), followed by:
+        # ['ss_res', 'ss_tot', 'r_squared', 'fwhm', 'pixstart', 'pixend', 'wlstart', 'wlend', 'max_x', 'max_y']
+        #  fitmaxX[-1] fitmaxY[-2] aqpixstart[-3] aqpixend[-4] r_squared[-7] 'ss_res'[-8] 'ss_tot'[-9] 
         self.fitparams = matl.buildfitparas() # store all fit parameters
-        self.fitparamunits = matl.buildfitparas('units')
+        self.fitparamunits = matl.buildfitparas()
 
-        # test:
-        print('fitparams:', self.fitparams)
-        print('fitparamunits:', self.fitparamunits)
-        # quit all running threads
-        #sys.exit()
-        #for thread in thre.enumerate():
-        #    if thread is not thre.main_thread():
-        #        thread.join(timeout=1.0)
+        # store fitmaxX and fitmaxY in fitparams[-1] and [-2]
+        #self.SpecDataMatrix[i][j].fitparams[a][-1] = self.SpecDataMatrix[i][j].fitmaxX
+        #self.SpecDataMatrix[i][j].fitparams[a][-2] = self.SpecDataMatrix[i][j].fitmaxY
+        # store aqpixstart and aqpixend in fitparams[-3] and [-4]
+        #self.SpecDataMatrix[i][j].fitparams[a][-3] = self.aqpixstart
+        #self.SpecDataMatrix[i][j].fitparams[a][-4] = self.aqpixend
+        # store r_squared in fitparams [-7], [-8], [-9]
+        #self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)+1] = r_squared
+        #self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
+        #self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
+        # missing parameters: fwhm, pixstart, pixend
 
     def _read_file(self):
         with open(self.filename, 'r') as file:
@@ -769,7 +777,6 @@ class XYMap:
                             self.SpecDataMatrix[y][x].fitdata = self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[y][x].WL, self.SpecDataMatrix[y][x].PLB, self.maxiter)
                             self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixstart, *self.SpecDataMatrix[y][x].fitdata[:-1])
                             self.SpecDataMatrix[y][x].fitmaxX = self.SpecDataMatrix[y][x].fitmaxX*self.DataSpecdL+self.DataSpecMin
-                            print('Fit worked, {} {}'.format(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY))
                         
                             #plt.scatter(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY, color='red')
                         self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
@@ -825,8 +832,7 @@ class XYMap:
                                                     self.SpecDataMatrix[i][j].WL,
                                                     self.SpecDataMatrix[i][j].PLB,
                                                     self.maxiter,
-                                                    self.fitbackup
-                                                )
+                                                    self.fitbackup)
                                             ))
                                             fit_thread.start()
                                             fit_thread.join() # Wait for thread to complete
@@ -843,16 +849,20 @@ class XYMap:
                                                 # store aqpixstart and aqpixend in fitparams[-3] and [-4]
                                                 self.SpecDataMatrix[i][j].fitparams[a][-3] = self.aqpixstart
                                                 self.SpecDataMatrix[i][j].fitparams[a][-4] = self.aqpixend
-                                                # store r_squared in fitparams [-7], [-8], [-9]
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)+1] = r_squared
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)+1] = ss_res
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)+1] = ss_tot
+                                                # store fwhm in fitparams[-5]
+                                                # test: 
+                                                #print(matl.fitkeys[list(matl.fitkeys.keys())[a]][7])
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('fwhm')-len(matl.addtofitparms)] = matl.fitkeys[list(matl.fitkeys.keys())[a]][7](self.SpecDataMatrix[i][j].fitdata[:matl.fitkeys[list(matl.fitkeys.keys())[a]][4]])
+                                                
+                                                # store r_squared, 'ss_res', 'ss_tot' in fitparams [-7], [-8], [-9]
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)] = r_squared
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)] = ss_res
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)] = ss_tot
                                                 # store the fit parameters in an array
                                                 self.fitbackup = self.SpecDataMatrix[i][j].fitdata
                                             except Exception as e:
                                                 # retry the fit with 
-                                                if self.fitbackup != []:
-                                                    pass
+                                                print('Fit parameter update failed in new fitline in function {}.\n{}'.format('XYMap.fittoMatrixfitparams', str(e)))
 
                                 if self.SpecDataMatrix[i][j].fitdata == [None]:
                                     PixMatrix[i][j] = np.nan
