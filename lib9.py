@@ -1517,6 +1517,8 @@ class XYMap:
         # set the unit of self.PMdict[newpm].PixMatrix to the unit of the fit parameter
         if self.selectfitparambox.get() in matl.fitunitpairs:
             self.PMdict[newpm].units['z'] = matl.fitunitpairs[self.selectfitparambox.get()]
+        elif self.selectfitparambox.get().split(' ')[-1] in matl.addtofitparms:
+            self.PMdict[newpm].units['z'] = matl.unitstoaddfit[matl.addtofitparms.index(self.selectfitparambox.get().split(' ')[-1])]
         else:
             self.PMdict[newpm].units['z'] = 'unknown unit'
         #matl.getindexofFitparUnits(self.allfpnames, self.selectfitparambox.get())
