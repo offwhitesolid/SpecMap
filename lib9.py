@@ -723,7 +723,7 @@ class XYMap:
         self.UpdateHSIselect()
     
         try:
-            self.plotPixelMatrix(self.hsiselect.get())
+            self.plotPixelMatrix(self.hsiselect.get(), leglabel='Spectral Maximum in nm')
         except Exception as e:
             print('Plot failed. {}'.format(str(e)))
             plt.cla()
@@ -750,7 +750,7 @@ class XYMap:
                         self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Background Counts')
                     elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
                         data = self.SpecDataMatrix[y][x].PL
-                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrometer Counts')
+                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Counts')
                     elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                         data = self.SpecDataMatrix[y][x].PLB[self.aqpixstart: self.aqpixend]
                     try: # fit function to spectrum  
@@ -767,7 +767,7 @@ class XYMap:
                             self.SpecDataMatrix[y][x].fitmaxX = self.SpecDataMatrix[y][x].fitmaxX*self.DataSpecdL+self.DataSpecMin
                         
                             #plt.scatter(self.SpecDataMatrix[y][x].fitmaxX, self.SpecDataMatrix[y][x].fitmaxY, color='red')
-                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['Spectrometer counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
+                        self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['integrated counts', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
                         
                     except Exception as e:
                         print('Fit failed. {}'.format(str(e)))
@@ -783,6 +783,7 @@ class XYMap:
         # update wlstart and wlend
         self.selectwindowboxVari = self.selectwindowbox.get()
         self.selectspecboxVari = self.selectspecbox.get()
+
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 if type(self.SpecDataMatrix[i][j]) == SpectrumData:
@@ -791,6 +792,7 @@ class XYMap:
                         tries = 1
                         worked = False
                         adjmin = True
+
                         # if fit does not work, adjust the window size
                         while tries < nmin+nmax and worked == False and self.SpecDataMatrix[i][j].dofit == True:
                             tries += 1
@@ -1070,7 +1072,7 @@ class XYMap:
                         self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Background Counts')
                     elif self.speckeys[self.selectdataboxVari] == 'PL': # Counts
                         data = self.SpecDataMatrix[y][x].PL
-                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrometer Counts')
+                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'integrated counts')
                     elif self.speckeys[self.selectdataboxVari] == 'PLB': #Spectrum
                         data = self.SpecDataMatrix[y][x].PLB
                         self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'PL Spectrum')
@@ -1104,7 +1106,7 @@ class XYMap:
                 self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Background Counts')
             elif self.speckeys[self.selectspecboxVari] == 'PL': # Counts
                 data = self.SpecDataMatrix[y][x].PL
-                self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrometer Counts')
+                self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'integrated counts')
             elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                 data = self.SpecDataMatrix[y][x].PLB[self.aqpixstart: self.aqpixend]
             self.PlotFitSpectrum(self.SpecDataMatrix[y][x].WL[self.aqpixstart: self.aqpixend], data, ['', self.fitkeys[self.selectwindowboxVari][3]], [self.SpecDataMatrix[y][x].fitdata[:-1]], [self.fitkeys[self.selectwindowboxVari][0]])
@@ -1148,7 +1150,7 @@ class XYMap:
         plt.tight_layout()
         plt.show()
 
-    def plotPixelMatrix(self, HSIname, leglabel='Spectrometer Counts'):
+    def plotPixelMatrix(self, HSIname, leglabel='counts'):
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
         # Display the data as an image with a colormap
@@ -1502,7 +1504,7 @@ class XYMap:
         self.PMdict[newpmname] = PMlib.PMclass(np.asarray(matrix), self.PixAxX, self.PixAxY, self.PMmetadata)
         self.PMdict[newpmname].name = newpmname
         self.PMdict[newpmname].metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
-        self.PMdict[newpmname].units = {'x': 'um', 'y': 'um', 'wl': 'nm', 'z': ''}
+        self.PMdict[newpmname].units = {'x': 'um', 'y': 'um', 'wl': 'nm', 'z': 'counts'}
         return newpmname
 
     def plotHSIfromfitparam(self):
@@ -1511,6 +1513,16 @@ class XYMap:
         lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
+
+        # set the unit of self.PMdict[newpm].PixMatrix to the unit of the fit parameter
+        if self.selectfitparambox.get() in matl.fitunitpairs:
+            self.PMdict[newpm].units['z'] = matl.fitunitpairs[self.selectfitparambox.get()]
+        else:
+            self.PMdict[newpm].units['z'] = 'unknown unit'
+        #matl.getindexofFitparUnits(self.allfpnames, self.selectfitparambox.get())
+        # set the name of the new PixMatrix to the name of the fit parameter
+        self.PMdict[newpm].name = matl.fitparamkeyN2name(self.selectfitparambox.get())
+        #f'{self.selectfitparambox.get()}'
         
         # get index of fitvari in self.allfitparams
         for i in range(len(self.SpecDataMatrix)):
@@ -1537,7 +1549,7 @@ class XYMap:
                     lastpm[newpm][i][j] = np.nan
                     print('No Data found in Pixel {}, {}'.format(i, j))
         # test
-        self.plotPixelMatrix(newpm)
+        self.plotPixelMatrix(newpm, leglabel=f'{self.PMdict[newpm].name} in {self.PMdict[newpm].units["z"]}')
         #self.plotPixelMatrix(self.PMdict[newpm].PixMatrix)
         self.UpdateHSIselect()
         

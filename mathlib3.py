@@ -613,7 +613,19 @@ def calc_r_squared(fit, data): # args: data, y_fit(data)
 
 # + is for ss_res, ss_tot, r_squared, pixstart, pixend, wlstart, wlend, fwhm, max_x, max_y
 addtofitparms = ['ss_res', 'ss_tot', 'r_squared', 'fwhm', 'pixstart', 'pixend', 'wlstart', 'wlend', 'max_x', 'max_y'] # Note: this one is essential to exist
-unitstoaddfit = ['Counts', 'Counts', '', 'nm', 'nm', 'nm', 'nm', 'nm', 'nm'] # add further units to the array after r_squared
+FitParamsNames = {
+    'ss_res': 'Residual Sum of Squares',
+    'ss_tot': 'Total Sum of Squares',
+    'r_squared': 'Coefficient of Determination',
+    'fwhm': 'Full Width at Half Maximum',
+    'pixstart': 'Starting Pixel Index',
+    'pixend': 'Ending Pixel Index',
+    'wlstart': 'Starting Wavelength',
+    'wlend': 'Ending Wavelength',
+    'max_x': 'X Coordinate of Maximum Value',
+    'max_y': 'Y Coordinate of Maximum Value'
+}
+unitstoaddfit = ['Counts', 'Counts', '', 'nm', 'nm', 'nm', 'nm', 'nm', 'nm', 'nm'] # add further units to the array after r_squared
 # add further parameters to the array after r_squared
 def buildfitparas():
     fa = []
@@ -661,6 +673,26 @@ fitparamunits array contains the following:
 
 
 '''
+def fitparamkeyN2name(fpk):
+    fpksp = fpk.split(' ')
+    funk = fpk[:-1][:-1] # remove the last number and the space before it
+    fpkn = fpksp[-1]
+    name = 'maximum'
+    if funk in list(fitkeys.keys()):
+        try:
+            fpkn = int(fpkn)  # try to convert to int:
+            name = fitkeys[funk][5][int(fpkn)]
+        except:
+            # if it fails, it is not an int, so we assume it is a name of a fit parameter
+            if fpkn in fitkeys[funk][5]:
+                name = fitkeys[funk][5][fpkn]
+            elif fpkn in addtofitparms:
+                name = f'{funk} {FitParamsNames[fpkn]}'
+            else:
+                name = fpkn
+    return name
+
+
 fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit', 3, ['Lorentzian amplitude', 'Lorentzian center', 'Lorentzian width'], ['Counts', 'nm', 'nm'], getlorentzfwhm],
            'gaussian':[gaussianwind, fitgaussiantospec, getmaxgaussian, 'Gaussian fit', 3, ['Gaussian amplitude', 'Gaussian center', 'Gaussian width'], ['Counts', 'nm', 'nm'], getgaussianfwhm],
            'voigt':[voigtwind, fitvoigttospec, getmaxvoigt, 'Voigt fit', 4, ['Voigt amplitude', 'Voigt center', 'Voigt width', 'Voigt gamma'], ['Counts', 'nm', 'nm', 'nm'], getvoigtfwhm], 
@@ -679,17 +711,20 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
 # fitunitparis: dict of the fit parameters and their units. Key of getlist
-fitunitparis = {}
+fitunitpairs = {}
 all_fit_params = getlistofallFitparameters()
-print(all_fit_params)
+#print(all_fit_params)
 for i in range(len(all_fit_params)):
     fit_type = list(fitkeys.keys())[i]
-    #print(i, fit_type, all_fit_params[i])
-    #for j, param_name in enumerate(all_fit_params[i]):
-    #    if j < fitkeys[fit_type][4]:  # Regular fit parameters
-    #        fitunitparis[param_name] = fitunits[fit_type][j]
-    #    else:  # Additional parameters (ss_res, ss_tot, etc.)
-    #        fitunitparis[param_name] = fitunits[fit_type][j]
+    print(i, fit_type, all_fit_params[i])
+    #fitunitpairs[fit_type] = all_fit_params[i]
+    for j, param_name in enumerate(all_fit_params[i]):
+        if j < fitkeys[fit_type][4]:  # Regular fit parameters
+            fitunitpairs[param_name] = fitunits[fit_type][j]
+        #else:  # Additional parameters (ss_res, ss_tot, etc.)
+        #    fitunitparis[param_name] = fitunits[fit_type][j]
+for i in range(len(addtofitparms)):
+    fitunitpairs[addtofitparms[i]] = unitstoaddfit[i]
 
 if __name__ == '__main__':
     print('This is a library of window functions and their corresponding fit functions.')
@@ -700,10 +735,14 @@ if __name__ == '__main__':
     for key in fitunits.keys():
         print(f"{key}: {fitunits[key]}")
 
-    print('Fit unit paris:')
-    for key in fitunitparis.keys():
-        print(f"{key}: {fitunitparis[key]}")
+    print('Fit unit pairs:')
+    for key in fitunitpairs.keys():
+        print(f"{key}: {fitunitpairs[key]}")
     
+    #print('fitkeypairs:')
+    #for key in fitkeys.keys():
+    #    print(f"{key}: {fitkeys[key]}")
+
     ''' print fit parameters:
     print('Fit parameters:')
     for key in fitkeys.keys():
