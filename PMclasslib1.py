@@ -23,7 +23,7 @@ class Spectra():
         self.gdx = self.WL[1] - self.WL[0]
         self.header = dict_to_string(self.metadata, format="lines")
         # add to header: "wavelength in nm" \t "intensity in counts"
-        self.header = self.header + "\n wavelenth in nm \t intensity in counts"
+        self.header = self.header + "\nWL / nm\tCounts"
     
     def save(self, filename):
         np.savetxt(filename, np.column_stack((self.WL, self.Spec)), delimiter='\t', header=self.header)
