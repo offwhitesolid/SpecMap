@@ -716,7 +716,6 @@ all_fit_params = getlistofallFitparameters()
 #print(all_fit_params)
 for i in range(len(all_fit_params)):
     fit_type = list(fitkeys.keys())[i]
-    print(i, fit_type, all_fit_params[i])
     #fitunitpairs[fit_type] = all_fit_params[i]
     for j, param_name in enumerate(all_fit_params[i]):
         if j < fitkeys[fit_type][4]:  # Regular fit parameters

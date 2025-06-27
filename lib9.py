@@ -1162,7 +1162,7 @@ class XYMap:
         # Set the font size of the colorbar ticks
         cbar.ax.tick_params(labelsize=self.fontsize)
         # Set the plot title
-        ax.set_title('Integrated {0} pixels from {1} nm to {2} nm.'.format(int(self.aqpixend-self.aqpixstart+1), self.wlstart, self.wlend, fontsize=self.fontsize))
+        ax.set_title('{0} pixels from {1} nm to {2} nm.'.format(int(self.aqpixend-self.aqpixstart+1), self.wlstart, self.wlend, fontsize=self.fontsize))
         # Set the x and y axis labels
         ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=self.fontsize)
         ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=self.fontsize)
