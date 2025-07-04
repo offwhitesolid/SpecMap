@@ -521,7 +521,8 @@ defaults={
     'save_hsi': "hsidata/hsi.txt", 
     'load_hsi_saved': "hsidata/hsi.txt",
     'enable_buttonmatrix': False, 
-    'loadonstart': False
+    'loadonstart': False, 
+    'selected_WL_axis': 'Wavelength (nm)',
 }
 
 defaulttypes = {
@@ -561,6 +562,7 @@ defaulttypes = {
     'Matrix_grid_dy': float,
     'enable_buttonmatrix': bool, 
     'loadonstart': bool,
+    'selected_WL_axis': str,
 }
 
 def testdefaults():
@@ -571,17 +573,6 @@ def testdefaults():
             print(f'{i} not in defaults')
         if defaulttypes[i] != type(defaults[i]):
             print(f'{i} not the same type')
-
-# check definitions 
-if __name__ == '__main__':
-    try:
-        testdefaults()
-        print('All definitions are correct')
-    except Exception as Error:
-        print('Error while loading defaults')
-        print(f'Error: {Error}')
-    
-    testcorrect_spectrum()
 
 def newton_loadfiles(file):
     data = None
@@ -594,4 +585,34 @@ def newton_loadfiles(file):
         print(f'Error: {Error}')
     
     return data
+
+# WL Axis stuff
+WL_values = ['Wavelength (nm)', 'Energy (eV)']
+
+def wl_array_to_ev(wl):
+    """
+    Convert wavelength in nm to energy in eV.
+    
+    Parameters:
+    - wl: Wavelength in nm.
+    
+    Returns:
+    - Energy in eV.
+    """
+    h = 4.135667696e-15  # Planck's constant in eV·s
+    c = 299792458e9      # Speed of light in nm/s
+    for i in range(len(wl)): 
+        wl[i] = h * c / wl[i]
+    return wl  # Energy in eV
+
+# check definitions 
+if __name__ == '__main__':
+    try:
+        testdefaults()
+        print('All definitions are correct')
+    except Exception as Error:
+        print('Error while loading defaults')
+        print(f'Error: {Error}')
+    
+    testcorrect_spectrum()
 

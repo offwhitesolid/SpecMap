@@ -31,3 +31,4 @@ save_hsi = hsidata/hsi.txt
 load_hsi_saved = hsidata/hsi.txt
 enable_buttonmatrix = False
 loadonstart = False
+selected_WL_axis = Wavelength (nm)

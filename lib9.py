@@ -36,7 +36,7 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'magnification']
 
 class SpectrumData:
-    def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, removecosmicmethod=list(deflib.cosmicfuncts.keys())[0], fitunits=matl.fitunits):
+    def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, removecosmicmethod=list(deflib.cosmicfuncts.keys())[0], WL_eV=None):
         self.removecosmicsmethod = removecosmicmethod
         self.loadeachbg = loadeachbg
         self.linearbg = linearbg
@@ -44,6 +44,7 @@ class SpectrumData:
         self.cosmicthreshold = cosmicthreshold
         self.cosmicpixels = cosmicpixels
         self.WL = WL
+        self.WL_eV = WL_eV
         self.dofit = False # set True if fit is done
         if self.loadeachbg == True:
             self.BG = []
@@ -164,7 +165,12 @@ class XYMap:
         self.loadeachbg = loadbg
         self.specs = []                                                     # Spectral Objects
         self.fontsize = self.defentries['fontsize']                         # Default Plot Font Size
+        # init tk variables
         self.colormap = tk.StringVar()                                      # Colormap
+        self.WL_selection = tk.StringVar()                                  # Wavelength Selection
+        self.WL_values= deflib.WL_values
+        self.WL_selection.set(self.WL_values[self.WL_values.index(defentries['selected_WL_axis'])]) # set default WL selection
+        
         self.fitkeys = matl.fitkeys
         self.countthreshv = self.defentries['colormap_threshold']
         self.loadfiles()
@@ -578,7 +584,7 @@ class XYMap:
         m = len(firstPM[0])
         plotframe = tk.Frame(parframe, border=5, relief="raised")
         plotframe.grid(row=0, column=0, sticky=tk.NW)
-        tk.Label(plotframe, text='Press Plot Spectrum\nto plot selected Pixel\nPixel Loaded: {} x {}'.format(len(self.SpecDataMatrix[0]), len(self.SpecDataMatrix))).pack(side=tk.TOP, anchor=tk.W)
+        tk.Label(plotframe, text='Pixel Loaded: {} x {}'.format(len(self.SpecDataMatrix[0]), len(self.SpecDataMatrix))).pack(side=tk.TOP, anchor=tk.W)
         tk.Label(plotframe, text='selected Pixel: ').pack(side=tk.TOP, anchor=tk.W)
         xyframe = tk.Frame(plotframe)
         xyframe.pack(side=tk.TOP, anchor=tk.W)
@@ -599,6 +605,15 @@ class XYMap:
         self.selectspecpixbox = ttk.Combobox(plotframe, values=list(self.speckeys.keys()))
         self.selectspecpixbox.set(list(self.speckeys.keys())[-1])
         self.selectspecpixbox.pack(side=tk.TOP, anchor=tk.W)
+
+        # add a combobox to select wavelength / nm or energy / eV axis
+        tk.Label(plotframe, text="Select WL Axis").pack(side=tk.TOP, anchor=tk.W)
+        self.selectspecxbox = ttk.Combobox(plotframe, values=['Wavelength (nm)', 'Energy (eV)'])
+        self.selectspecxbox.set(self.defentries['selected_WL_axis'])
+        self.selectspecxbox.pack(side=tk.TOP, anchor=tk.W)
+
+        # bind event to selectspecxbox when selection changes
+        self.selectspecxbox.bind('<<ComboboxSelected>>', lambda event: self.WL_selection.set(self.selectspecxbox.get()))
 
         b1 = tk.Button(plotframe, text="Plot Spectrum", command=self.PlotPixelSpectrum)
         b1.pack(side=tk.TOP, anchor=tk.W)
@@ -1055,25 +1070,36 @@ class XYMap:
             self.newselx = round(event.xdata)
             self.newsely = round(event.ydata)
             self.updateselectionentries()
+    
+    def WL2selectedunit(self, i, j):
+        print('selected unit: {}'.format(self.WL_selection.get()))
+        if self.WL_selection.get() == 'Wavelength (nm)':
+            self.WLunit = 'nm'
+            return self.SpecDataMatrix[i][j].WL
+        elif self.WL_selection.get() == 'Energy (eV)':
+            self.WLunit = 'eV'
+            #return deflib.wl_array_to_ev(self.SpecDataMatrix[i][j].WL)
+            return self.SpecDataMatrix[i][j].WL_eV
+        else: 
+            self.WLunit = 'nm'
+            print('No valid Wavelength Unit selected. Using nm as default.')
+            return self.SpecDataMatrix[i][j].WL
 
     def PlotPixelSpectrum(self):
         x, y, valid = self.validpixelinput()        
         if valid[0] == True and valid[1] == True:
             if type(self.SpecDataMatrix[y][x]) == SpectrumData:
                 if self.SpecDataMatrix[y][x].dataokay == True:
+                    wl = self.WL2selectedunit(y, x)
                     self.selectdataboxVari = self.selectspecpixbox.get()
                     if self.speckeys[self.selectdataboxVari] == 'WL': #Wavelength
-                        data = self.SpecDataMatrix[y][x].WL
-                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Wavelength')
+                        self.PlotSpectrum(wl, wl, 'Wavelength')
                     elif self.speckeys[self.selectdataboxVari] == 'BG': #Background
-                        data = self.SpecDataMatrix[y][x].BG
-                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Background Counts')
+                        self.PlotSpectrum(self.SpecDataMatrix[y][x].BG, wl, 'Background Counts')
                     elif self.speckeys[self.selectdataboxVari] == 'PL': # Counts
-                        data = self.SpecDataMatrix[y][x].PL
-                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'Spectrometer Counts')
+                        self.PlotSpectrum(self.SpecDataMatrix[y][x].PL, wl, 'Spectrometer Counts')
                     elif self.speckeys[self.selectdataboxVari] == 'PLB': #Spectrum
-                        data = self.SpecDataMatrix[y][x].PLB
-                        self.PlotSpectrum(data, self.SpecDataMatrix[y][x].WL, 'PL Spectrum')
+                        self.PlotSpectrum(self.SpecDataMatrix[y][x].PLB, wl, 'PL Spectrum')
                     else:
                         print('No valid Data set selected for the Plot.')
 
@@ -1352,7 +1378,10 @@ class XYMap:
             specobj = SpectrumData(i, self.WL, self.BG, self.loadeachbg, self.linearbg, self.removecosmics,  self.cosmicthreshold, self.cosmicpixels, self.remcosmicfunc)
             if specobj.dataokay == True:
                 self.specs.append(specobj)
-        '''
+        ''' 
+        # convert WL in nm to eV and strore as WL_eV
+        self.WL_eV = deflib.wl_array_to_ev(self.WL[:])
+
         # parallel loading of spectra
         self.parallel_load_spectra()
 
@@ -1660,7 +1689,9 @@ def load_spectrum(fname, instance, lock):
         instance.removecosmics,
         instance.cosmicthreshold,
         instance.cosmicpixels,
-        instance.remcosmicfunc
+        instance.remcosmicfunc, 
+        instance.WL_eV
+
     )
     if specobj.dataokay:
         with lock:
