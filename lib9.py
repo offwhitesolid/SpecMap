@@ -1093,22 +1093,22 @@ class XYMap:
                     wl = self.WL2selectedunit(y, x)
                     self.selectdataboxVari = self.selectspecpixbox.get()
                     if self.speckeys[self.selectdataboxVari] == 'WL': #Wavelength
-                        self.PlotSpectrum(wl, wl, 'Wavelength')
+                        self.PlotSpectrum(wl, wl, 'Wavelength', xunit=self.WLunit)
                     elif self.speckeys[self.selectdataboxVari] == 'BG': #Background
-                        self.PlotSpectrum(self.SpecDataMatrix[y][x].BG, wl, 'Background Counts')
+                        self.PlotSpectrum(self.SpecDataMatrix[y][x].BG, wl, 'Background Counts', xunit=self.WLunit)
                     elif self.speckeys[self.selectdataboxVari] == 'PL': # Counts
-                        self.PlotSpectrum(self.SpecDataMatrix[y][x].PL, wl, 'Spectrometer Counts')
+                        self.PlotSpectrum(self.SpecDataMatrix[y][x].PL, wl, 'Spectrometer Counts', xunit=self.WLunit)
                     elif self.speckeys[self.selectdataboxVari] == 'PLB': #Spectrum
-                        self.PlotSpectrum(self.SpecDataMatrix[y][x].PLB, wl, 'PL Spectrum')
+                        self.PlotSpectrum(self.SpecDataMatrix[y][x].PLB, wl, 'PL Spectrum', xunit=self.WLunit)
                     else:
                         print('No valid Data set selected for the Plot.')
 
-    def PlotSpectrum(self, x, y, label):
+    def PlotSpectrum(self, x, y, label, xunit='nm', yunit='counts'):
         self.readfontsize()
         plt.figure(figsize=(10, 6))
         plt.plot(y, x, label=label, color='blue')       
-        plt.xlabel('Wavelength / nm', fontsize=self.fontsize)
-        plt.ylabel('Intensity / counts', fontsize=self.fontsize)
+        plt.xlabel(f'Wavelength / {xunit}', fontsize=self.fontsize)
+        plt.ylabel(f'Intensity / {yunit}', fontsize=self.fontsize)
         plt.title('Spectrograph Data', fontsize=self.fontsize)
         plt.legend(fontsize=self.fontsize)
         plt.tick_params(axis='both', which='major', labelsize=self.fontsize)
