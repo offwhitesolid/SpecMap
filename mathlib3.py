@@ -681,7 +681,6 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
 # fitunitparis: dict of the fit parameters and their units. Key of getlist
 fitunitparis = {}
 all_fit_params = getlistofallFitparameters()
-print(all_fit_params)
 for i in range(len(all_fit_params)):
     fit_type = list(fitkeys.keys())[i]
     #print(i, fit_type, all_fit_params[i])
