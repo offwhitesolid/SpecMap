@@ -1072,7 +1072,6 @@ class XYMap:
             self.updateselectionentries()
     
     def WL2selectedunit(self, i, j):
-        print('selected unit: {}'.format(self.WL_selection.get()))
         if self.WL_selection.get() == 'Wavelength (nm)':
             self.WLunit = 'nm'
             return self.SpecDataMatrix[i][j].WL
