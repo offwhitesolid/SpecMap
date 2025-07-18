@@ -1,12 +1,29 @@
 # SpecMap
 Version2 of hypermap
 
-Installation an .venv creation: 
-Remove-Item -Recurse -Force .venv
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+!!! .venv Installation START !!!
+- Installation an .venv creation on windows enter the following 5 command in your terminal:
+>>> Remove-Item -Recurse -Force .venv
+>>> python -m venv .venv
+>>> .\.venv\Scripts\Activate.ps1
+>>> python -m pip install --upgrade pip
+>>> pip install -r requirements.txt
+
+- then select the virtual environment
+if u get the tcl error:     self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: Can't find a usable init.tcl in the following directories: [...] This probably means that Tcl wasn't installed properly.
+Fix: 
+place the tcl installation in the path of your python installation in the .venv dir 
+(u might the tcl folder from C:\Users\username\AppData\Local\Programs\Python\Python313)
+
+then start a terminal and run the following commands:
+>>> $projectdir = (Get-Location).Path
+>>> $env:TCL_LIBRARY = "$projectdir\.venv\tcl\tcl8.6"
+>>> $env:TK_LIBRARY  = "$projectdir\.venv\tcl\tk8.6"
+this 
+
+!!! .venv Installation END !!!
 
 run plotN.py with all necessary modules in a folder ... worla
 (the N in plotN.py is dependent on the version, the higher, the newer the version)
