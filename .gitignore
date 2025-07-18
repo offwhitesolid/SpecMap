@@ -1,2 +1,6 @@
 *.pyc
 *.csv
+*.log
+.qodo/
+.venv/
+oldfiles/
