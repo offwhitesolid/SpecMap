@@ -143,8 +143,8 @@ def remove_cosmics_nearest_neighbor(data, thresh, width):
     # Copy the data to avoid modifying the original array
     interpolated_data = np.copy(data)
 
-    print(cosmic_ranges)
-    print(interpolated_data)
+    #print(cosmic_ranges)
+    #print(interpolated_data)
 
     #print(len(interpolated_data), print(len(interpolated_data[0])))
 
