@@ -1,6 +1,13 @@
 # SpecMap
 Version2 of hypermap
 
+Installation an .venv creation: 
+Remove-Item -Recurse -Force .venv
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
 run plotN.py with all necessary modules in a folder ... worla
 (the N in plotN.py is dependent on the version, the higher, the newer the version)
 
