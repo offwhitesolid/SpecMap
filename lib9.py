@@ -166,6 +166,8 @@ class XYMap:
         self.specs = []                                                     # Spectral Objects
         self.fontsize = self.defentries['fontsize']                         # Default Plot Font Size
         # init tk variables
+        self.HSI_fit_useROI = tk.BooleanVar()                               # use ROI for fit
+        self.HSI_fit_useROI.set(self.defentries['Fit_use_ROI_mask'])        # set default value for HSI_fit_useROI
         self.colormap = tk.StringVar()                                      # Colormap
         self.WL_selection = tk.StringVar()                                  # Wavelength Selection
         self.WL_values= deflib.WL_values
@@ -295,8 +297,11 @@ class XYMap:
         b1.grid(row=3, column=1)
         b2 = tk.Button(frame, text="Create spectral maximum colormap", command= lambda: self.buildandPlotSpecCmap())
         b2.grid(row=4, column=1)
-        b3 = tk.Button(frame, text="Update spectral fit maxima", command= lambda: self.updateandPlotSpecCmap('fitmaxX'))
-        b3.grid(row=5, column=1)
+
+        b3 = tk.Checkbutton(frame, text="Fit: use Selected ROI mask", variable=self.HSI_fit_useROI).grid(row=5, column=1)
+
+        b4 = tk.Button(frame, text="Update spectral fit maxima", command= lambda: self.updateandPlotSpecCmap('fitmaxX'))
+        b4.grid(row=6, column=1)
 
         # Plot Font size
         tk.Label(frame, text="Plot font size".format(self.DataSpecMin)).grid(row=2, column=2)

@@ -523,6 +523,7 @@ defaults={
     'enable_buttonmatrix': False, 
     'loadonstart': False, 
     'selected_WL_axis': 'Wavelength (nm)',
+    'Fit_use_ROI_mask': False
 }
 
 defaulttypes = {
@@ -563,6 +564,7 @@ defaulttypes = {
     'enable_buttonmatrix': bool, 
     'loadonstart': bool,
     'selected_WL_axis': str,
+    'Fit_use_ROI_mask': bool
 }
 
 def testdefaults():

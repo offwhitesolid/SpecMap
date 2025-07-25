@@ -32,3 +32,4 @@ load_hsi_saved = hsidata/hsi.txt
 enable_buttonmatrix = False
 loadonstart = False
 selected_WL_axis = Wavelength (nm)
+Fit_use_ROI_mask = False
