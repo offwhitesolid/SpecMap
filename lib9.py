@@ -172,6 +172,8 @@ class XYMap:
         self.WL_selection = tk.StringVar()                                  # Wavelength Selection
         self.WL_values= deflib.WL_values
         self.WL_selection.set(self.WL_values[self.WL_values.index(defentries['selected_WL_axis'])]) # set default WL selection
+        self.HSI_from_fitparam_useROI = tk.BooleanVar()          # use ROI for fit from fit parameters
+        self.HSI_from_fitparam_useROI.set(self.defentries['HSI_from_fitparam_useROI'])
         
         self.fitkeys = matl.fitkeys
         self.countthreshv = self.defentries['colormap_threshold']
@@ -652,6 +654,8 @@ class XYMap:
         self.selectfitparambox.set(self.allfpnamesinone[0]) # set default value
         b3 = tk.Button(fitframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam())
         b3.pack(side=tk.TOP, anchor=tk.W)
+        # add a bool var to check and uncheck HSI_from_fitparam_useROI
+        b4 = tk.Checkbutton(fitframe, text="Use ROI for parameter plot", variable=self.HSI_from_fitparam_useROI).pack(side=tk.TOP, anchor=tk.W)
 
         self.build_roi_frame(placeframe)
         buttons = []
@@ -738,7 +742,20 @@ class XYMap:
         self.readfontsize()
         lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)#str(self.selectspecpixbox.get()))
-        self.fittoMatrixfitparams(self.PMdict[newpm].PixMatrix, 'fitmaxX') # new
+        if self.HSI_fit_useROI.get() == False:
+            self.fittoMatrixfitparams(self.PMdict[newpm].PixMatrix, 'fitmaxX', mode='fullHSI', roi=None)
+        else:
+            # get the selected ROI mask
+            if self.roisel.get() == '':
+                tkmb.showerror('Error', 'No ROI selected. Please select a ROI first.')
+                return
+            elif self.roisel.get() not in self.roihandler.roilist.keys():
+                tkmb.showerror('Error', 'Selected ROI not found. Please select a valid ROI.')
+                return
+            else: # if the ROI is valid, copy it onto roi
+                roi = self.roihandler.roilist[self.roisel.get()][:]
+            # use the ROI mask to fit the pixel matrix
+            self.fittoMatrixfitparams(self.PMdict[newpm].PixMatrix, 'fitmaxX', mode='roi', roi=roi)
         self.getPLpixelSpecMax(self.PMdict[newpm].PixMatrix)
         self.UpdateHSIselect()
     
@@ -794,9 +811,16 @@ class XYMap:
         else:
             print(self.SpecDataMatrix[y][x])  
 
-    def fittoMatrixfitparams(self, PixMatrix, variable='fitmaxX', incmin=0.01, incmax=-0.01, nmin=20, nmax=20, mode='fullHSI'):
+    def fittoMatrixfitparams(self, PixMatrix, variable='fitmaxX', incmin=0.01, incmax=-0.01, nmin=20, nmax=20, mode='fullHSI', roi=None):
         # init empty self.fitbakup
         self.fitbackup = None
+
+        if mode not in ['fullHSI', 'roi']:
+            raise ValueError("Mode must be 'fullHSI' or 'roi'.")
+        if mode == 'roi' and roi is None:
+            # check if roi is 2D array
+            if not isinstance(roi, np.ndarray) or roi.ndim != 2:
+                raise ValueError("roi must be a 2D numpy array. Got: {}".format(type(roi)))        
 
         # fill matrix with data of the selected enry:
         self.updatecountthresh()
@@ -868,6 +892,67 @@ class XYMap:
                                             except Exception as e:
                                                 # retry the fit with 
                                                 print('Fit parameter update failed in new fitline in function {}.\n{}'.format('XYMap.fittoMatrixfitparams', str(e)))
+                                        
+                                    elif mode == 'roi':
+                                        if np.isnan(roi[i][j]) == True: # type: ignore
+                                            PixMatrix[i][j] = np.nan
+                                            self.SpecDataMatrix[i][j].dofit = False
+                                            # break the while loop
+                                            break
+                                        else: 
+                                            try:
+                                                self.maxiter = int(self.fitmaxiter.get())
+                                            except:
+                                                print('Maxiter must be int. Using default 1000.')
+                                                self.maxiter = 1000
+                                            # fit function to spectrum using threading
+                                            # run self.fitkeys[self.selectwindowboxVari][1](self.aqpixstart, self.aqpixend, self.SpecDataMatrix[i][j].WL, self.SpecDataMatrix[i][j].PLB, self.maxiter, self.fitbackup) in a seperate thread
+                                            # Create and start thread to run fit
+                                            fit_thread = thre.Thread(target=lambda: setattr(
+                                                self.SpecDataMatrix[i][j],
+                                                'fitdata', 
+                                                self.fitkeys[self.selectwindowboxVari][1](
+                                                    self.aqpixstart,
+                                                    self.aqpixend, 
+                                                    self.SpecDataMatrix[i][j].WL,
+                                                    self.SpecDataMatrix[i][j].PLB,
+                                                    self.maxiter,
+                                                    self.fitbackup)
+                                            ))
+                                            fit_thread.start()
+                                            fit_thread.join() # Wait for thread to complete
+                                            self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])#[1]
+                                            r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[i][j].fitdata[:-1]))
+                                            a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get()) # a is the index of the fit function
+                                            # put fitdata into fitparams
+                                            try:
+                                                for k in range(matl.fitkeys[list(matl.fitkeys.keys())[a]][4]):
+                                                    self.SpecDataMatrix[i][j].fitparams[a][k] = self.SpecDataMatrix[i][j].fitdata[k]
+                                                # store fitmaxX and fitmaxY in fitparams[-1] and [-2]
+                                                self.SpecDataMatrix[i][j].fitparams[a][-1] = self.SpecDataMatrix[i][j].fitmaxX
+                                                self.SpecDataMatrix[i][j].fitparams[a][-2] = self.SpecDataMatrix[i][j].fitmaxY
+                                                # store aqpixstart and aqpixend in fitparams[-3] and [-4]
+                                                self.SpecDataMatrix[i][j].fitparams[a][-3] = self.aqpixstart
+                                                self.SpecDataMatrix[i][j].fitparams[a][-4] = self.aqpixend
+                                                # store fwhm in fitparams[-5]
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('fwhm')-len(matl.addtofitparms)] = matl.fitkeys[list(matl.fitkeys.keys())[a]][7](self.SpecDataMatrix[i][j].fitdata[:matl.fitkeys[list(matl.fitkeys.keys())[a]][4]])
+                                                # store r_squared, 'ss_res', 'ss_tot' in fitparams [-7], [-8], [-9]
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)] = r_squared
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)] = ss_res
+                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)] = ss_tot
+                                                # store the fit parameters in an array
+                                                self.fitbackup = self.SpecDataMatrix[i][j].fitdata
+                                            except Exception as e:
+                                                # retry the fit with 
+                                                print('Fit parameter update failed in new fitline in function {}.\n{}'.format('XYMap.fittoMatrixfitparams', str(e)))
+                                        
+
+                                    else:
+                                        print('Mode not implemented yet.')
+                                        PixMatrix[i][j] = np.nan
+                                        self.SpecDataMatrix[i][j].dofit = False
+                                        # break the while loop
+                                        break
 
                                 if self.SpecDataMatrix[i][j].fitdata == [None]:
                                     PixMatrix[i][j] = np.nan
@@ -1544,31 +1629,71 @@ class XYMap:
         lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
+
+        roi = lastpm[:]
+        # debug: plot roi
+        plt.plot(roi, 'r')
+        plt.show()
+
+        useroi = self.HSI_from_fitparam_useROI.get()
+        if useroi:
+            if self.roiselgui.get() not in self.roihandler.roilist.keys():
+                print('No ROI selected. Cannot plot HSI from fit parameters.')
+                useroi = False
+
+            else:
+                # get the selected ROI
+                roi = self.roihandler.roilist[self.roiselgui.get()][:]
         
-        # get index of fitvari in self.allfitparams
-        for i in range(len(self.SpecDataMatrix)):
-            for j in range(len(self.SpecDataMatrix[i])):
-                if type(self.SpecDataMatrix[i][j]) == SpectrumData:
-                    if self.SpecDataMatrix[i][j].dataokay == True:
-                        try:
-                            pari, parj = matl.getindexofFitparameter(self.allfpnames, self.selectfitparambox.get())
-                            if pari == None or parj == None:
-                                raise Exception('Parameter not found in fitparams.')
-                            pari = int(pari)
-                            parj = int(parj)
-                            if pari != -1 and parj != -1:
-                                lastpm[i][j] = self.SpecDataMatrix[i][j].fitparams[pari][parj]
-                            else:
-                                lastpm[i][j] = np.nan
-                                raise Exception('Parameter not found in fitparams.')
-                        except Exception as e:
-                            print('Error in plotHSIfromfitparam. {}'.format(str(e)))
+        if useroi:
+            # get index of fitvari in self.allfitparams
+            for i in range(len(self.SpecDataMatrix)):
+                for j in range(len(self.SpecDataMatrix[i])):
+                    if type(self.SpecDataMatrix[i][j]) == SpectrumData and np.isnan(roi[i][j]) == False:
+                        if self.SpecDataMatrix[i][j].dataokay == True:
+                            try:
+                                pari, parj = matl.getindexofFitparameter(self.allfpnames, self.selectfitparambox.get())
+                                if pari == None or parj == None:
+                                    raise Exception('Parameter not found in fitparams.')
+                                pari = int(pari)
+                                parj = int(parj)
+                                if pari != -1 and parj != -1:
+                                    lastpm[i][j] = self.SpecDataMatrix[i][j].fitparams[pari][parj]
+                                else:
+                                    lastpm[i][j] = np.nan
+                                    raise Exception('Parameter not found in fitparams.')
+                            except Exception as e:
+                                print('Error in plotHSIfromfitparam. {}'.format(str(e)))
+                        else:
+                            lastpm[newpm][i][j] = np.nan
+                            print('No Data found in Pixel {}, {}'.format(i, j))
+                    else:
+                        lastpm[newpm][i][j] = np.nan
+        else: 
+            # get index of fitvari in self.allfitparams
+            for i in range(len(self.SpecDataMatrix)):
+                for j in range(len(self.SpecDataMatrix[i])):
+                    if type(self.SpecDataMatrix[i][j]) == SpectrumData:
+                        if self.SpecDataMatrix[i][j].dataokay == True:
+                            try:
+                                pari, parj = matl.getindexofFitparameter(self.allfpnames, self.selectfitparambox.get())
+                                if pari == None or parj == None:
+                                    raise Exception('Parameter not found in fitparams.')
+                                pari = int(pari)
+                                parj = int(parj)
+                                if pari != -1 and parj != -1:
+                                    lastpm[i][j] = self.SpecDataMatrix[i][j].fitparams[pari][parj]
+                                else:
+                                    lastpm[i][j] = np.nan
+                                    raise Exception('Parameter not found in fitparams.')
+                            except Exception as e:
+                                print('Error in plotHSIfromfitparam. {}'.format(str(e)))
+                        else:
+                            lastpm[newpm][i][j] = np.nan
+                            print('No Data found in Pixel {}, {}'.format(i, j))
                     else:
                         lastpm[newpm][i][j] = np.nan
                         print('No Data found in Pixel {}, {}'.format(i, j))
-                else:
-                    lastpm[newpm][i][j] = np.nan
-                    print('No Data found in Pixel {}, {}'.format(i, j))
         # test
         self.plotPixelMatrix(newpm)
         #self.plotPixelMatrix(self.PMdict[newpm].PixMatrix)
