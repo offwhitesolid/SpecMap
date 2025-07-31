@@ -1632,8 +1632,6 @@ class XYMap:
 
         roi = lastpm[:]
         # debug: plot roi
-        plt.plot(roi, 'r')
-        plt.show()
 
         useroi = self.HSI_from_fitparam_useROI.get()
         if useroi:
