@@ -49,6 +49,7 @@ bash
 Code kopieren
 git config --global user.name "Your Name"
 git config --global user.email "your.email@example.com"
+
 Step 2: Clone the Repository
 Open GitHub:
 
@@ -73,6 +74,7 @@ bash
 Code kopieren
 git clone https://github.com/username/repo-name.git
 This will download the repository to your local machine.
+
 Step 3: Open the Repository in Visual Studio Code
 Launch Visual Studio Code:
 
@@ -85,6 +87,7 @@ Start Editing:
 
 Now you can start editing the files in the repository.
 Use the Source Control feature in VS Code (accessible via the Git icon on the left sidebar) to see changes, stage them, and commit.
+
 Step 4: Commit and Push Changes
 Stage Changes:
 
