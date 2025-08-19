@@ -1,5 +1,7 @@
-data_file = C:/Users/volib/Desktop/Projects/PCP_Microscopy/Datasets/MoS2_test/okay/Z150_dx05_dy05_areascan3 
+data_file = C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Felix_Reis\N1\HSI20250813_HSI01
 # C:/Users/volib/Desktop/Evaluation/data/VP/test7_MoS2_ML_2sec/test7_MoS2_ML_2sec
+# C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Felix_Reis\N1\HSI20250813_HSI01
+# C:/Users/volib/Desktop/Projects/PCP_Microscopy/Datasets/MoS2_test/okay/Z150_dx05_dy05_areascan3 
 filename = HSI
 windowsize_X = 1200
 windowsize_Y = 800
@@ -11,8 +13,8 @@ cosmic_threshold = 150
 cosmic_width = 10
 cosmic_method = Linear Interpolation
 clara_image = //Nas-akh/pc104_plm/Data/Moritz Limbacher/claratest/laserfocus50x/laser in focus50x.asc
-lowest_wavelength = 600
-highest_wavelength = 900
+lowest_wavelength = 510
+highest_wavelength = 590
 colormap_threshold = 40000
 fontsize = 12
 maxfev = 20000
