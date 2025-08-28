@@ -12,6 +12,7 @@ import claralib1 as claralib
 import export1 as xplib
 import newtonspeclib1 as newtonlib
 import threading as thr
+import matplotlib.pyplot as plt
 
 
 class FileProcessorApp:
@@ -87,11 +88,16 @@ class FileProcessorApp:
         self.multiple_BG.set(defaults['multiple_Background'])
         self.chkmultiple = tk.Checkbutton(self.bgframe, text="Multiple Backgrounds", variable=self.multiple_BG)
         self.chkmultiple.grid(row=0, column=0)
-
+		# linear background
         self.linearBG.set(defaults['linear_Background'])
         self.linearBGcheck = tk.Checkbutton(self.bgframe, text="Linear Background", variable=self.linearBG)
         self.linearBGcheck.grid(row=1, column=0)
         self.linearBG.set(defaults['linear_Background'])
+        # perform power correction 
+        self.powercorrectionBool = tk.IntVar()
+        self.powercorrectionBool.set(defaults['power_correction'])
+        self.powercorrectioncheck = tk.Checkbutton(self.bgframe, text="Power Correction", variable=self.powercorrectionBool)
+        self.powercorrectioncheck.grid(row=2, column=0)
 
         # Cosmic removal
         # add extra frame for cosmic removal onto loadframe
@@ -184,11 +190,13 @@ class FileProcessorApp:
             self.spec_loadfiles()
 
     def newtonloadfiles(self):
-        file = self.newton_file_entry.get()
+        file = self.newton_file_entry.get()        
         self.newtonclass = newtonlib.newtonspecopener(self.nodeframes['Newton Spectrum'], file)
 
     # testcomment
     def spec_loadfiles(self):
+        # close all open matplotlib windows
+        plt.close('all')
         self.defaults = deflib.initdefaults()
         folder = self.folder_entry.get()
         filename = self.filename_entry.get()

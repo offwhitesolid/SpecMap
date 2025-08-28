@@ -493,7 +493,7 @@ defaults={
     'multiple_Background': False,
     'linear_Background': True,
     # Cosmic Ray Removal Frame
-    'remove_cosmics': False,
+    'remove_cosmics': True,
     'cosmic_threshold': 100,
     'cosmic_width': 10,
     'cosmic_method': 'Linear Interpolation',
@@ -566,7 +566,8 @@ defaulttypes = {
     'loadonstart': bool,
     'selected_WL_axis': str,
     'Fit_use_ROI_mask': bool,
-    'HSI_from_fitparam_useROI': bool
+    'HSI_from_fitparam_useROI': bool, 
+    'power_correction': bool
 }
 
 def testdefaults():
