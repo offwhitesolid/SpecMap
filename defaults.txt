@@ -1,4 +1,4 @@
-data_file = C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Felix_Reis\N1\HSI20250813_HSI01
+data_file = C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Felix_Reis\N1\HSI09
 # C:/Users/volib/Desktop/Evaluation/data/VP/test7_MoS2_ML_2sec/test7_MoS2_ML_2sec
 # C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Felix_Reis\N1\HSI20250813_HSI01
 # C:/Users/volib/Desktop/Projects/PCP_Microscopy/Datasets/MoS2_test/okay/Z150_dx05_dy05_areascan3 
