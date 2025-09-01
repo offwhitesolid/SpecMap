@@ -1513,6 +1513,12 @@ class XYMap:
                         self.mycoords.append(i.data['y-position'])
             self.mxcoords = sorted(self.mxcoords)
             self.mycoords = sorted(self.mycoords)
+            # debug: print('xcoords: ', self.mxcoords)
+			# debug: print('ycoords: ', self.mycoords)
+            print('Generating Matrix with {} x-coords and {} y-coords.'.format(len(self.mxcoords), len(self.mycoords)))
+            print('x-coords:', self.mxcoords)
+            print('y-coords:', self.mycoords)
+
             PixMatrix, self.SpecDataMatrix, self.PixAxX, self.PixAxY = self.genmatgrid(self.mxcoords, self.mycoords)
             PixMatrixc = PMlib.PMclass(np.asarray(PixMatrix, dtype=float), self.PixAxX, self.PixAxY, self.PMmetadata)
             PixMatrixc.name = 'HSI0'
