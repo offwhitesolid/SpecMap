@@ -1191,6 +1191,8 @@ class XYMap:
                         self.PlotSpectrum(self.SpecDataMatrix[y][x].PLB, wl, 'PL Spectrum', xunit=self.WLunit)
                     else:
                         print('No valid Data set selected for the Plot.')
+                    # debug: print 'x-position: {}, y-position: {}'.format(x, y)
+                    print('x-position: {}, y-position: {}'.format(x, y))
 
     def PlotSpectrum(self, x, y, label, xunit='nm', yunit='counts'):
         self.readfontsize()
@@ -1696,6 +1698,47 @@ class XYMap:
         self.plotPixelMatrix(newpm)
         #self.plotPixelMatrix(self.PMdict[newpm].PixMatrix)
         self.UpdateHSIselect()
+    
+    def powercorrection(self, powerkey='Power at Glass Plate (µW)'):
+        # create Matrix with power values of metadata['Power at Glass Plane (mW)']
+        if self.hsiselect.get() not in self.PMdict.keys():
+            print('No valid HSI selected for power correction.')
+            return
+        powerMatrix = []
+        for i in range(len(self.PMdict[self.hsiselect.get()].PixMatrix)):
+            powermat = []
+            for j in range(len(self.PMdict[self.hsiselect.get()].PixMatrix[i])):
+                # check if self.SpecDataMatrix[i][j] is of type SpectrumData
+                if self.SpecDataMatrix[i][j] is None or type(self.SpecDataMatrix[i][j]) != SpectrumData:
+                    powermat.append(1)
+                elif powerkey in self.SpecDataMatrix[i][j].data.keys():
+                    powermat.append(float(self.SpecDataMatrix[i][j].data[powerkey]))
+                else:
+                    powermat.append(np.nan)
+            powerMatrix.append(powermat)
+        # normalize powerMatrix to its max value
+        powerMatrix = np.asarray(powerMatrix)
+        print('Powermatrix before removing nans:', powerMatrix)
+        maxpower = np.amax(powerMatrix)
+        print('Powermatrix before normalization:', powerMatrix)
+        #sys.exit()
+        for i in range(len(powerMatrix)):
+            for j in range(len(powerMatrix[i])):
+                powerMatrix[i][j] = powerMatrix[i][j]/maxpower
+        
+		# divide the selected spectra by the powerMatrix
+        a = 3
+        for i in range(len(self.SpecDataMatrix)):
+            for j in range(len(self.SpecDataMatrix[i])):
+                if type(self.SpecDataMatrix[i][j]) == SpectrumData:
+                    try:
+                        for k in range(len(self.SpecDataMatrix[i][j].PL)):
+                            self.SpecDataMatrix[i][j].PL[k] = self.SpecDataMatrix[i][j].PL[k]/powerMatrix[i][j]
+                        for k in range(len(self.SpecDataMatrix[i][j].PLB)):
+                            self.SpecDataMatrix[i][j].PLB[k] = self.SpecDataMatrix[i][j].PLB[k]/powerMatrix[i][j]
+                    except Exception as e:
+                        print('Error in power correction of pixel {}, {}. {}'.format(i, j, str(e)))
+		
         
 class Roihandler():
     def __init__(self, roilist={}, pixmatrix=[[]]):

@@ -246,6 +246,8 @@ class FileProcessorApp:
                 self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get(), 
                 self.defaults,
                 )
+            if self.powercorrectionBool.get() == 1:
+                self.Nanomap.powercorrection()
             self.Exporter = xplib.Exportframe(self.nodeframes['Export'], self.Nanomap)
                 
             print("Success", "Found and loaded {} files.".format(len(files_processed)))

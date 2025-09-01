@@ -7,10 +7,16 @@ class PMclass(): # PixMatrix class
         self.xax = xax
         self.yax = yax
         self.metadata = metadata
-        self.gdx = self.xax[1] - self.xax[0]
-        self.gdy = self.yax[1] - self.yax[0]
-        self.name = name
+        if len(self.xax) < 2:
+            self.gdx = 1
+        else:
+            self.gdx = self.xax[1] - self.xax[0]
+        if len(self.yax) < 2:
+            self.gdy = 1
+        else:
+            self.gdy = self.yax[1] - self.yax[0]
         self.units = units
+        self.name = name
         self.description = description
         self.data_type = data_type
 
