@@ -197,6 +197,21 @@ class FileProcessorApp:
     def spec_loadfiles(self):
         # close all open matplotlib windows
         plt.close('all')
+        # close all running threads
+        plt.close('all')
+        for thread in thr.enumerate():
+            if thread.name != 'MainThread':
+                if hasattr(thread, 'stop_event'):
+                    thread.stop_event.set()
+		
+        # kill any existing Nanomap object
+        try:
+            del self.Nanomap
+            self.cmapframe.destroy()
+            self.specframe.destroy()
+            del self.Exporter
+        except:
+             pass
         self.defaults = deflib.initdefaults()
         folder = self.folder_entry.get()
         filename = self.filename_entry.get()
