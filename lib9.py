@@ -1733,7 +1733,6 @@ class XYMap:
                 powerMatrix[i][j] = powerMatrix[i][j]/maxpower
         
 		# divide the selected spectra by the powerMatrix
-        a = 3
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 if type(self.SpecDataMatrix[i][j]) == SpectrumData:
