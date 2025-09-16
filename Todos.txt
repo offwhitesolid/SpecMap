@@ -1,0 +1,16 @@
+Was habe ich gemacht? 
+
+HSI von Perovskite: 
+
+- Theorie Perovskite: 
+    - eigenschaften
+    - synthese:
+        - N1
+        - N2/N3/N4
+        - Dotierung Mn/Sn
+    - aktueller Stand der Forschung
+
+- Lasersetup: 
+    - HSI: Laserquellen, Weißlicht
+
+- Heterostrukturen
