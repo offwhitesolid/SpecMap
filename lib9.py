@@ -649,7 +649,7 @@ class XYMap:
 
         # create a select box for the parameters of each fit
         tk.Label(fitframe, text="HSI from Fit Parameter").pack(side=tk.TOP, anchor=tk.W)
-        self.selectfitparambox = ttk.Combobox(fitframe, values=self.allfpnamesinone)
+        self.selectfitparambox = ttk.Combobox(fitframe, values=self.allfpnamesinone, width=27)
         self.selectfitparambox.pack(side=tk.TOP, anchor=tk.W)
         self.selectfitparambox.set(self.allfpnamesinone[0]) # set default value
         b3 = tk.Button(fitframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam())

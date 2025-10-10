@@ -3,8 +3,9 @@ from scipy.optimize import curve_fit, minimize
 from scipy.special import wofz
 from scipy.optimize import fminbound
 from scipy.special import jv
-from matplotlib.ticker import MaxNLocator
 from scipy.signal import find_peaks
+from scipy.signal import savgol_filter
+from matplotlib.ticker import MaxNLocator
 import matplotlib.pyplot as plt
 
 # window functions
@@ -324,7 +325,6 @@ def getmaxdoublegaussian(xmin, xmax, amp1, cen1, wid1, amp2, cen2, wid2):
     #success, x, fun = find_max_of_fit(lambda x: -double_gaussianwind(x, amp1, cen1, wid1, amp2, cen2, wid2), xmin=xmin, xmax=xmax)
     return x, y # -fun
 
-
 def getmaxdoublelorentz(xmin, xmax, amp1, cen1, wid1, amp2, cen2, wid2):
     #x = Newtonmax(lambda x: -double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2), cen1, tol=1e-6, maxiter=10000, xmin=xmin, xmax=xmax)
     #y = double_lorentzwind(x, amp1, cen1, wid1, amp2, cen2, wid2)
@@ -339,7 +339,6 @@ def getmaxdoublevoigt(xmin, xmax, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, ga
     #success, x, fun = find_max_of_fit(lambda x: -double_voigtwind(x, amp1, cen1, wid1, gamma1, amp2, cen2, wid2, gamma2), xmin=xmin, xmax=xmax)
     return x, y
     
-
 # max of 1D Fit functions can be obtained by reading their parameters
 def getmaxgaussian(xmin, xmax, amp, cen, wid):
     return cen, amp
@@ -472,7 +471,6 @@ def fitgaussian2dtomatrix(inpdata, plotfit, gdx, gdy, colormap, maxfev=10000):
         cbar.set_label('Counts')
         plt.show()
 
-
     #calculate beam waist
     x0 = popt[1] * gdx
     sigma_x = popt[3] * gdx
@@ -534,7 +532,6 @@ def getdoublevoigtfwhm(fitparams):
     fwhm2 = fwhmbygrid(lambda x: voigtwind(x, amp2, cen2, wid2, gamma2), cen2 - 5 * wid2, cen2 + 5 * wid2)
     return fwhm1 + fwhm2
 
-
 def fwhmbygrid(f, wlstart, wlend, npoints=100000):
     # Generate x values
     x = np.linspace(wlstart, wlend, npoints)
@@ -550,7 +547,6 @@ def fwhmbygrid(f, wlstart, wlend, npoints=100000):
     # Calculate FWHM
     fwhm = x[right_idx] - x[left_idx]
     return fwhm
-
 
 # newton's method to find the maximum of a function
 def Newtonmax(f, x0, tol=1e-8, maxiter=10000, xmin=0, xmax=1000):
@@ -649,6 +645,164 @@ def getindexofFitparameter(fl, fitname):# fl is a list of all fit parameters, re
             return i, fl[i].index(fitname)
     return -1, -1
 
+# obtain oscillations
+# if a the signal is overlayed by a faster oscillation, the oscillation period is being isolated
+
+def smooth_background(signal, window_length=51, polyorder=3):
+    """
+    Smooth the signal to extract the background using Savitzky-Golay filter.
+    
+    Parameters:
+    - signal: Array of signal values
+    - window_length: Length of the filter window (must be odd)
+    - polyorder: Order of the polynomial used to fit the samples
+    
+    Returns:
+    - Smoothed background signal
+    """    
+    # Ensure window_length is odd and less than signal length
+    if window_length % 2 == 0:
+        window_length += 1
+    if window_length > len(signal):
+        window_length = len(signal) if len(signal) % 2 == 1 else len(signal) - 1
+    if window_length < polyorder + 2:
+        window_length = polyorder + 2
+        if window_length % 2 == 0:
+            window_length += 1
+    
+    # Apply Savitzky-Golay filter for smoothing
+    background = savgol_filter(signal, window_length, polyorder)
+    return background
+
+def fitoscillationtospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Extract oscillations from spectrum and return fit parameters.
+    
+    Parameters:
+    - start: Start index of the spectrum region
+    - end: End index of the spectrum region
+    - WL: Wavelength/energy array
+    - PLB: Signal intensity array
+    - maxfev: Not used, kept for compatibility
+    - guess: Optional dict with 'window_length', 'polyorder', 'prominence', 'distance'
+    
+    Returns:
+    - Tuple of fit parameters compatible with fitkeys structure:
+      (background_mean, osc_amplitude, n_maxima, n_minima, mean_max, mean_min, freq_est, osc_range, 
+       background_array, oscillations_array, maxima_indices, minima_indices,
+       maxima_wl, minima_wl, maxima_values, minima_values)
+    """
+    x = WL[start:end]
+    y = PLB[start:end]
+    
+    # Parse optional parameters from guess
+    window_length = 51
+    polyorder = 3
+    prominence = None
+    distance = 5
+    
+    if guess is not None and isinstance(guess, dict):
+        window_length = guess.get('window_length', 51)
+        polyorder = guess.get('polyorder', 3)
+        prominence = guess.get('prominence', None)
+        distance = guess.get('distance', 5)
+    
+    # Call isolate_oscillation
+    (background, oscillations, 
+     maxima_indices, minima_indices,
+     maxima_wl, minima_wl,
+     maxima_values, minima_values) = isolate_oscillation(
+        y, x, window_length, polyorder, prominence, distance
+    )
+    
+    # Calculate summary statistics for fitkeys compatibility
+    background_mean = np.mean(background)
+    osc_amplitude = np.std(oscillations)
+    n_maxima = len(maxima_indices)
+    n_minima = len(minima_indices)
+    mean_max = np.mean(maxima_values) if len(maxima_values) > 0 else 0
+    mean_min = np.mean(minima_values) if len(minima_values) > 0 else 0
+    
+    # Estimate oscillation frequency (peaks per unit energy/wavelength)
+    if n_maxima > 1:
+        freq_est = n_maxima / (x[-1] - x[0])
+    else:
+        freq_est = 0
+    
+    osc_range = np.max(oscillations) - np.min(oscillations) if len(oscillations) > 0 else 0
+    
+    # Return scalar parameters first (for fitkeys compatibility), then arrays
+    return (background_mean, osc_amplitude, n_maxima, n_minima, 
+            mean_max, mean_min, freq_est, osc_range,
+            background, oscillations, 
+            maxima_indices, minima_indices,
+            maxima_wl, minima_wl,
+            maxima_values, minima_values)
+
+def getoscillationdata(xmin, xmax, *fitparams):
+    """
+    Extract oscillation data from fit parameters.
+    This is a placeholder to maintain compatibility with fitkeys structure.
+    
+    Returns:
+    - None (oscillation data is already in the fit parameters)
+    """
+    return None
+
+def isolate_oscillation(signal, wl, window_length=51, polyorder=3, prominence=None, distance=5): 
+    """
+    Isolate oscillations from a signal that consists of a peak overlayed by faster oscillations.
+    
+    Parameters:
+    - signal: Array of signal values (DR Signal)
+    - wl: Array of wavelength/energy values corresponding to the signal
+    - window_length: Length of the smoothing filter window (default: 51, must be odd)
+    - polyorder: Order of polynomial for smoothing (default: 3)
+    - prominence: Required prominence of peaks (default: auto-calculated)
+    - distance: Minimum distance between peaks (default: 5)
+    
+    Returns:
+    - background: Smoothed background signal
+    - oscillations: Isolated oscillations (signal - background)
+    - maxima_indices: Indices of maxima in the oscillations
+    - minima_indices: Indices of minima in the oscillations
+    - maxima_wl: Wavelength/energy values at maxima
+    - minima_wl: Wavelength/energy values at minima
+    - maxima_values: Signal values at maxima
+    - minima_values: Signal values at minima
+    """
+    
+    # Step 1: Smooth the signal to get the background
+    background = smooth_background(signal, window_length, polyorder)
+    
+    # Step 2: Extract oscillations by subtracting background
+    oscillations = signal - background
+    
+    # Step 3: Find maxima in the oscillations
+    if prominence is None:
+        # Auto-calculate prominence as a fraction of the oscillation range
+        osc_range = np.max(oscillations) - np.min(oscillations)
+        prominence = osc_range * 0.1  # 10% of the range
+    
+    maxima_indices, _ = find_peaks(oscillations, prominence=prominence, distance=distance)
+    
+    # Step 4: Find minima by inverting the oscillations
+    minima_indices, _ = find_peaks(-oscillations, prominence=prominence, distance=distance)
+    
+    # Step 5: Extract wavelength and signal values at peaks
+    maxima_wl = wl[maxima_indices] if len(maxima_indices) > 0 else np.array([])
+    minima_wl = wl[minima_indices] if len(minima_indices) > 0 else np.array([])
+    maxima_values = oscillations[maxima_indices] if len(maxima_indices) > 0 else np.array([])
+    minima_values = oscillations[minima_indices] if len(minima_indices) > 0 else np.array([])
+    
+    return (background, oscillations, 
+            maxima_indices, minima_indices,
+            maxima_wl, minima_wl,
+            maxima_values, minima_values)
+
+    pass
+    
+
 # dictionary of window functions and their corresponding fit functions
 # and functions to get the maxima of the fitted functions
 # key: window function name
@@ -667,7 +821,22 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
            'linear':[linearwind, fitlinetospec, getmaxlinear, 'Linear fit', 2, ['Linear slope', 'Linear offset'], ['nm', 'Counts']],
            'double lorentz':[double_lorentzwind, fitdoublelorentztospec, getmaxdoublelorentz, 'Double Lorentz fit', 6, ['Double Lorentzian amplitude 1', 'Double Lorentzian center 1', 'Double Lorentzian width 1', 'Double Lorentzian amplitude 2', 'Double Lorentzian center 2', 'Double Lorentzian width 2'], ['Counts', 'nm', 'nm', 'Counts', 'nm', 'nm'], getdoublelorentzfwhm], 
            'double gaussian':[double_gaussianwind, fitdoublegaussiantospec, getmaxdoublegaussian, 'Double Gaussian fit', 6, ['Double Gaussian amplitude 1', 'Double Gaussian center 1', 'Double Gaussian width 1', 'Double Gaussian amplitude 2', 'Double Gaussian center 2', 'Double Gaussian width 2'], ['Counts', 'nm', 'nm', 'Counts', 'nm', 'nm'], getdoublegaussianfwhm], 
-           'double voigt':[double_voigtwind, fitdoublevoigttospec, getmaxdoublevoigt, 'Double Voigt fit', 8, ['Double Voigt amplitude 1', 'Double Voigt center 1', 'Double Voigt width 1', 'Double Voigt gamma 1', 'Double Voigt amplitude 2', 'Double Voigt center 2', 'Double Voigt width 2', 'Double Voigt gamma 2'], ['Counts', 'nm', 'nm', 'nm', 'Counts', 'nm', 'nm', 'nm'], getdoublevoigtfwhm]}
+           'double voigt':[
+               double_voigtwind, fitdoublevoigttospec, getmaxdoublevoigt, 'Double Voigt fit', 8, ['Double Voigt amplitude 1', 'Double Voigt center 1', 'Double Voigt width 1', 'Double Voigt gamma 1', 'Double Voigt amplitude 2', 'Double Voigt center 2', 'Double Voigt width 2', 'Double Voigt gamma 2'], ['Counts', 'nm', 'nm', 'nm', 'Counts', 'nm', 'nm', 'nm'], getdoublevoigtfwhm
+               ],
+           'oscillations': [
+               None,  # No window function for oscillations (uses isolate_oscillation internally)
+               fitoscillationtospec,  # Fitting function
+               getoscillationdata,  # Placeholder for compatibility
+               'Oscillation Extraction', 
+               8,  # Number of scalar output parameters
+               ['Background mean', 'Oscillation amplitude', 'Number of maxima', 'Number of minima', 
+                'Mean maxima value', 'Mean minima value', 'Oscillation frequency estimate', 'Oscillation range'],
+               ['Counts', 'Counts', '', '', 'Counts', 'Counts', 'eV^-1', 'Counts'],
+               None  # No FWHM function
+           ]
+           }
+
 
 fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'gaussian': fitkeys['gaussian'][6][:] + unitstoaddfit,
@@ -675,7 +844,9 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'linear': fitkeys['linear'][6][:] + unitstoaddfit,
             'double lorentz': fitkeys['double lorentz'][6][:] + unitstoaddfit,
             'double gaussian': fitkeys['double gaussian'][6][:] + unitstoaddfit,
-            'double voigt': fitkeys['double voigt'][6][:] + unitstoaddfit}
+            'double voigt': fitkeys['double voigt'][6][:] + unitstoaddfit, 
+            'oscillations': fitkeys['oscillations'][6][:]+ unitstoaddfit
+            }
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
 # fitunitparis: dict of the fit parameters and their units. Key of getlist
