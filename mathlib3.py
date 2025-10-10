@@ -674,9 +674,73 @@ def smooth_background(signal, window_length=51, polyorder=3):
     background = savgol_filter(signal, window_length, polyorder)
     return background
 
+def extract_phase_evolution(oscillations, wl, maxima_indices, minima_indices):
+    """
+    Extract the phase evolution (instantaneous frequency) from oscillations.
+    
+    The phase changes as the oscillations speed up or slow down over the energy/wavelength range.
+    
+    Parameters:
+    - oscillations: Array of isolated oscillations
+    - wl: Wavelength/energy array
+    - maxima_indices: Indices of maxima in oscillations
+    - minima_indices: Indices of minima in oscillations
+    
+    Returns:
+    - instantaneous_freq: Array of instantaneous frequency at each peak
+    - freq_centers: Energy/wavelength values where frequency is calculated
+    - phase_trend_slope: Linear fit slope of frequency evolution (chirp rate)
+    - phase_trend_intercept: Linear fit intercept
+    - mean_period: Mean oscillation period
+    - period_std: Standard deviation of period (measure of chirp)
+    """
+    from scipy.signal import hilbert
+    
+    # Method 1: Calculate instantaneous frequency from peak spacing
+    # Combine maxima and minima for better frequency estimation
+    all_peaks = np.sort(np.concatenate([maxima_indices, minima_indices]))
+    
+    if len(all_peaks) < 3:
+        # Not enough peaks to estimate phase evolution
+        return (np.array([]), np.array([]), 0.0, 0.0, 0.0, 0.0)
+    
+    # Calculate period (spacing) between consecutive peaks
+    peak_wl = wl[all_peaks]
+    periods = np.diff(peak_wl)  # Period in energy/wavelength units
+    
+    # Instantaneous frequency is 1/period
+    instantaneous_freq = 1.0 / periods
+    freq_centers = (peak_wl[:-1] + peak_wl[1:]) / 2  # Midpoint between peaks
+    
+    # Fit linear trend to frequency evolution: freq(E) = slope * E + intercept
+    # This captures the "chirp" or phase evolution
+    if len(freq_centers) > 1:
+        coeffs = np.polyfit(freq_centers, instantaneous_freq, 1)
+        phase_trend_slope = coeffs[0]  # How fast frequency changes with energy
+        phase_trend_intercept = coeffs[1]  # Initial frequency
+    else:
+        phase_trend_slope = 0.0
+        phase_trend_intercept = instantaneous_freq[0] if len(instantaneous_freq) > 0 else 0.0
+    
+    # Calculate mean and std of period
+    mean_period = np.mean(periods)
+    period_std = np.std(periods)
+    
+    # Method 2: Use Hilbert transform for continuous phase (stored for potential future use)
+    try:
+        analytic_signal = hilbert(oscillations)
+        instantaneous_phase = np.unwrap(np.angle(analytic_signal))
+        # Instantaneous frequency from phase derivative
+        hilbert_freq = np.gradient(instantaneous_phase) / np.gradient(wl) / (2 * np.pi)
+    except:
+        hilbert_freq = None
+    
+    return (instantaneous_freq, freq_centers, phase_trend_slope, 
+            phase_trend_intercept, mean_period, period_std)
+
 def fitoscillationtospec(start, end, WL, PLB, maxfev=10000, guess=None):
     """
-    Extract oscillations from spectrum and return fit parameters.
+    Extract oscillations from spectrum and return fit parameters including phase evolution.
     
     Parameters:
     - start: Start index of the spectrum region
@@ -688,9 +752,15 @@ def fitoscillationtospec(start, end, WL, PLB, maxfev=10000, guess=None):
     
     Returns:
     - Tuple of fit parameters compatible with fitkeys structure:
-      (background_mean, osc_amplitude, n_maxima, n_minima, mean_max, mean_min, freq_est, osc_range, 
-       background_array, oscillations_array, maxima_indices, minima_indices,
-       maxima_wl, minima_wl, maxima_values, minima_values)
+      Scalar parameters (12 values):
+        0: background_mean, 1: osc_amplitude, 2: n_maxima, 3: n_minima, 
+        4: mean_max, 5: mean_min, 6: freq_est, 7: osc_range,
+        8: phase_chirp (frequency evolution slope), 9: initial_freq (frequency at start),
+        10: mean_period, 11: period_std (variability)
+      Array parameters:
+        background, oscillations, maxima_indices, minima_indices,
+        maxima_wl, minima_wl, maxima_values, minima_values,
+        instantaneous_freq, freq_centers
     """
     x = WL[start:end]
     y = PLB[start:end]
@@ -731,13 +801,21 @@ def fitoscillationtospec(start, end, WL, PLB, maxfev=10000, guess=None):
     
     osc_range = np.max(oscillations) - np.min(oscillations) if len(oscillations) > 0 else 0
     
-    # Return scalar parameters first (for fitkeys compatibility), then arrays
+    # Extract phase evolution (NEW!)
+    (instantaneous_freq, freq_centers, phase_chirp, 
+     initial_freq, mean_period, period_std) = extract_phase_evolution(
+        oscillations, x, maxima_indices, minima_indices
+    )
+    
+    # Return scalar parameters first (12 values for fitkeys compatibility), then arrays
     return (background_mean, osc_amplitude, n_maxima, n_minima, 
             mean_max, mean_min, freq_est, osc_range,
+            phase_chirp, initial_freq, mean_period, period_std,  # NEW phase parameters
             background, oscillations, 
             maxima_indices, minima_indices,
             maxima_wl, minima_wl,
-            maxima_values, minima_values)
+            maxima_values, minima_values,
+            instantaneous_freq, freq_centers)  # NEW phase arrays
 
 def getoscillationdata(xmin, xmax, *fitparams):
     """
@@ -828,11 +906,13 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                None,  # No window function for oscillations (uses isolate_oscillation internally)
                fitoscillationtospec,  # Fitting function
                getoscillationdata,  # Placeholder for compatibility
-               'Oscillation Extraction', 
-               8,  # Number of scalar output parameters
+               'Oscillation Extraction with Phase', 
+               12,  # Number of scalar output parameters (including phase evolution)
                ['Background mean', 'Oscillation amplitude', 'Number of maxima', 'Number of minima', 
-                'Mean maxima value', 'Mean minima value', 'Oscillation frequency estimate', 'Oscillation range'],
-               ['Counts', 'Counts', '', '', 'Counts', 'Counts', 'eV^-1', 'Counts'],
+                'Mean maxima value', 'Mean minima value', 'Oscillation frequency estimate', 'Oscillation range',
+                'Phase chirp rate', 'Initial frequency', 'Mean period', 'Period std dev'],
+               ['Counts', 'Counts', '', '', 'Counts', 'Counts', 'eV^-1', 'Counts',
+                'eV^-2', 'eV^-1', 'eV', 'eV'],
                None  # No FWHM function
            ]
            }
