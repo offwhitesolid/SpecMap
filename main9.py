@@ -13,7 +13,7 @@ import export1 as xplib
 import newtonspeclib1 as newtonlib
 import threading as thr
 import matplotlib.pyplot as plt
-
+import HSI_debugger as DBG
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -360,6 +360,9 @@ def pressclose(root):
     root.destroy()
 
 if __name__ == "__main__":
+    # init debugger
+    debugger = DBG.main_Debugger()
+
     # Create the main window
 
     # default values for GUI
