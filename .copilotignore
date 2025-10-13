@@ -1,0 +1,36 @@
+# .copilotignore - Files and folders to exclude from AI analysis and documentation
+
+# Cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Old and backup files
+oldfiles/
+standalone/
+
+# Test files and datasets (not core functionality)
+pythontestsrc/
+testdatasets/
+scaleimages/old/
+
+# Export/output directories
+exported Pixelmatrix/
+savefiles/
+hsidata/
+
+# IDE and editor files
+.vscode/
+*.tmp
+*~
+
+# Development artifacts
+Todos.txt
+
+# Igor specific files (external tool integration, not core Python functionality)
+Igor Program/
+
+# Test and example files
+openspec/testfiles/
+openerJN/

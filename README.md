@@ -1,79 +1,332 @@
-# SpecMap
-Version2 of hypermap
+# SpecMap - Hyperspectral Data Analysis Tool
 
+## Table of Contents
+- [Overview](#overview)
+- [Installation](#installation)
+- [Program Structure](#program-structure)
+- [Core Features](#core-features)
+- [Module Documentation](#module-documentation)
+- [Usage Guide](#usage-guide)
+- [Configuration](#configuration)
+
+## Overview
+
+SpecMap is a comprehensive Python application for hyperspectral data analysis and visualization. The program provides a GUI-based interface built with Tkinter for loading, processing, analyzing, and exporting hyperspectral datasets. It supports various data formats and offers advanced features like spectral fitting, cosmic ray removal, background correction, and 2D Gaussian fitting for Clara imaging.
+
+### Key Capabilities
+- **Hyperspectral Data Processing**: Load and analyze hyperspectral image datasets
+- **Spectral Analysis**: Plot, fit, and analyze individual spectra with various mathematical models
+- **Image Processing**: Handle Clara imaging data with 2D Gaussian fitting capabilities
+- **Data Export**: Export processed data and pixel matrices in CSV format
+- **Interactive Visualization**: Click-to-analyze functionality with real-time plotting
+- **Background Correction**: Multiple background correction methods including linear and cosmic ray removal
+- **ROI Analysis**: Region of interest selection and analysis tools
+
+## Installation
+
+### Requirements
+The program requires the following Python packages (see `requirements.txt`):
+- `tkinter` (GUI framework)
+- `matplotlib` (plotting and visualization)
+- `numpy` (numerical computations)
+- `scipy` (scientific computing and curve fitting)
+- `PIL/Pillow` (image processing)
+- `pandas` (data manipulation)
+
+### Setup
 !!! .venv Installation START !!!
 - Installation an .venv creation on windows enter the following 5 command in your terminal:
 >>> Remove-Item -Recurse -Force .venv
->>> python -m venv .venv
->>> .\.venv\Scripts\Activate.ps1
->>> python -m pip install --upgrade pip
->>> pip install -r requirements.txt
 
-- then select the virtual environment
-if u get the tcl error:     self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
-              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-_tkinter.TclError: Can't find a usable init.tcl in the following directories: [...] This probably means that Tcl wasn't installed properly.
-Fix: 
-place the tcl installation in the path of your python installation in the .venv dir 
-(u might the tcl folder from C:\Users\username\AppData\Local\Programs\Python\Python313)
+1. Ensure all required packages are installed: `pip install -r requirements.txt`
+2. Run the main application: `python main9.py`
 
-then start a terminal and run the following commands:
->>> $projectdir = (Get-Location).Path
->>> $env:TCL_LIBRARY = "$projectdir\.venv\tcl\tcl8.6"
->>> $env:TK_LIBRARY  = "$projectdir\.venv\tcl\tk8.6"
-this 
+### Troubleshooting
+If you encounter TCL/Tkinter errors, you may need to:
+1. Copy TCL folder from your Python installation to the .venv directory
+2. Set environment variables:
+   ```
+   $projectdir = (Get-Location).Path
+   $env:TCL_LIBRARY = "$projectdir\.venv\tcl\tcl8.6"
+   $env:TK_LIBRARY  = "$projectdir\.venv\tcl\tk8.6"
+   ```
 
-!!! .venv Installation END !!!
+## Program Structure
 
-run mainN.py with all necessary modules in a folder ... worla
-(the N in mainN.py is dependent on the version, the higher, the newer the version)
+The application follows a modular architecture with clear separation of concerns:
 
-Setup on Github: 
-Note: the main branche ist protected. For changes create new patch that contains changes. Then create pull request. After review, merge into main branch. Then create new tag with version number
-Get access to the repository by invitation as a collaborator. 
+```
+SpecMap1/
+├── main9.py              # Main application entry point
+├── lib9.py               # Core hyperspectral analysis classes
+├── deflib1.py            # Default settings and utility functions
+├── claralib1.py          # Clara image processing module
+├── mathlib3.py           # Mathematical fitting functions
+├── PMclasslib1.py        # Pixel matrix and spectra data classes
+├── newtonspeclib1.py     # Newton spectrum analysis
+├── export1.py            # Data export functionality
+├── defaults.txt          # Default configuration values
+└── requirements.txt      # Python dependencies
+```
 
-github clone repository that a colaborator grated me access to edit it locally e. g. in visual studio code (advise from chatgpt, but checked and works):
-To clone a GitHub repository that a collaborator has granted you access to and edit it locally in Visual Studio Code, follow these steps:
+## Core Features
 
-Step 1: Set Up Git (if not already done)
-Install Git:
+### 1. Hyperspectral Data Loading and Processing
+- **Multi-file Loading**: Process multiple spectral files from a directory
+- **Format Support**: Handles various spectral data formats
+- **Background Correction**: Multiple background subtraction methods
+- **Cosmic Ray Removal**: Several algorithms for cosmic ray detection and removal
+- **Power Correction**: Spectral power correction capabilities
 
-Download and install Git from the official website: git-scm.com.
-Follow the installation prompts to complete the setup.
-Configure Git:
+### 2. Interactive Spectral Analysis
+- **Pixel Selection**: Click-to-select pixels for detailed spectral analysis
+- **Spectral Fitting**: Fit various mathematical models (Gaussian, Lorentzian, Voigt, etc.)
+- **ROI Analysis**: Define and analyze regions of interest
+- **Real-time Plotting**: Interactive matplotlib-based visualization
 
-Open a terminal and configure your Git username and email:
-bash
-Code kopieren
-git config --global user.name "Your Name"
-git config --global user.email "your.email@example.com"
+### 3. Clara Image Processing
+- **2D Gaussian Fitting**: Advanced 2D Gaussian profile fitting for beam analysis
+- **Scaling Support**: Multiple magnification factors (20x, 50x, 100x)
+- **Area Calculations**: Beam area and parameter extraction
 
-Step 2: Clone the Repository
-Open GitHub:
+### 4. Data Export and Visualization
+- **CSV Export**: Export pixel matrices and spectral data
+- **Metadata Preservation**: Maintain acquisition parameters and settings
+- **Interactive Colormaps**: Various colormap options for data visualization
 
-Go to GitHub and log in to your account.
-Find the Repository:
+## Module Documentation
 
-Navigate to the repository you want to clone (this should be one you have access to).
-Copy the Repository URL:
+### main9.py - Application Entry Point
 
-Click on the green "Code" button in the repository page.
-Choose the URL under "HTTPS" or "SSH" (if you have set up SSH keys).
-Clone the Repository:
+**Class: FileProcessorApp**
+- **Purpose**: Main application controller managing the GUI and coordinating between modules
+- **Key Methods**:
+  - `__init__(root, defaults)`: Initialize the main application window
+  - `spec_loadfiles()`: Load and process hyperspectral data files
+  - `cl_loadfiles()`: Load Clara imaging data
+  - `newtonloadfiles()`: Load Newton spectrum data
+  - `saveNanomap(filename)`: Save current analysis session
+  - `loadhsisaved(filename)`: Load previously saved session
 
-Open a terminal or command prompt.
-Navigate to the directory where you want to clone the repository.
-Run the following command, replacing REPO_URL with the URL you copied:
-bash
-Code kopieren
-git clone REPO_URL
-Example:
-bash
-Code kopieren
-git clone https://github.com/username/repo-name.git
-This will download the repository to your local machine.
+**GUI Structure**:
+- **Tabbed Interface**: Multiple notebooks for different functionalities
+  - Load Data: File loading and preprocessing options
+  - Hyperspectra: Main analysis interface
+  - Clara Image: Clara imaging tools
+  - Export: Data export options
+  - Newton Spectrum: Newton spectrum analysis
+  - Settings: Configuration options
 
-Step 3: Open the Repository in Visual Studio Code
+### lib9.py - Core Analysis Engine
+
+**Class: SpectrumData**
+- **Purpose**: Individual spectrum data container with metadata
+- **Attributes**:
+  - `WL`: Wavelength array
+  - `PL`: Raw photoluminescence counts
+  - `BG`: Background data
+  - `PLB`: Background-corrected spectrum (PL - BG)
+  - `data`: Metadata dictionary with acquisition parameters
+
+**Class: XYMap**
+- **Purpose**: Main hyperspectral dataset container and analysis engine
+- **Key Features**:
+  - Pixel matrix generation and management
+  - Interactive plotting and pixel selection
+  - Spectral fitting with multiple mathematical models
+  - ROI selection and analysis
+  - Colormap visualization
+
+**Key Methods**:
+- `loadfiles()`: Load and parse spectral data files
+- `SpecdataintoMatrix()`: Organize spectra into spatial matrix
+- `PlotSpectrum()`: Plot individual spectra
+- `PlotPixMatrix()`: Generate pixel matrix visualizations
+- `on_click()`: Handle mouse click events for pixel selection
+- `fitSpectralData()`: Perform spectral fitting operations
+
+**Class: Roihandler**
+- **Purpose**: Region of interest selection and management
+- **Features**: Polygon-based ROI definition with analysis capabilities
+
+### deflib1.py - Utilities and Configuration
+
+**Key Functions**:
+- `initdefaults()`: Load and validate default configuration
+- `save_defaults()`, `load_defaults()`: Configuration file management
+- `remove_cosmics_*()`: Various cosmic ray removal algorithms
+  - Linear interpolation method
+  - Median filtering approach
+  - Rolling mean technique
+- `browse_folder()`, `select_file()`: File dialog utilities
+- `power_correction()`: Spectral power correction
+
+**Configuration System**:
+- Persistent settings storage in `defaults.txt`
+- Type validation and error handling
+- Default value fallbacks
+
+### mathlib3.py - Mathematical Models
+
+**Fitting Functions**:
+- `gaussianwind()`: Gaussian profile fitting
+- `lorentzwind()`: Lorentzian profile fitting  
+- `voigtwind()`: Voigt profile fitting (convolution of Gaussian and Lorentzian)
+- `double_*()`: Double-peak fitting functions
+- `linearwind()`: Linear baseline fitting
+
+**Parameter Estimation**:
+- `estimate_voigt_params()`: Intelligent initial parameter estimation
+- Peak detection and analysis utilities
+- FWHM and area calculations
+
+### claralib1.py - Clara Image Processing
+
+**Class: imageprocessor**
+- **Purpose**: Clara imaging data analysis and visualization
+- **Features**:
+  - 2D Gaussian profile fitting
+  - Multi-magnification support (20x, 50x, 100x scaling)
+  - Interactive plotting and analysis
+
+**Key Functions**:
+- `fit_gaussian_2d()`: Advanced 2D Gaussian fitting
+- `gaussian_2d()`: 2D Gaussian mathematical model
+- `plot2dfit()`: Visualization of fit results
+- `area2dgaussian()`: Beam area calculations
+
+### PMclasslib1.py - Data Structures
+
+**Class: PMclass (Pixel Matrix Class)**
+- **Purpose**: Container for 2D pixel matrix data with spatial information
+- **Attributes**:
+  - `PixMatrix`: 2D data array
+  - `xax`, `yax`: Spatial axis arrays
+  - `gdx`, `gdy`: Pixel spacing
+  - `metadata`: Acquisition metadata
+
+**Class: Spectra**
+- **Purpose**: Individual spectrum data with export capabilities
+- **Features**: Formatted data export with headers and metadata
+
+### export1.py - Data Export
+
+**Class: Exportframe**
+- **Purpose**: GUI interface for data export operations
+- **Features**:
+  - CSV export with metadata headers
+  - File dialog integration
+  - Pixel matrix export functionality
+
+### newtonspeclib1.py - Newton Spectrum Analysis
+
+**Class: newtonspecopener**
+- **Purpose**: Interface for Newton spectrum data analysis
+- **Status**: Framework for future Newton-specific analysis features
+
+## Usage Guide
+
+### Basic Workflow
+
+1. **Launch Application**:
+   ```bash
+   python main9.py
+   ```
+
+2. **Load Data**:
+   - Select folder containing spectral files
+   - Enter filename pattern and file extension
+   - Configure preprocessing options (background correction, cosmic removal)
+   - Click "Load data"
+
+3. **Analyze Data**:
+   - Use the interactive pixel matrix to select analysis points
+   - View spectral plots in real-time
+   - Apply mathematical fitting models
+   - Define and analyze regions of interest
+
+4. **Export Results**:
+   - Navigate to Export tab
+   - Choose export format and location
+   - Export processed data and analysis results
+
+### Advanced Features
+
+**Spectral Fitting**:
+- Select wavelength range for analysis
+- Choose appropriate mathematical model (Gaussian, Lorentzian, Voigt)
+- Adjust fit parameters and constraints
+- View fit quality metrics
+
+**ROI Analysis**:
+- Define polygonal regions of interest
+- Perform batch analysis on selected regions
+- Generate averaged spectra from ROI areas
+
+**Clara Image Analysis**:
+- Load Clara imaging data
+- Perform 2D Gaussian fitting for beam characterization
+- Calculate beam parameters and areas
+
+## Configuration
+
+### Default Settings
+The application uses a configuration file (`defaults.txt`) to store user preferences:
+
+- **File paths**: Default directories for data loading
+- **Processing options**: Background correction, cosmic removal settings
+- **Display preferences**: Font sizes, window dimensions, colormap choices
+- **Analysis parameters**: Wavelength ranges, fitting constraints
+
+### Customization
+Users can modify defaults by:
+1. Editing `defaults.txt` directly
+2. Using the Settings tab in the application
+3. Modifying the `defaults` dictionary in `deflib1.py`
+
+### Cosmic Ray Removal Options
+- **Linear Interpolation**: Fast, simple approach
+- **Median Filtering**: Robust outlier removal
+- **Rolling Mean**: Preserves overall spectral trends
+
+### Background Correction
+- **Multiple Backgrounds**: Use separate background for each spectrum
+- **Linear Background**: Apply linear baseline correction
+- **Power Correction**: Compensate for wavelength-dependent effects
+
+## Technical Details
+
+### Data Flow
+1. **File Loading**: Raw spectral files → SpectrumData objects
+2. **Matrix Organization**: SpectrumData → XYMap spatial matrix
+3. **Processing**: Background correction, cosmic removal, power correction
+4. **Analysis**: Interactive selection, fitting, ROI analysis
+5. **Export**: Processed data → CSV files with metadata
+
+### Memory Management
+- Efficient numpy array operations
+- On-demand data loading and processing
+- Automatic cleanup of matplotlib figures and threads
+
+### Error Handling
+- Comprehensive exception handling throughout
+- User-friendly error messages
+- Graceful degradation for missing or corrupted data
+
+## Development and Version Control
+
+The project uses Git for version control:
+- **Main branch**: Protected, contains stable releases
+- **Development**: Create feature branches for changes
+- **Releases**: Tagged versions for distribution
+
+For contributors:
+1. Clone the repository: `git clone [repository-url]`
+2. Create feature branch: `git checkout -b feature-name`
+3. Make changes and commit: `git commit -m "description"`
+4. Create pull request for review and merge
+
+This documentation provides a complete overview of the SpecMap hyperspectral analysis application, covering all major features and implementation details.
 Launch Visual Studio Code:
 
 Open Visual Studio Code on your computer.

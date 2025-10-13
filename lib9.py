@@ -1191,7 +1191,6 @@ class XYMap:
                         self.PlotSpectrum(self.SpecDataMatrix[y][x].PLB, wl, 'PL Spectrum', xunit=self.WLunit)
                     else:
                         print('No valid Data set selected for the Plot.')
-                    # debug: print 'x-position: {}, y-position: {}'.format(x, y)
                     print('x-position: {}, y-position: {}'.format(x, y))
 
     def PlotSpectrum(self, x, y, label, xunit='nm', yunit='counts'):
@@ -1504,7 +1503,6 @@ class XYMap:
             self.gdx = 0
             self.gdy = 0
         else:
-            #self.PMmetadata[self.hsiselect.get()] = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
             for i in self.specs:
                 if i is not None:
                     if i.data['x-position'] not in self.mxcoords:
@@ -1513,11 +1511,6 @@ class XYMap:
                         self.mycoords.append(i.data['y-position'])
             self.mxcoords = sorted(self.mxcoords)
             self.mycoords = sorted(self.mycoords)
-            # debug: print('xcoords: ', self.mxcoords)
-			# debug: print('ycoords: ', self.mycoords)
-            print('Generating Matrix with {} x-coords and {} y-coords.'.format(len(self.mxcoords), len(self.mycoords)))
-            print('x-coords:', self.mxcoords)
-            print('y-coords:', self.mycoords)
 
             PixMatrix, self.SpecDataMatrix, self.PixAxX, self.PixAxY = self.genmatgrid(self.mxcoords, self.mycoords)
             PixMatrixc = PMlib.PMclass(np.asarray(PixMatrix, dtype=float), self.PixAxX, self.PixAxY, self.PMmetadata)
@@ -1578,36 +1571,36 @@ class XYMap:
                 self.SpecDataMatrix[yind][xind] = i
         
     def genmatgrid(self, xar, yar): # returns that must be filled with the SpectrumData Objects
-        self.matstart = [np.amin(self.mxcoords), np.amin(self.mycoords)]
-        self.matend = [np.amax(self.mxcoords), np.amax(self.mycoords)]
-        dxa = deflib.findif(self.mxcoords)
-        dya = deflib.findif(self.mycoords)
-        self.dxanodup = deflib.remove_duplicates(dxa)
-        self.dyanodup = deflib.remove_duplicates(dya)
+        self.matstart = [np.amin(self.mxcoords), np.amin(self.mycoords)] # find min coordinates
+        self.matend = [np.amax(self.mxcoords), np.amax(self.mycoords)] # find max coordinates
+        dxa = deflib.findif(self.mxcoords) # find differences between coordinates
+        dya = deflib.findif(self.mycoords) # find differences between coordinates
+        self.dxanodup = deflib.remove_duplicates(dxa) # remove duplicates
+        self.dyanodup = deflib.remove_duplicates(dya) # remove duplicates
         if len(self.dxanodup) == 1:
             self.gdx = dxa[0]
         else:
-            self.gdx = deflib.most_freq_element(dxa)
+            self.gdx = deflib.most_freq_element(dxa) # find most frequent element
         if len(self.dyanodup) == 1:
             self.gdy = dya[0]
         else:
-            self.gdy = deflib.most_freq_element(dya)
-        self.gdx = round(self.gdx, 10)
-        self.gdy = round(self.gdy, 10)
+            self.gdy = deflib.most_freq_element(dya) 
+        self.gdx = round(self.gdx, 10) # avoid rounding errors
+        self.gdy = round(self.gdy, 10) # avoid rounding errors
         matpixax = []
         matpiyax = []
         PixelMatrix = []
         SpectralMatrix = []
-        for i in range(int((self.matend[0]-self.matstart[0]+self.gdx)/self.gdx)):
-            matpixax.append(round(i*self.gdx+self.matstart[0], 10))
-        for i in range(int((self.matend[1]-self.matstart[1]+self.gdy)/self.gdy)):
-            matpiyax.append(round(i*self.gdy+self.matstart[1], 10))
+        for i in range(int((self.matend[0]-self.matstart[0]+self.gdx)/self.gdx)): # create x axis of the matrix
+            matpixax.append(round(i*self.gdx+self.matstart[0], 10)) # put rounded values in the axis
+        for i in range(int((self.matend[1]-self.matstart[1]+self.gdy)/self.gdy)): # create y axis of the matrix
+            matpiyax.append(round(i*self.gdy+self.matstart[1], 10)) # put rounded values in the axis
             fillmat = []
             pixmat = []
             for j in matpixax:
-                fillmat.append(np.nan)#None)
+                fillmat.append(np.nan)#None) # fill rows with None
                 pixmat.append(0)
-            SpectralMatrix.append(fillmat)
+            SpectralMatrix.append(fillmat) # put row data into the matrix
             PixelMatrix.append(pixmat)
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
     
@@ -1639,7 +1632,6 @@ class XYMap:
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
 
         roi = lastpm[:]
-        # debug: plot roi
 
         useroi = self.HSI_from_fitparam_useROI.get()
         if useroi:
