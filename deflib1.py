@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 # comment how cremove_cosmics works
 
-Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'Settings']
+Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'TCSPC', 'Settings']
 # Default values for the application
 DEFAULTS_FILE = 'defaults.txt'
 
