@@ -337,7 +337,6 @@ class FileProcessorApp:
             return
         # check if filename is a valid path
         canopen = False
-        exists = False
         while os.path.exists(filename):
                 filename = deflib.increment_filename(filename)
                 canopen = True

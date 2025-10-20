@@ -193,14 +193,15 @@ class XYMap:
         self.allfpnamesinone = matl.getlistofallFitparaminone()
         self.speckeys = {'Wavelength axis': 'WL', 'Background (BG)': 'BG',
                          'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB'} # WLB is BG corrected (=PL-BG)
-        self.windowfunctions = ['gaussian', 'lorentz', 'voigt', 'double gaussian', 'double lorentz', 'double voigt', 'linear']  # Window Functions
+        # self.windowfunctions = ['gaussian', 'lorentz', 'voigt', 'double gaussian', 'double lorentz', 'double voigt', 'linear']  # Window Functions
+        self.windowfunctions = list(matl.fitkeys.keys())                    # Window Functions from matl.fitkeys
         self.autogenmatrix()                                                # generate emty grid and fill Data obj into Matrix
         self.DataPixSt = len(self.specs[0].WL)                              # Number of WL Pixels                   
         self.DataPixDX = self.gdx                                           # Plot Pixel dx
         self.DataPixDY = self.gdy                                           # Plot Pixel dy
         self.aqpixstart = 0                                                 # evaluate window start dL
         self.aqpixend = -1                                                  # evaluate window end dL
-        self.SpecButtons = self.build_button_frame(self.specframe)         # build Spec GUI
+        self.SpecButtons = self.build_button_frame(self.specframe)          # build Spec GUI
         self.buildMinMaxSpec(self.cmapframe)                                # build CMAP grid GUI
         #if self.defentries['enable_buttonmatrix'] == True:
         self.build_PixMatrix_frame(self.cmapframe)                          # build Pixel Matrix GUI
@@ -449,6 +450,8 @@ class XYMap:
             self.correctionspecname = tkfd.askopenfilename(filetypes=[('Correction spectrum', '*')])
         self.correctionWL, self.correctionSpec = deflib.loadexpspec(self.correctionspecname)
 
+        # clear plt.figure
+        plt.clf()
         # plot the correction spectrum
         plt.plot(self.correctionWL, self.correctionSpec)
         plt.plot(self.disspecs[specname].WL, self.disspecs[specname].Spec)
@@ -1486,8 +1489,12 @@ class XYMap:
             threads.append(t)
             t.start()
 
-        for t in threads:
+        for t in threads: # wait for all threads to finish
             t.join()
+        
+        # after all threads are done, check if the cosmic ray removal method is in deflib.correlationcosmicfuncts
+        if self.remcosmicfunc in deflib.correlationcosmicfuncts:
+            print('Applying cosmic ray removal method {} to all spectra.'.format(self.remcosmicfunc))
 
     def autogenmatrix(self):
         self.mxcoords = []

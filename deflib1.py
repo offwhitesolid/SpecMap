@@ -60,6 +60,56 @@ def load_defaults():
                     variables[name] = value
     return variables
 
+def matrix_image_correction_Matrix(SpectrumData, thresh, width):
+    SpectrumData_correlated = SpectrumData.copy()
+
+    # Apply matrix image correction to the SpectrumData's XYMap data
+    if SpectrumData.XYMap is not None:
+        # if len(SpectrumData.XYMap) < 3 or len(SpectrumData.XYMap[0]) < 3: just pass
+        if len(SpectrumData.XYMap) < 3 or len(SpectrumData.XYMap[0]) < 3:
+            return SpectrumData
+
+        correctionweighting = gaussian_weight_matrix(dx=1.0, dy=1.0, sigma_x=1.0, sigma_y=1.0, size=3)
+        print(correctionweighting)
+        return SpectrumData_correlated # first testing
+    
+        # iterate over each spectrum in the XYMap and identify cosmics
+        for i in range(len(SpectrumData.XYMap)-2):
+            for j in range(len(SpectrumData.XYMap[i])-2):
+                if hasattr(SpectrumData.XYMap[i][j], 'PLB'):
+                    existingmatrix = [[0,0,0],[0,0,0],[0,0,0]]
+                    # check if surrounding pixels exist
+                    for k in range(len(SpectrumData.XYMap[i][j].PLB)):
+                        # fill existingmatrix
+                        # iterate over surrounding pixels
+                        for l in range(-1, 2):
+                            for m in range(-1, 2):
+                                # check if surrounding pixels exist
+                                if SpectrumData.XYMap[i+l][j+m] is not None:
+                                    existingmatrix[l+1][m+1] = 1
+                    # if more than 80% of surrounding pixels exist, apply correction
+                    if np.sum(existingmatrix) <= 0.8 * np.prod(np.array(existingmatrix).shape):
+                        break
+                        
+
+                    for k in range(len(SpectrumData.XYMap[i][j].PLB)):
+                        # correction, weight each pixel with the average of the surrounding pixels
+                        local_matrix = np.array([[SpectrumData.XYMap[i-1][j-1].PLB[k], SpectrumData.XYMap[i-1][j].PLB[k], SpectrumData.XYMap[i-1][j+1].PLB[k]],
+                                                  [SpectrumData.XYMap[i][j-1].PLB[k], SpectrumData.XYMap[i][j].PLB[k], SpectrumData.XYMap[i][j+1].PLB[k]],
+                                                  [SpectrumData.XYMap[i+1][j-1].PLB[k], SpectrumData.XYMap[i+1][j].PLB[k], SpectrumData.XYMap[i+1][j+1].PLB[k]]])
+                        # Apply a simple average filter
+                        SpectrumData_correlated.XYMap[i][j].PLB[k] = np.mean(local_matrix)
+        
+    else:
+        return SpectrumData
+
+
+    return SpectrumData_correlated
+
+# Matrix image correction method
+def matrix_image_correction(data, thresh, width):
+    return data # placeholder, no correction applied
+
 # Linear interpolation provides a simple and fast method for filling in missing values.
 def remove_cosmics_linear(data, thresh, width):
     # Calculate the finite differences (first derivative)
@@ -466,12 +516,19 @@ def fig_on_hoverevent(event, ax, fig, Z, x_range, y_range):
             ax.set_title(f"x: {event.xdata:.2f}, y: {event.ydata:.2f}, z: {z_value:.2f}")
             fig.canvas.draw_idle()
 
-cosmicfuncts = {'Linear Interpolation': remove_cosmics_linear, 
+cosmicfuncts = {
+                'Matrix Image correction': matrix_image_correction,
+                'Linear Interpolation': remove_cosmics_linear, 
                 'Median Filter': remove_cosmics_median_filter, 
                 #'Rolling Mean': remove_cosmics_rolling_mean, 
                 #'Spline Interpolation': remove_cosmics_spline,
                 'Nearest Neighbor average': remove_cosmics_nearest_neighbor, 
                 } 
+
+# Correlation functions for cosmic ray removal must be run by XYMap class instead of SpectrumData class only
+correlationcosmicfuncts = {
+                'Matrix Image correction': matrix_image_correction_Matrix
+                }
 # Rolling Mean showed not to be good for cosmic removal
 # Spline Interpolation showed not to be good for cosmic removal and took like forever to perform
 
@@ -618,6 +675,46 @@ def wl_array_to_ev(wl):
     for i in range(len(wl)): 
         wl[i] = h * c / wl[i]
     return wl  # Energy in eV
+
+def gaussian_weight_matrix(dx=1.0, dy=1.0, sigma_x=None, sigma_y=None, size=3):
+    """
+    Generate a normalized 2D Gaussian weighting matrix.
+    
+    Parameters
+    ----------
+    dx, dy : float
+        Sampling spacing along x and y axes (distance between spectra).
+    sigma_x, sigma_y : float
+        Standard deviations (beam waist) along x and y.
+        If sigma_y is None, isotropic Gaussian is assumed.
+    size : int
+        Matrix dimension (must be odd). Default is 3 for 3x3.
+        
+    Returns
+    -------
+    w_norm : 2D numpy array
+        Normalized Gaussian weights that sum to 1.
+    x_grid, y_grid : 2D numpy arrays
+        Coordinate grids (for reference).
+    """
+    if sigma_y is None:
+        sigma_y = sigma_x
+
+    # ensure odd size (so we have a center)
+    if size % 2 == 0:
+        raise ValueError("Matrix size must be odd (e.g. 3, 5, 7).")
+
+    half = size // 2
+    x = np.arange(-half, half + 1) * dx
+    y = np.arange(-half, half + 1) * dy
+    X, Y = np.meshgrid(x, y)
+
+    # 2D Gaussian weights
+    w = np.exp(-((X**2)/(2*sigma_x**2) + (Y**2)/(2*sigma_y**2)))
+
+    # normalize to sum = 1
+    w_norm = w / np.sum(w)
+    return w_norm, X, Y
 
 # check definitions 
 if __name__ == '__main__':
