@@ -502,6 +502,9 @@ defaults={
     # Clara Image Frame
     'clara_image': 'C:/Users/mol95ww/Desktop/Evaluation/data/2024/qdot_100fach/Laser_in_zpos/145_0.asc',
     'newton_spectrum': 'C:/Users/mol95ww/Desktop/Evaluation/data/2024/Perovskite/N1_Sndoping/Pb-Sn_0_0625/PL_Sn_Image_0_0625_1250g_500lnm_470-1030nm.asc',
+    # TCSPC Frame
+    'tcspc_maindir': '',
+    'tcspc_subdir': '',
     # Hyperspectra Notebook
     # cmap frame
     'lowest_wavelength': 500, 
@@ -527,7 +530,7 @@ defaults={
     'selected_WL_axis': 'Wavelength (nm)',
     'Fit_use_ROI_mask': True, 
     'HSI_from_fitparam_useROI': True, 
-    'power_correction': False
+    'power_correction': False, 
 }
 
 defaulttypes = {
@@ -546,6 +549,8 @@ defaulttypes = {
     'cosmic_method': str,
     'clara_image': str,
     'newton_spectrum': str,
+    'tcspc_maindir': str,
+    'tcspc_subdir': str,
     # Hyperspectra Notebook
     'lowest_wavelength': float,
     'highest_wavelength': float,
@@ -570,7 +575,8 @@ defaulttypes = {
     'selected_WL_axis': str,
     'Fit_use_ROI_mask': bool,
     'HSI_from_fitparam_useROI': bool, 
-    'power_correction': bool
+    'power_correction': bool,
+
 }
 
 def testdefaults():

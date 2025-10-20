@@ -47,10 +47,10 @@ class FileProcessorApp:
 
     def createbuttons(self, Notebook):
         # Specmap Load Frame
-        self.open_frame = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
+        self.open_frame = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
         self.open_frame.grid(row=0, column=0)
         # Folder selection
-        self.SpecMapLoad_label = tk.Label(self.open_frame, text="Select folder with spectra for Hyperspectral processing")
+        self.SpecMapLoad_label = tk.Label(self.open_frame, text="Select folder with spectra for Hyperspectral processing", width=100)
         self.SpecMapLoad_label.pack()
         self.folder_label = tk.Label(self.open_frame, text="Select Folder")
         self.folder_label.pack()
@@ -73,7 +73,7 @@ class FileProcessorApp:
         self.fileformat_entry.pack(fill=tk.X)
         self.fileformat_entry.insert(0, defaults['file_extension'])
         # Process button
-        self.process_button = tk.Button(self.open_frame, text="Load data", command=self.spec_loadfiles)
+        self.process_button = tk.Button(self.open_frame, text="Load HSI data", command=self.spec_loadfiles)
         self.process_button.pack()
         # space between frames
         tk.Frame(self.open_frame, height=10).pack()
@@ -124,17 +124,17 @@ class FileProcessorApp:
         self.claraloadframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
         self.claraloadframe.grid(row=1, column=0)
         # Folder selection
-        self.clara_label = tk.Label(self.claraloadframe, text="Select folder with spectra for Clara processing")
+        self.clara_label = tk.Label(self.claraloadframe, text="Select folder with spectra for Clara processing", width=100)
         self.clara_label.pack()
         self.clara_file_label = tk.Label(self.claraloadframe, text="Select File")
         self.clara_file_label.pack()
 
         # Clara process frame
         self.cl_file_entrystr = tk.StringVar()
-        self.cl_file_entry = tk.Entry(self.claraloadframe, textvariable=self.cl_file_entrystr, width=60)
+        self.cl_file_entry = tk.Entry(self.claraloadframe, textvariable=self.cl_file_entrystr, width=113)
         self.cl_file_entry.pack()
         self.cl_file_entry.insert(0, defaults['clara_image'])
-        self.cl_process_button = tk.Button(self.claraloadframe, text="Load data", command=self.cl_loadfiles)
+        self.cl_process_button = tk.Button(self.claraloadframe, text="Load Clara data", command=self.cl_loadfiles)
         self.cl_process_button.pack(side=tk.RIGHT, anchor='center')
         spacer = tk.Frame(self.claraloadframe, width=10)
         spacer.pack(side=tk.RIGHT, anchor='center')
@@ -148,13 +148,13 @@ class FileProcessorApp:
         self.cl_folder_button.pack(side=tk.RIGHT, anchor='center')
 
         # frame to save the current hsi object
-        self.saveframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
+        self.saveframe = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
         self.saveframe.grid(row=2, column=0)
         # save the current hsi object
         self.save_label = tk.Label(self.saveframe, text="Save the current Data object")
         self.save_label.pack()
         self.savehsipath = tk.StringVar()
-        self.save_entry = tk.Entry(self.saveframe, textvariable=self.savehsipath, width=60)
+        self.save_entry = tk.Entry(self.saveframe, textvariable=self.savehsipath, width=117)
         self.save_entry.pack()
         self.save_entry.insert(0, defaults['save_hsi'])
         self.save_button = tk.Button(self.saveframe, text="Save", command=lambda: self.saveNanomap(self.savehsipath.get()))
@@ -163,31 +163,60 @@ class FileProcessorApp:
         self.load_label = tk.Label(self.saveframe, text="Load a saved Data object")
         self.load_label.pack()
         self.loadhsipath = tk.StringVar()
-        self.load_entry = tk.Entry(self.saveframe, textvariable=self.loadhsipath, width=60)
+        self.load_entry = tk.Entry(self.saveframe, textvariable=self.loadhsipath, width=117)
         self.load_entry.pack()
         self.load_entry.insert(0, defaults['load_hsi_saved'])
         self.load_button = tk.Button(self.saveframe, text="Load", command=lambda: self.loadhsisaved(self.loadhsipath.get()))
         self.load_button.pack()
 
         # frame to load Newton spectrum
-        self.newtonframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
-        self.newtonframe.grid(row=0, column=1)
+        self.newtonframe = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
+        self.newtonframe.grid(row=3, column=0)
         # Newton spectrum load
-        self.newton_label = tk.Label(self.newtonframe, text="Select Newton spectrum file")
-        self.newton_label.grid(row=0, column=0)
+        self.newton_label = tk.Label(self.newtonframe, text="Select Newton spectrum file", width=85)
+        self.newton_label.grid(row=0, column=1)
         self.newton_file_label = tk.Label(self.newtonframe, text="Select File")
         self.newton_file_label.grid(row=1, column=0)
         self.newton_file_entrystr = tk.StringVar()
-        self.newton_file_entry = tk.Entry(self.newtonframe, textvariable=self.newton_file_entrystr, width=60)
+        self.newton_file_entry = tk.Entry(self.newtonframe, textvariable=self.newton_file_entrystr, width=97)
         self.newton_file_entry.grid(row=1, column=1)
         self.newton_file_entry.insert(0, defaults['newton_spectrum'])
-        self.newton_process_button = tk.Button(self.newtonframe, text="Load data", command=self.newtonloadfiles)
-        self.newton_process_button.grid(row=1, column=2)
+        self.newton_process_button = tk.Button(self.newtonframe, text="Load Newton data", command=self.newtonloadfiles)
+        self.newton_process_button.grid(row=2, column=1)
         self.newton_folder_button = tk.Button(self.newtonframe, text="Browse", command= lambda: deflib.select_file(self.newton_file_entrystr))
         self.newton_folder_button.grid(row=1, column=3)
-    
+
+        # frame to load TCSPC data
+        self.tcspcframe = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
+        self.tcspcframe.grid(row=4, column=0)
+        # TCSPC load
+        self.tcspc_label = tk.Label(self.tcspcframe, text="Select TCSPC directory", width=86)
+        self.tcspc_label.grid(row=0, column=1)
+        self.tcspc_file_label = tk.Label(self.tcspcframe, text="main dir")
+        self.tcspc_file_label.grid(row=1, column=0)
+        self.tcspc_maindir_entrystr = tk.StringVar()
+        self.tcspc_maindir_entry = tk.Entry(self.tcspcframe, textvariable=self.tcspc_maindir_entrystr, width=90)
+        self.tcspc_maindir_entry.grid(row=1, column=1)
+        self.tcspc_maindir_entry.insert(0, defaults['tcspc_maindir'])
+        self.tcspc_subdir_label = tk.Label(self.tcspcframe, text="sub dir")
+        self.tcspc_subdir_label.grid(row=2, column=0)
+        self.tcspc_subdir_entrystr = tk.StringVar()
+        self.tcspc_subdir_entry = tk.Entry(self.tcspcframe, textvariable=self.tcspc_subdir_entrystr, width=90)
+        self.tcspc_subdir_entry.grid(row=2, column=1)
+        self.tcspc_process_button = tk.Button(self.tcspcframe, text="Load TCSPC data", command=self.tcspcloadfiles)
+        self.tcspc_process_button.grid(row=3, column=1)
+        self.tcspc_folder_button = tk.Button(self.tcspcframe, text="Browse", command= lambda: deflib.select_file(self.tcspc_maindir_entrystr))
+        self.tcspc_folder_button.grid(row=1, column=3)
+
+        # load HSI on start ater constructing the GUI
         if defaults['loadonstart'] == True:
             self.spec_loadfiles()
+    
+    def tcspcloadfiles(self):
+        file = self.tcspc_file_entry.get()
+        print('Loading TCSPC file:', file)
+        print('TCSPC loading not yet implemented')
+        #self.tcspcclass = lib.TCSPCprocessor(self.nodeframes['TCSPC'], file)
 
     def newtonloadfiles(self):
         file = self.newton_file_entry.get()        
