@@ -11,8 +11,6 @@ import os, csv
 from matplotlib.path import Path
 import matplotlib.pyplot as plt
 
-# comment how cremove_cosmics works
-
 Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'TCSPC', 'Settings']
 # dir of this file
 DIR = os.path.dirname(os.path.abspath(__file__))
@@ -60,51 +58,52 @@ def load_defaults():
                     variables[name] = value
     return variables
 
-def matrix_image_correction_Matrix(SpectrumData, thresh, width):
-    SpectrumData_correlated = SpectrumData.copy()
+def matrix_image_correction_Matrix(SpectrumDataMatrix, thresh, width):
+    print('SpectrumDataMatrix shape: ', np.shape(SpectrumDataMatrix))
+    SpectrumDataMatrix_correlated = SpectrumDataMatrix.copy()
 
     # Apply matrix image correction to the SpectrumData's XYMap data
-    if SpectrumData.XYMap is not None:
-        # if len(SpectrumData.XYMap) < 3 or len(SpectrumData.XYMap[0]) < 3: just pass
-        if len(SpectrumData.XYMap) < 3 or len(SpectrumData.XYMap[0]) < 3:
-            return SpectrumData
+    if SpectrumDataMatrix is not None:
+        # if len(SpectrumData) < 3 or len(SpectrumData[0]) < 3: just pass
+        if len(SpectrumDataMatrix) < 3 or len(SpectrumDataMatrix[0]) < 3:
+            return SpectrumDataMatrix
 
         correctionweighting = gaussian_weight_matrix(dx=1.0, dy=1.0, sigma_x=1.0, sigma_y=1.0, size=3)
-        print(correctionweighting)
-        return SpectrumData_correlated # first testing
-    
+        print('Correctionweighting: ', correctionweighting)
+        #return SpectrumDataMatrix_correlated # first testing
+
         # iterate over each spectrum in the XYMap and identify cosmics
-        for i in range(len(SpectrumData.XYMap)-2):
-            for j in range(len(SpectrumData.XYMap[i])-2):
-                if hasattr(SpectrumData.XYMap[i][j], 'PLB'):
+        for i in range(len(SpectrumDataMatrix)-2):
+            for j in range(len(SpectrumDataMatrix[i])-2):
+                if hasattr(SpectrumDataMatrix[i][j], 'PLB'):
                     existingmatrix = [[0,0,0],[0,0,0],[0,0,0]]
                     # check if surrounding pixels exist
-                    for k in range(len(SpectrumData.XYMap[i][j].PLB)):
+                    for k in range(len(SpectrumDataMatrix[i][j].PLB)):
                         # fill existingmatrix
                         # iterate over surrounding pixels
                         for l in range(-1, 2):
                             for m in range(-1, 2):
                                 # check if surrounding pixels exist
-                                if SpectrumData.XYMap[i+l][j+m] is not None:
+                                if SpectrumDataMatrix[i+l][j+m] is not None:
                                     existingmatrix[l+1][m+1] = 1
                     # if more than 80% of surrounding pixels exist, apply correction
                     if np.sum(existingmatrix) <= 0.8 * np.prod(np.array(existingmatrix).shape):
                         break
                         
 
-                    for k in range(len(SpectrumData.XYMap[i][j].PLB)):
+                    for k in range(len(SpectrumDataMatrix[i][j].PLB)):
                         # correction, weight each pixel with the average of the surrounding pixels
-                        local_matrix = np.array([[SpectrumData.XYMap[i-1][j-1].PLB[k], SpectrumData.XYMap[i-1][j].PLB[k], SpectrumData.XYMap[i-1][j+1].PLB[k]],
-                                                  [SpectrumData.XYMap[i][j-1].PLB[k], SpectrumData.XYMap[i][j].PLB[k], SpectrumData.XYMap[i][j+1].PLB[k]],
-                                                  [SpectrumData.XYMap[i+1][j-1].PLB[k], SpectrumData.XYMap[i+1][j].PLB[k], SpectrumData.XYMap[i+1][j+1].PLB[k]]])
+                        local_matrix = np.array([[SpectrumDataMatrix[i-1][j-1].PLB[k], SpectrumDataMatrix[i-1][j].PLB[k], SpectrumDataMatrix[i-1][j+1].PLB[k]],
+                                                  [SpectrumDataMatrix[i][j-1].PLB[k], SpectrumDataMatrix[i][j].PLB[k], SpectrumDataMatrix[i][j+1].PLB[k]],
+                                                  [SpectrumDataMatrix[i+1][j-1].PLB[k], SpectrumDataMatrix[i+1][j].PLB[k], SpectrumDataMatrix[i+1][j+1].PLB[k]]])
                         # Apply a simple average filter
-                        SpectrumData_correlated.XYMap[i][j].PLB[k] = np.mean(local_matrix)
+                        SpectrumDataMatrix_correlated[i][j].PLB[k] = np.mean(local_matrix)
         
     else:
-        return SpectrumData
+        return SpectrumDataMatrix
 
 
-    return SpectrumData_correlated
+    return SpectrumDataMatrix_correlated
 
 # Matrix image correction method
 def matrix_image_correction(data, thresh, width):

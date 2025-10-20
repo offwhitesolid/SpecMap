@@ -1493,8 +1493,12 @@ class XYMap:
             t.join()
         
         # after all threads are done, check if the cosmic ray removal method is in deflib.correlationcosmicfuncts
-        if self.remcosmicfunc in deflib.correlationcosmicfuncts:
-            print('Applying cosmic ray removal method {} to all spectra.'.format(self.remcosmicfunc))
+        if self.removecosmics == True:
+            if self.remcosmicfunc in deflib.correlationcosmicfuncts:
+                print('running:', self.remcosmicfunc, self.cosmicthreshold, self.cosmicpixels)
+                self.remcosmicfunc = deflib.correlationcosmicfuncts[self.SpecDataMatrix, self.cosmicthreshold, self.cosmicpixels]
+        else:
+            print('failed')
 
     def autogenmatrix(self):
         self.mxcoords = []
