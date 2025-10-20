@@ -1,5 +1,7 @@
-data_file = E:\Promotion\SpecMap\SpecMap\testdatasets\HSI20240903_I01
-#C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Felix_Reis\Grid\testdata
+data_file = C:\Users\volib\Desktop\PhD\Homeoffice\251017\PbI_undoped\HSI20251015_HSI_Refl_PbI_Sn0
+# E:\Promotion\SpecMap\SpecMap\testdatasets\HSI20240903_I01
+# C:\Users\volib\Desktop\PhD\Homeoffice\251017\PbI_undoped\HSI20251015_HSI_Refl_PbI_Sn0
+# C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Felix_Reis\Grid\testdata
 # C:/Users/volib/Desktop/Evaluation/data/VP/test7_MoS2_ML_2sec/test7_MoS2_ML_2sec
 # C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Felix_Reis\N1\HSI20250813_HSI01
 # C:/Users/volib/Desktop/Projects/PCP_Microscopy/Datasets/MoS2_test/okay/Z150_dx05_dy05_areascan3 
@@ -37,4 +39,4 @@ loadonstart = False
 selected_WL_axis = Wavelength (nm)
 Fit_use_ROI_mask = True
 HSI_from_fitparam_useROI = True
-power_correction = False
+power_correction = False 

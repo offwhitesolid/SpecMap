@@ -524,7 +524,8 @@ defaults={
     'loadonstart': False, 
     'selected_WL_axis': 'Wavelength (nm)',
     'Fit_use_ROI_mask': True, 
-    'HSI_from_fitparam_useROI': True
+    'HSI_from_fitparam_useROI': True, 
+    'power_correction': False
 }
 
 defaulttypes = {
