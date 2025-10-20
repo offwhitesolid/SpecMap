@@ -86,6 +86,7 @@ def matrix_image_correction_Matrix(SpectrumDataMatrix, thresh, width):
                                 # check if surrounding pixels exist
                                 if SpectrumDataMatrix[i+l][j+m] is not None:
                                     existingmatrix[l+1][m+1] = 1
+                    print('Existingmatrix at pixel (', i, ',', j, '): ', existingmatrix, np.sum(existingmatrix))
                     # if more than 80% of surrounding pixels exist, apply correction
                     if np.sum(existingmatrix) <= 0.8 * np.prod(np.array(existingmatrix).shape):
                         break
