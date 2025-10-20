@@ -1,4 +1,4 @@
-data_file = C:\Users\volib\Desktop\PhD\Homeoffice\251017\PbI_undoped\HSI20251015_HSI_Refl_PbI_Sn0
+data_file = C:/Users/volib/Desktop/PhD/Homeoffice/251017/PbI_undoped/HSI20251015_HSI_Refl_PbI_Sn0
 # E:\Promotion\SpecMap\SpecMap\testdatasets\HSI20240903_I01
 # C:\Users\volib\Desktop\PhD\Homeoffice\251017\PbI_undoped\HSI20251015_HSI_Refl_PbI_Sn0
 # C:\Users\volib\Desktop\Evaluation\data\2024\Perovskite\Felix_Reis\Grid\testdata

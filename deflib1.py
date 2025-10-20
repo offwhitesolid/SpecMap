@@ -14,8 +14,10 @@ import matplotlib.pyplot as plt
 # comment how cremove_cosmics works
 
 Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'TCSPC', 'Settings']
+# dir of this file
+DIR = os.path.dirname(os.path.abspath(__file__))
 # Default values for the application
-DEFAULTS_FILE = 'defaults.txt'
+DEFAULTS_FILE = f'{DIR}/defaults.txt'
 
 # load defaults
 def initdefaults():
@@ -620,5 +622,5 @@ if __name__ == '__main__':
         print('Error while loading defaults')
         print(f'Error: {Error}')
     
-    testcorrect_spectrum()
+    #testcorrect_spectrum()
 
