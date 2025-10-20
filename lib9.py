@@ -35,6 +35,8 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Long Wavelength (nm)',
                    'magnification']
 
+# todo: make the load data function in the SpectrumData class more robust for statistical cosmic removal
+
 class SpectrumData:
     def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, removecosmicmethod=list(deflib.cosmicfuncts.keys())[0], WL_eV=None):
         self.removecosmicsmethod = removecosmicmethod
