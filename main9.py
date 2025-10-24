@@ -213,7 +213,17 @@ class FileProcessorApp:
             self.spec_loadfiles()
     
     def tcspcloadfiles(self):
-        file = self.tcspc_file_entry.get()
+        file = self.tcspc_maindir_entry.get()
+        # check, if file is valid
+        if not file:
+            messagebox.showerror("Error", "Please select a TCSPC main directory")
+            return
+        else: 
+            # check if file exists
+            if not os.path.exists(file):
+                messagebox.showerror("Error", "The selected TCSPC main directory does not exist")
+                return
+        
         print('Loading TCSPC file:', file)
         print('TCSPC loading not yet implemented')
         #self.tcspcclass = lib.TCSPCprocessor(self.nodeframes['TCSPC'], file)
@@ -224,9 +234,7 @@ class FileProcessorApp:
 
     # testcomment
     def spec_loadfiles(self):
-        # close all open matplotlib windows
-        plt.close('all')
-        # close all running threads
+        # close all open matplotlib windows        # close all running threads
         plt.close('all')
         for thread in thr.enumerate():
             if thread.name != 'MainThread':

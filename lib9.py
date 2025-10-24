@@ -1496,7 +1496,7 @@ class XYMap:
         if self.removecosmics == True:
             if self.remcosmicfunc in deflib.correlationcosmicfuncts:
                 print('running:', self.remcosmicfunc, self.cosmicthreshold, self.cosmicpixels)
-                self.remcosmicfunc = deflib.correlationcosmicfuncts[self.SpecDataMatrix, self.cosmicthreshold, self.cosmicpixels]
+                self.remcosmicfunc = deflib.correlationcosmicfuncts[self.SpecdataintoMatrix, self.cosmicthreshold, self.cosmicpixels]
         else:
             print('failed')
 
