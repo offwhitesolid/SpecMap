@@ -119,6 +119,10 @@ class FileProcessorApp:
         self.cosmicwidthentry = tk.Entry(self.cosmicframe, width=10)
         self.cosmicwidthentry.grid(row=3, column=1)
         self.cosmicwidthentry.insert(0, defaults['cosmic_width'])
+        tk.Label(self.cosmicframe, text="Laser Spotsize (nm):").grid(row=2, column=2)
+        self.laserspotsizeentry = tk.Entry(self.cosmicframe, width=10)
+        self.laserspotsizeentry.grid(row=3, column=2)
+        self.laserspotsizeentry.insert(0, defaults['laser_spotsize_nm'])
     
         # Clara load frame  
         self.claraloadframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
@@ -243,6 +247,7 @@ class FileProcessorApp:
 		
         # kill any existing Nanomap object
         try:
+            self.Nanomap.on_close()
             del self.Nanomap
             self.cmapframe.destroy()
             self.specframe.destroy()
@@ -385,7 +390,7 @@ class FileProcessorApp:
                 print('No Nanomap object to load data into')
                 return
 
-def pressclose(root):
+def pressclose(root, app):
     # Get all running threads
     for thread in thr.enumerate():
         # Skip the main thread
@@ -394,6 +399,7 @@ def pressclose(root):
             thread.daemon = True
     # Destroy the root window
     root.destroy()
+    app.on_closing()
 
 if __name__ == "__main__":
     # init debugger
@@ -411,7 +417,7 @@ if __name__ == "__main__":
     app = FileProcessorApp(root, defaults)
 
     # Set the protocol for closing the window
-    root.protocol("WM_DELETE_WINDOW", lambda: pressclose(root))
+    root.protocol("WM_DELETE_WINDOW", lambda: pressclose(root, app))
 
     # Run the application
     root.mainloop()

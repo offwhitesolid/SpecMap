@@ -1492,13 +1492,9 @@ class XYMap:
         for t in threads: # wait for all threads to finish
             t.join()
         
-        # after all threads are done, check if the cosmic ray removal method is in deflib.correlationcosmicfuncts
-        if self.removecosmics == True:
-            if self.remcosmicfunc in deflib.correlationcosmicfuncts:
-                print('running:', self.remcosmicfunc, self.cosmicthreshold, self.cosmicpixels)
-                self.remcosmicfunc = deflib.correlationcosmicfuncts[self.SpecdataintoMatrix, self.cosmicthreshold, self.cosmicpixels]
-        else:
-            print('failed')
+		# after specra are loaded, they must be put into matrix, after this, correlated cosmic ray removal can be applied (see autogenmatrix) # correlatedcosmicrayremoval
+
+
 
     def autogenmatrix(self):
         self.mxcoords = []
@@ -1530,6 +1526,12 @@ class XYMap:
             PixMatrixc.name = 'HSI0'
             self.PMdict['HSI0'] = PixMatrixc
             self.SpecdataintoMatrix()
+            # after all threads are done, check if the cosmic ray removal method is in deflib.correlationcosmicfuncts
+            if self.removecosmics == True:
+                if self.remcosmicfunc in deflib.correlationcosmicfuncts:
+                    self.remcosmicfunc = deflib.correlationcosmicfuncts[self.remcosmicfunc](self.SpecDataMatrix, self.cosmicthreshold, self.cosmicpixels)
+                else: 
+                    pass
     
     def UpdateHSIselect(self):
         self.hsiselect['values'] = list(self.PMdict.keys())
@@ -1748,6 +1750,10 @@ class XYMap:
                             self.SpecDataMatrix[i][j].PLB[k] = self.SpecDataMatrix[i][j].PLB[k]/powerMatrix[i][j]
                     except Exception as e:
                         print('Error in power correction of pixel {}, {}. {}'.format(i, j, str(e)))
+    
+    def on_close(self):
+        plt.close('all')
+        
 		
         
 class Roihandler():
@@ -1858,6 +1864,9 @@ class Roihandler():
             self.roiselgui.set(list(self.roilist.keys())[-1])
         else:
             self.roiselgui.set('')
+    
+    def on_close(self):
+        plt.close('all')
 
 def load_spectrum(fname, instance, lock):
     specobj = SpectrumData(

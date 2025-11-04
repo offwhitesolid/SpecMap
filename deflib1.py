@@ -10,6 +10,7 @@ from scipy.interpolate import UnivariateSpline
 import os, csv
 from matplotlib.path import Path
 import matplotlib.pyplot as plt
+import copy
 
 Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'TCSPC', 'Settings']
 # dir of this file
@@ -59,8 +60,7 @@ def load_defaults():
     return variables
 
 def matrix_image_correction_Matrix(SpectrumDataMatrix, thresh, width):
-    print('SpectrumDataMatrix shape: ', np.shape(SpectrumDataMatrix))
-    SpectrumDataMatrix_correlated = SpectrumDataMatrix.copy()
+    SpectrumDataMatrix_correlated = copy.copy(SpectrumDataMatrix)
 
     # Apply matrix image correction to the SpectrumData's XYMap data
     if SpectrumDataMatrix is not None:
@@ -86,7 +86,6 @@ def matrix_image_correction_Matrix(SpectrumDataMatrix, thresh, width):
                                 # check if surrounding pixels exist
                                 if SpectrumDataMatrix[i+l][j+m] is not None:
                                     existingmatrix[l+1][m+1] = 1
-                    print('Existingmatrix at pixel (', i, ',', j, '): ', existingmatrix, np.sum(existingmatrix))
                     # if more than 80% of surrounding pixels exist, apply correction
                     if np.sum(existingmatrix) <= 0.8 * np.prod(np.array(existingmatrix).shape):
                         break
@@ -588,6 +587,7 @@ defaults={
     'Fit_use_ROI_mask': True, 
     'HSI_from_fitparam_useROI': True, 
     'power_correction': False, 
+    'laser_spotsize_nm': 1000.0,
 }
 
 defaulttypes = {
@@ -633,6 +633,7 @@ defaulttypes = {
     'Fit_use_ROI_mask': bool,
     'HSI_from_fitparam_useROI': bool, 
     'power_correction': bool,
+    'laser_spotsize_nm': float,
 
 }
 
