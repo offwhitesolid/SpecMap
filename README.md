@@ -8,6 +8,7 @@
 - [Module Documentation](#module-documentation)
 - [Usage Guide](#usage-guide)
 - [Configuration](#configuration)
+- [Advanced Documentation](#advanced-documentation)
 
 ## Overview
 
@@ -312,6 +313,25 @@ Users can modify defaults by:
 - Comprehensive exception handling throughout
 - User-friendly error messages
 - Graceful degradation for missing or corrupted data
+
+## Advanced Documentation
+
+### Mathematical Methods Documentation
+For detailed mathematical descriptions of all cosmic ray removal, interpolation, and smoothing algorithms, see:
+
+📘 **[COSMIC_REMOVAL_METHODS.md](COSMIC_REMOVAL_METHODS.md)**
+
+This comprehensive document includes:
+- Complete mathematical formulations for all 15+ methods
+- Detection criteria and correction algorithms
+- Statistical properties and computational complexity analysis
+- Performance comparisons and use case recommendations
+- References to academic literature
+
+### Architecture Documentation
+For detailed project structure and architecture:
+
+📘 **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)**
 
 ## Development and Version Control
 

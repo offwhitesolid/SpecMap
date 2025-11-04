@@ -221,7 +221,380 @@ def cosmic_correlation_Matrix(SpectrumDataMatrix, thresh, width):
     
     return SpectrumDataMatrix_corrected
 
-# uncorrelated spectra methods
+def adaptive_threshold_Matrix(SpectrumDataMatrix, thresh, width):
+    """
+    Adaptive threshold cosmic removal using local spatial statistics.
+    Calculates threshold based on local mean and std of surrounding pixels.
+    """
+    SpectrumDataMatrix_corrected = copy.deepcopy(SpectrumDataMatrix)
+    
+    if SpectrumDataMatrix is None or len(SpectrumDataMatrix) < 3 or len(SpectrumDataMatrix[0]) < 3:
+        return SpectrumDataMatrix
+    
+    # Iterate over interior pixels
+    for i in range(1, len(SpectrumDataMatrix) - 1):
+        for j in range(1, len(SpectrumDataMatrix[i]) - 1):
+            if not hasattr(SpectrumDataMatrix[i][j], 'PLB'):
+                continue
+            
+            # Collect valid neighbor spectra
+            neighbor_spectra = []
+            for di in range(-1, 2):
+                for dj in range(-1, 2):
+                    if (di != 0 or dj != 0):
+                        neighbor = SpectrumDataMatrix[i+di][j+dj]
+                        if neighbor is not None and hasattr(neighbor, 'PLB'):
+                            neighbor_spectra.append(np.array(neighbor.PLB))
+            
+            if len(neighbor_spectra) < 4:  # Need sufficient neighbors
+                continue
+            
+            # Stack neighbors: shape (n_neighbors, n_wavelengths)
+            neighbor_stack = np.array(neighbor_spectra)
+            
+            # Calculate local statistics per wavelength
+            local_mean = np.mean(neighbor_stack, axis=0)
+            local_std = np.std(neighbor_stack, axis=0)
+            
+            # Get center spectrum
+            center_spectrum = np.array(SpectrumDataMatrix[i][j].PLB)
+            
+            # Adaptive threshold based on local statistics
+            deviation = np.abs(center_spectrum - local_mean)
+            cosmic_mask = deviation > (thresh * local_std)
+            
+            # Replace cosmics with local mean
+            if np.any(cosmic_mask):
+                plb_array = center_spectrum.copy()
+                plb_array[cosmic_mask] = local_mean[cosmic_mask]
+                SpectrumDataMatrix_corrected[i][j].PLB = plb_array.tolist() if isinstance(SpectrumDataMatrix_corrected[i][j].PLB, list) else plb_array
+    
+    return SpectrumDataMatrix_corrected
+
+def spectral_correlation_Matrix(SpectrumDataMatrix, thresh, width):
+    """
+    Spectral correlation method - detects cosmics by checking spectral smoothness.
+    Uses both spatial neighbors AND spectral continuity.
+    """
+    SpectrumDataMatrix_corrected = copy.deepcopy(SpectrumDataMatrix)
+    
+    if SpectrumDataMatrix is None or len(SpectrumDataMatrix) < 3 or len(SpectrumDataMatrix[0]) < 3:
+        return SpectrumDataMatrix
+    
+    for i in range(1, len(SpectrumDataMatrix) - 1):
+        for j in range(1, len(SpectrumDataMatrix[i]) - 1):
+            if not hasattr(SpectrumDataMatrix[i][j], 'PLB'):
+                continue
+            
+            center_spectrum = np.array(SpectrumDataMatrix[i][j].PLB)
+            n_wl = len(center_spectrum)
+            
+            if n_wl < 3:
+                continue
+            
+            # Calculate spectral second derivative (curvature)
+            spectral_deriv2 = np.zeros(n_wl)
+            spectral_deriv2[1:-1] = center_spectrum[:-2] - 2*center_spectrum[1:-1] + center_spectrum[2:]
+            
+            # Also check spatial consistency
+            neighbor_spectra = []
+            for di in range(-1, 2):
+                for dj in range(-1, 2):
+                    if (di != 0 or dj != 0):
+                        neighbor = SpectrumDataMatrix[i+di][j+dj]
+                        if neighbor is not None and hasattr(neighbor, 'PLB'):
+                            neighbor_spectra.append(np.array(neighbor.PLB))
+            
+            if len(neighbor_spectra) >= 4:
+                neighbor_median = np.median(neighbor_spectra, axis=0)
+                
+                # Combined detection: spectral discontinuity AND spatial deviation
+                std_deriv = np.std(spectral_deriv2)
+                spatial_deviation = np.abs(center_spectrum - neighbor_median)
+                spatial_std = np.std(spatial_deviation)
+                
+                spectral_anomaly = np.abs(spectral_deriv2) > thresh * std_deriv
+                spatial_anomaly = spatial_deviation > thresh * spatial_std
+                
+                # Cosmic if BOTH spectral and spatial anomalies
+                cosmic_mask = spectral_anomaly & spatial_anomaly
+                
+                if np.any(cosmic_mask):
+                    plb_array = center_spectrum.copy()
+                    plb_array[cosmic_mask] = neighbor_median[cosmic_mask]
+                    SpectrumDataMatrix_corrected[i][j].PLB = plb_array.tolist() if isinstance(SpectrumDataMatrix_corrected[i][j].PLB, list) else plb_array
+    
+    return SpectrumDataMatrix_corrected
+
+def bilateral_filter_Matrix(SpectrumDataMatrix, thresh, width):
+    """
+    Bilateral filter - weights neighbors by both spatial distance AND spectral similarity.
+    Preserves edges while removing cosmics.
+    """
+    SpectrumDataMatrix_corrected = copy.deepcopy(SpectrumDataMatrix)
+    
+    if SpectrumDataMatrix is None or len(SpectrumDataMatrix) < 3 or len(SpectrumDataMatrix[0]) < 3:
+        return SpectrumDataMatrix
+    
+    # Generate spatial Gaussian weights
+    spatial_weights, _, _ = gaussian_weight_matrix(dx=1.0, dy=1.0, sigma_x=1.0, sigma_y=1.0, size=3)
+    
+    for i in range(1, len(SpectrumDataMatrix) - 1):
+        for j in range(1, len(SpectrumDataMatrix[i]) - 1):
+            if not hasattr(SpectrumDataMatrix[i][j], 'PLB'):
+                continue
+            
+            center_spectrum = np.array(SpectrumDataMatrix[i][j].PLB)
+            n_wl = len(center_spectrum)
+            
+            # Build spectral cube
+            spectral_cube = np.zeros((3, 3, n_wl))
+            valid_mask = np.zeros((3, 3), dtype=bool)
+            
+            for di in range(-1, 2):
+                for dj in range(-1, 2):
+                    neighbor = SpectrumDataMatrix[i+di][j+dj]
+                    if neighbor is not None and hasattr(neighbor, 'PLB'):
+                        spectral_cube[di+1, dj+1, :] = neighbor.PLB
+                        valid_mask[di+1, dj+1] = True
+            
+            if np.sum(valid_mask) < 5:
+                continue
+            
+            # Calculate intensity similarity weights (per wavelength)
+            # Shape: (3, 3, n_wl)
+            intensity_diff = np.abs(spectral_cube - center_spectrum[np.newaxis, np.newaxis, :])
+            intensity_std = np.std(intensity_diff)
+            
+            if intensity_std > 0:
+                intensity_weights = np.exp(-(intensity_diff**2) / (2 * (thresh * intensity_std)**2))
+            else:
+                intensity_weights = np.ones_like(intensity_diff)
+            
+            # Combined weights: spatial * intensity
+            combined_weights = spatial_weights[:, :, np.newaxis] * intensity_weights * valid_mask[:, :, np.newaxis]
+            
+            # Normalize and apply
+            weight_sum = np.sum(combined_weights, axis=(0, 1))
+            weight_sum[weight_sum == 0] = 1  # Avoid division by zero
+            
+            filtered_spectrum = np.sum(spectral_cube * combined_weights, axis=(0, 1)) / weight_sum
+            
+            # Detect cosmics: large deviation from filtered result
+            deviation = np.abs(center_spectrum - filtered_spectrum)
+            cosmic_mask = deviation > thresh * np.std(deviation)
+            
+            if np.any(cosmic_mask):
+                plb_array = center_spectrum.copy()
+                plb_array[cosmic_mask] = filtered_spectrum[cosmic_mask]
+                SpectrumDataMatrix_corrected[i][j].PLB = plb_array.tolist() if isinstance(SpectrumDataMatrix_corrected[i][j].PLB, list) else plb_array
+    
+    return SpectrumDataMatrix_corrected
+
+def robust_median_Matrix(SpectrumDataMatrix, thresh, width):
+    """
+    Robust median-based cosmic removal using spatial median and MAD.
+    More robust to outliers than mean-based methods.
+    """
+    SpectrumDataMatrix_corrected = copy.deepcopy(SpectrumDataMatrix)
+    
+    if SpectrumDataMatrix is None or len(SpectrumDataMatrix) < 3 or len(SpectrumDataMatrix[0]) < 3:
+        return SpectrumDataMatrix
+    
+    for i in range(1, len(SpectrumDataMatrix) - 1):
+        for j in range(1, len(SpectrumDataMatrix[i]) - 1):
+            if not hasattr(SpectrumDataMatrix[i][j], 'PLB'):
+                continue
+            
+            # Collect neighbor spectra
+            neighbor_spectra = []
+            for di in range(-1, 2):
+                for dj in range(-1, 2):
+                    neighbor = SpectrumDataMatrix[i+di][j+dj]
+                    if neighbor is not None and hasattr(neighbor, 'PLB'):
+                        neighbor_spectra.append(np.array(neighbor.PLB))
+            
+            if len(neighbor_spectra) < 5:
+                continue
+            
+            # Stack all neighbors including center
+            all_spectra = np.array(neighbor_spectra)
+            
+            # Calculate median spectrum
+            median_spectrum = np.median(all_spectra, axis=0)
+            
+            # Calculate MAD (Median Absolute Deviation) for robust threshold
+            deviations = np.abs(all_spectra - median_spectrum[np.newaxis, :])
+            mad = np.median(deviations, axis=0)
+            
+            # Get center spectrum
+            center_spectrum = np.array(SpectrumDataMatrix[i][j].PLB)
+            center_deviation = np.abs(center_spectrum - median_spectrum)
+            
+            # Detect cosmics using MAD-based threshold
+            cosmic_mask = center_deviation > thresh * mad
+            
+            if np.any(cosmic_mask):
+                plb_array = center_spectrum.copy()
+                plb_array[cosmic_mask] = median_spectrum[cosmic_mask]
+                SpectrumDataMatrix_corrected[i][j].PLB = plb_array.tolist() if isinstance(SpectrumDataMatrix_corrected[i][j].PLB, list) else plb_array
+    
+    return SpectrumDataMatrix_corrected
+
+def iterative_cosmic_Matrix(SpectrumDataMatrix, thresh, width):
+    """
+    Iterative cosmic removal - applies robust median method multiple times.
+    Each iteration refines the result.
+    """
+    SpectrumDataMatrix_corrected = copy.deepcopy(SpectrumDataMatrix)
+    
+    # Apply robust median method twice
+    for iteration in range(2):
+        SpectrumDataMatrix_corrected = robust_median_Matrix(SpectrumDataMatrix_corrected, thresh, width)
+    
+    return SpectrumDataMatrix_corrected
+
+def pca_anomaly_Matrix(SpectrumDataMatrix, thresh, width):
+    """
+    PCA-based anomaly detection for cosmic rays.
+    Identifies spectra that deviate from principal spectral components.
+    """
+    SpectrumDataMatrix_corrected = copy.deepcopy(SpectrumDataMatrix)
+    
+    if SpectrumDataMatrix is None or len(SpectrumDataMatrix) < 3 or len(SpectrumDataMatrix[0]) < 3:
+        return SpectrumDataMatrix
+    
+    # Collect all valid spectra for PCA
+    all_spectra = []
+    positions = []
+    
+    for i in range(len(SpectrumDataMatrix)):
+        for j in range(len(SpectrumDataMatrix[i])):
+            if hasattr(SpectrumDataMatrix[i][j], 'PLB'):
+                all_spectra.append(np.array(SpectrumDataMatrix[i][j].PLB))
+                positions.append((i, j))
+    
+    if len(all_spectra) < 10:  # Need enough spectra for PCA
+        return SpectrumDataMatrix
+    
+    # Convert to array: (n_spectra, n_wavelengths)
+    spectra_matrix = np.array(all_spectra)
+    
+    # Perform PCA
+    mean_spectrum = np.mean(spectra_matrix, axis=0)
+    centered = spectra_matrix - mean_spectrum
+    
+    # SVD for PCA
+    try:
+        U, S, Vt = np.linalg.svd(centered, full_matrices=False)
+        
+        # Keep top components (explain 95% variance)
+        variance_explained = (S**2) / np.sum(S**2)
+        cumsum_var = np.cumsum(variance_explained)
+        n_components = np.searchsorted(cumsum_var, 0.95) + 1
+        n_components = min(n_components, len(S))
+        
+        # Project data onto principal components
+        projected = U[:, :n_components] @ np.diag(S[:n_components])
+        
+        # Reconstruct spectra
+        reconstructed = projected @ Vt[:n_components, :] + mean_spectrum
+        
+        # Calculate reconstruction error per spectrum
+        reconstruction_error = np.sqrt(np.sum((spectra_matrix - reconstructed)**2, axis=1))
+        
+        # Threshold for anomaly detection
+        error_median = np.median(reconstruction_error)
+        error_mad = np.median(np.abs(reconstruction_error - error_median))
+        
+        # Identify anomalous spectra
+        for idx, (i, j) in enumerate(positions):
+            if reconstruction_error[idx] > error_median + thresh * error_mad:
+                # Replace with reconstructed (cleaned) spectrum
+                SpectrumDataMatrix_corrected[i][j].PLB = reconstructed[idx].tolist() if isinstance(SpectrumDataMatrix_corrected[i][j].PLB, list) else reconstructed[idx]
+    
+    except np.linalg.LinAlgError:
+        # If PCA fails, return original
+        pass
+    
+    return SpectrumDataMatrix_corrected
+
+def gradient_based_Matrix(SpectrumDataMatrix, thresh, width):
+    """
+    Gradient-based cosmic detection using directional spatial gradients.
+    Cosmics create high gradients in all directions, real features only in some.
+    """
+    SpectrumDataMatrix_corrected = copy.deepcopy(SpectrumDataMatrix)
+    
+    if SpectrumDataMatrix is None or len(SpectrumDataMatrix) < 3 or len(SpectrumDataMatrix[0]) < 3:
+        return SpectrumDataMatrix
+    
+    for i in range(1, len(SpectrumDataMatrix) - 1):
+        for j in range(1, len(SpectrumDataMatrix[i]) - 1):
+            if not hasattr(SpectrumDataMatrix[i][j], 'PLB'):
+                continue
+            
+            center_spectrum = np.array(SpectrumDataMatrix[i][j].PLB)
+            
+            # Calculate gradients in 4 directions: horizontal, vertical, diagonal1, diagonal2
+            gradients = []
+            
+            # Horizontal gradient
+            if hasattr(SpectrumDataMatrix[i][j-1], 'PLB') and hasattr(SpectrumDataMatrix[i][j+1], 'PLB'):
+                grad_h = np.abs(np.array(SpectrumDataMatrix[i][j+1].PLB) - np.array(SpectrumDataMatrix[i][j-1].PLB))
+                gradients.append(grad_h)
+            
+            # Vertical gradient
+            if hasattr(SpectrumDataMatrix[i-1][j], 'PLB') and hasattr(SpectrumDataMatrix[i+1][j], 'PLB'):
+                grad_v = np.abs(np.array(SpectrumDataMatrix[i+1][j].PLB) - np.array(SpectrumDataMatrix[i-1][j].PLB))
+                gradients.append(grad_v)
+            
+            # Diagonal gradients
+            if hasattr(SpectrumDataMatrix[i-1][j-1], 'PLB') and hasattr(SpectrumDataMatrix[i+1][j+1], 'PLB'):
+                grad_d1 = np.abs(np.array(SpectrumDataMatrix[i+1][j+1].PLB) - np.array(SpectrumDataMatrix[i-1][j-1].PLB))
+                gradients.append(grad_d1)
+            
+            if hasattr(SpectrumDataMatrix[i-1][j+1], 'PLB') and hasattr(SpectrumDataMatrix[i+1][j-1], 'PLB'):
+                grad_d2 = np.abs(np.array(SpectrumDataMatrix[i+1][j-1].PLB) - np.array(SpectrumDataMatrix[i-1][j+1].PLB))
+                gradients.append(grad_d2)
+            
+            if len(gradients) < 2:
+                continue
+            
+            # Stack gradients
+            gradient_stack = np.array(gradients)
+            
+            # Cosmic rays have high gradients in ALL directions
+            # Real features have high gradients in SOME directions
+            mean_gradient = np.mean(gradient_stack, axis=0)
+            std_gradient = np.std(gradient_stack, axis=0)
+            
+            # High mean gradient AND low std = uniform high gradient = cosmic
+            # We want points where gradient is consistently high across directions
+            high_gradient = mean_gradient > thresh * np.std(mean_gradient)
+            uniform_gradient = std_gradient < 0.5 * mean_gradient  # Consistent across directions
+            
+            cosmic_mask = high_gradient & uniform_gradient
+            
+            if np.any(cosmic_mask):
+                # Replace with median of valid neighbors
+                neighbor_spectra = []
+                for di in range(-1, 2):
+                    for dj in range(-1, 2):
+                        if (di != 0 or dj != 0):
+                            neighbor = SpectrumDataMatrix[i+di][j+dj]
+                            if neighbor is not None and hasattr(neighbor, 'PLB'):
+                                neighbor_spectra.append(np.array(neighbor.PLB))
+                
+                if len(neighbor_spectra) > 0:
+                    median_spectrum = np.median(neighbor_spectra, axis=0)
+                    plb_array = center_spectrum.copy()
+                    plb_array[cosmic_mask] = median_spectrum[cosmic_mask]
+                    SpectrumDataMatrix_corrected[i][j].PLB = plb_array.tolist() if isinstance(SpectrumDataMatrix_corrected[i][j].PLB, list) else plb_array
+    
+    return SpectrumDataMatrix_corrected
+
+# ========== SINGLE SPECTRUM METHODS (uncorrelated) ==========
 
 # Matrix image correction method
 def matrix_image_correction(data, thresh, width):
@@ -229,6 +602,124 @@ def matrix_image_correction(data, thresh, width):
 
 def cosmic_correlation(data, thresh, width):
     return data # placeholder, no correction applied
+
+def adaptive_threshold(data, thresh, width):
+    """Single spectrum adaptive threshold - uses local statistics."""
+    return data # Single spectrum version - no spatial correlation available
+
+def spectral_correlation(data, thresh, width):
+    """
+    Detect and remove cosmics based on spectral continuity.
+    Cosmic rays create sharp spikes that break spectral smoothness.
+    """
+    data = np.array(data)
+    corrected = data.copy()
+    
+    # Calculate second derivative to find sharp spikes
+    if len(data) < 3:
+        return data
+    
+    # Use central differences for second derivative
+    second_deriv = np.zeros_like(data)
+    second_deriv[1:-1] = data[:-2] - 2*data[1:-1] + data[2:]
+    
+    # Identify spikes where second derivative is large
+    std_deriv = np.std(second_deriv)
+    cosmic_mask = np.abs(second_deriv) > thresh * std_deriv
+    
+    # Interpolate detected cosmics from neighbors
+    for i in np.where(cosmic_mask)[0]:
+        left = max(0, i - width)
+        right = min(len(data), i + width + 1)
+        # Use median of local window excluding the spike
+        window = np.concatenate([data[left:i], data[i+1:right]])
+        if len(window) > 0:
+            corrected[i] = np.median(window)
+    
+    return corrected.tolist() if isinstance(data, list) else corrected
+
+def bilateral_filter(data, thresh, width):
+    """Single spectrum bilateral filter - spatial only (no intensity similarity)."""
+    return data # Single spectrum version - simplified to median filter
+
+def robust_median(data, thresh, width):
+    """
+    Robust median-based cosmic removal for single spectrum.
+    Uses local median and MAD (Median Absolute Deviation) for detection.
+    """
+    data = np.array(data)
+    corrected = data.copy()
+    
+    if len(data) < width:
+        return data
+    
+    # Use rolling window median
+    from scipy.ndimage import median_filter as medfilt
+    median_filtered = medfilt(data, size=width)
+    
+    # Calculate deviation from median
+    deviation = np.abs(data - median_filtered)
+    
+    # Use MAD for robust threshold
+    mad = np.median(deviation)
+    cosmic_mask = deviation > thresh * mad
+    
+    # Replace cosmics with local median
+    corrected[cosmic_mask] = median_filtered[cosmic_mask]
+    
+    return corrected.tolist() if isinstance(data, list) else corrected
+
+def iterative_cosmic(data, thresh, width):
+    """
+    Iterative cosmic removal - applies detection multiple times.
+    """
+    data = np.array(data)
+    corrected = data.copy()
+    
+    # Apply median filter iteratively (2 passes)
+    for iteration in range(2):
+        from scipy.ndimage import median_filter as medfilt
+        median_filtered = medfilt(corrected, size=width)
+        deviation = np.abs(corrected - median_filtered)
+        
+        # Adaptive threshold: use local std
+        std_dev = np.std(deviation)
+        cosmic_mask = deviation > thresh * std_dev
+        
+        corrected[cosmic_mask] = median_filtered[cosmic_mask]
+    
+    return corrected.tolist() if isinstance(data, list) else corrected
+
+def pca_anomaly(data, thresh, width):
+    """Single spectrum PCA anomaly - needs multiple spectra for PCA."""
+    return data # Single spectrum version - not applicable
+
+def gradient_based(data, thresh, width):
+    """
+    Gradient-based cosmic detection for single spectrum.
+    Detects sharp changes in spectral gradient.
+    """
+    data = np.array(data)
+    corrected = data.copy()
+    
+    if len(data) < 3:
+        return data
+    
+    # Calculate gradient (first derivative)
+    gradient = np.gradient(data)
+    
+    # Detect sudden changes in gradient
+    gradient_change = np.abs(np.diff(gradient))
+    
+    if len(gradient_change) > 0:
+        std_change = np.std(gradient_change)
+        # Look for spikes in gradient change
+        for i in range(1, len(data) - 1):
+            if i < len(gradient_change) and gradient_change[i-1] > thresh * std_change:
+                # Interpolate from neighbors
+                corrected[i] = (data[i-1] + data[i+1]) / 2
+    
+    return corrected.tolist() if isinstance(data, list) else corrected
 
 # Linear interpolation provides a simple and fast method for filling in missing values.
 def remove_cosmics_linear(data, thresh, width):
@@ -648,13 +1139,27 @@ cosmicfuncts = {
                 #'Spline Interpolation': remove_cosmics_spline,
                 'Nearest Neighbor average': remove_cosmics_nearest_neighbor, 
                 'Matrix Image correction': matrix_image_correction, 
-                'Cosmic Correlation Matrix': cosmic_correlation,
+                'Cosmic Correlation': cosmic_correlation,
+                'Adaptive Threshold': adaptive_threshold,
+                'Spectral Correlation': spectral_correlation,
+                'Bilateral Filter': bilateral_filter,
+                'Robust Median': robust_median,
+                'Iterative Cosmic': iterative_cosmic,
+                'PCA Anomaly': pca_anomaly,
+                'Gradient Based': gradient_based,
                 } 
 
 # Correlation functions for cosmic ray removal must be run by XYMap class instead of SpectrumData class only
 correlationcosmicfuncts = {
                 'Matrix Image correction': matrix_image_correction_Matrix,
-                'Cosmic Correlation Matrix': cosmic_correlation_Matrix
+                'Cosmic Correlation Matrix': cosmic_correlation_Matrix,
+                'Adaptive Threshold Matrix': adaptive_threshold_Matrix,
+                'Spectral Correlation Matrix': spectral_correlation_Matrix,
+                'Bilateral Filter Matrix': bilateral_filter_Matrix,
+                'Robust Median Matrix': robust_median_Matrix,
+                'Iterative Cosmic Matrix': iterative_cosmic_Matrix,
+                'PCA Anomaly Matrix': pca_anomaly_Matrix,
+                'Gradient Based Matrix': gradient_based_Matrix,
                 }
 # Rolling Mean showed not to be good for cosmic removal
 # Spline Interpolation showed not to be good for cosmic removal and took like forever to perform

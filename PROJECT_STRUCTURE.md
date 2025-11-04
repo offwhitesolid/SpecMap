@@ -19,6 +19,7 @@ SpecMap1/
 ├── 📄 requirements.txt           # Python package dependencies
 ├── 📄 README.md                  # Complete project documentation
 ├── 📄 PROJECT_STRUCTURE.md       # This file - project architecture
+├── 📄 COSMIC_REMOVAL_METHODS.md  # Mathematical documentation of all methods
 ├── 📄 .copilotignore             # Files excluded from AI analysis
 ├── 📄 LICENSE                    # Project license
 └── 📁 Directories/
