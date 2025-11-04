@@ -730,20 +730,26 @@ Interior pixels only: methods operate on pixels with complete neighborhoods
 
 ## References
 
-### Theoretical Background
-1. Tomasi, C., & Manduchi, R. (1998). "Bilateral filtering for gray and color images." ICCV.
-2. Rousseeuw, P. J., & Croux, C. (1993). "Alternatives to the median absolute deviation." JASA.
-3. van der Laan, M. (2006). "Statistical inference for variable importance." IJB.
+### Established Techniques (General Statistical Methods)
+The methods in this documentation are based on well-established statistical and signal processing techniques including:
+- **Median filtering**: Standard robust estimator widely used in signal processing
+- **Median Absolute Deviation (MAD)**: Rousseeuw, P. J., & Croux, C. (1993). "Alternatives to the median absolute deviation." Journal of the American Statistical Association, 88(424), 1273-1283.
+- **Bilateral filtering**: Tomasi, C., & Manduchi, R. (1998). "Bilateral filtering for gray and color images." Proceedings of the IEEE International Conference on Computer Vision.
+- **Principal Component Analysis (PCA)**: Standard dimension reduction technique for anomaly detection
+- **Gradient-based detection**: First and second-order finite differences for discontinuity detection
 
-### Spectroscopy Applications
-4. Whitaker, D. A., & Hayes, K. (2018). "A simple algorithm for despiking Raman spectra." Chemom. Intell. Lab. Syst.
-5. Takeuchi, F., & Ando, M. (2019). "Cosmic ray removal for Raman spectroscopy." AO.
-6. Zhang, D., et al. (2020). "Automated cosmic ray removal for fiber-fed spectrographs." PASP.
+### Implementation Notes
+The specific implementations in SpecMap combine these standard techniques and adapt them for hyperspectral spectroscopy data. The algorithms are designed for:
+- Photoluminescence spectroscopy
+- Raman spectroscopy
+- Hyperspectral imaging with spatial correlation
+- Time-resolved spectroscopy (TCSPC)
 
-### Hyperspectral Imaging
-7. Keshava, N., & Mustard, J. F. (2002). "Spectral unmixing." IEEE Signal Proc. Mag.
-8. Elad, M. (2010). "Sparse and Redundant Representations." Springer.
-9. Bioucas-Dias, J. M., et al. (2012). "Hyperspectral unmixing overview." IEEE JSTARS.
+### Further Reading
+For general background on signal processing and outlier detection methods:
+- Hampel, F. R., et al. (1986). "Robust Statistics: The Approach Based on Influence Functions." Wiley.
+- Huber, P. J., & Ronchetti, E. M. (2009). "Robust Statistics" (2nd ed.). Wiley.
+- Fried, D. L. (1977). "Least-squares fitting a wave-front distortion estimate to an array of phase-difference measurements." Journal of the Optical Society of America, 67(3), 370-375.
 
 ---
 
