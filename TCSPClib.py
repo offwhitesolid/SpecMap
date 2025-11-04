@@ -11,7 +11,12 @@ class TCSPCprocessor:
         self.parentframe = parentframe
         self.filepath = filepath
         self.data = None
-        self.load_tcspc_data()
+    
+    def build_frame(self):
+        self.frame = tk.Frame(self.parentframe, width=400, height=200, borderwidth=5, relief="ridge")
+        self.frame.pack(fill='both', expand=True)
+        self.load_button = tk.Button(self.frame, text="Load TCSPC Data", command=self.load_tcspc_data)
+        self.load_button.pack(pady=20)
 
     def load_tcspc_data(self):
         # Placeholder for loading TCSPC data from the file

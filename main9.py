@@ -14,6 +14,7 @@ import newtonspeclib1 as newtonlib
 import threading as thr
 import matplotlib.pyplot as plt
 import HSI_debugger as DBG
+import TCSPClib as tcspclib
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -211,6 +212,9 @@ class FileProcessorApp:
         self.tcspc_process_button.grid(row=3, column=1)
         self.tcspc_folder_button = tk.Button(self.tcspcframe, text="Browse", command= lambda: deflib.select_file(self.tcspc_maindir_entrystr))
         self.tcspc_folder_button.grid(row=1, column=3)
+
+        self.TCSPC_Processor = tcspclib.TCSPCprocessor(self.nodeframes['TCSPC'], None)
+        self.TCSPC_Processor.build_frame()
 
         # load HSI on start ater constructing the GUI
         if defaults['loadonstart'] == True:
