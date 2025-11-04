@@ -517,12 +517,12 @@ def fig_on_hoverevent(event, ax, fig, Z, x_range, y_range):
             fig.canvas.draw_idle()
 
 cosmicfuncts = {
-                'Matrix Image correction': matrix_image_correction,
                 'Linear Interpolation': remove_cosmics_linear, 
                 'Median Filter': remove_cosmics_median_filter, 
                 #'Rolling Mean': remove_cosmics_rolling_mean, 
                 #'Spline Interpolation': remove_cosmics_spline,
                 'Nearest Neighbor average': remove_cosmics_nearest_neighbor, 
+                'Matrix Image correction': matrix_image_correction,
                 } 
 
 # Correlation functions for cosmic ray removal must be run by XYMap class instead of SpectrumData class only
