@@ -102,8 +102,9 @@ def matrix_image_correction_Matrix(SpectrumDataMatrix, thresh, width):
     else:
         return SpectrumDataMatrix
 
-
     return SpectrumDataMatrix_correlated
+
+    def cosmics_correction_Matrix(SpectrumDataMatrix, thresh, width, laserfwhm):
 
 # Matrix image correction method
 def matrix_image_correction(data, thresh, width):
@@ -720,56 +721,7 @@ def gaussian_weight_matrix(dx=1.0, dy=1.0, sigma_x=None, sigma_y=None, size=3):
 
     # normalize to sum = 1
     w_norm = w / np.sum(w)
-    return w_norm, X, Y
-
-# tcspc loading functions to load tcspc traces, that have been saved as TCSPC traces
-def load_tcspc_timefile(timefilepath):
-    times = np.loadtxt(timefilepath, delimiter='\t', dtype=float)
-    return times
-
-def load_tcspc_wavelengthfile(wlfilepath):
-	wavelengths = np.loadtxt(wlfilepath, delimiter='\t', dtype=float)
-	return wavelengths
-
-def load_load_tcspc_tracefile(tracefilepath):
-	trace = np.loadtxt(tracefilepath, delimiter='\t', dtype=float)
-	return trace
-
-def loadtcspc(dir, timename = 'TIME', wlname = 'WAVE', tracename = 'TRES'):
-    # check if dir exists
-	if not os.path.exists(dir):
-		print('TCSPC directory does not exist:', dir)
-		return [0, 1, 2], [0, 1, 2], [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-    
-	dirfiles = os.listdir(dir)
-	validatefiles = {'WL': False,
-					 'TIME': False,
-					 'TRACE': False}
-
-	# load time file: has TIME in the name
-	# check if file in dir that contains timename
-	for i in dirfiles:
-		if timename in i:
-			timefile = i
-			validatefiles['TIME'] = True
-		elif wlname in i:
-			wlfile = i
-			validatefiles['WL'] = True
-		elif tracename in i:
-			tracefile = i
-			validatefiles['TRACE'] = True
-
-	if not all(validatefiles.values()):
-		print('TCSPC files not found in directory:', dir)
-		return [0, 1, 2], [0, 1, 2], [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-    
-	else:
-		print('Loading TCSPC files from directory:', dir)
-        
-    
-    
-    
-    
+    return w_norm, X, Y        
 
 # check definitions 
 if __name__ == '__main__':

@@ -203,7 +203,7 @@ class FileProcessorApp:
         self.tcspc_maindir_entry = tk.Entry(self.tcspcframe, textvariable=self.tcspc_maindir_entrystr, width=90)
         self.tcspc_maindir_entry.grid(row=1, column=1)
         self.tcspc_maindir_entry.insert(0, defaults['tcspc_maindir'])
-        self.tcspc_subdir_label = tk.Label(self.tcspcframe, text="sub dir")
+        self.tcspc_subdir_label = tk.Label(self.tcspcframe, text="save dir")
         self.tcspc_subdir_label.grid(row=2, column=0)
         self.tcspc_subdir_entrystr = tk.StringVar()
         self.tcspc_subdir_entry = tk.Entry(self.tcspcframe, textvariable=self.tcspc_subdir_entrystr, width=90)
@@ -213,7 +213,7 @@ class FileProcessorApp:
         self.tcspc_folder_button = tk.Button(self.tcspcframe, text="Browse", command= lambda: deflib.select_folder(self.tcspc_maindir_entrystr))
         self.tcspc_folder_button.grid(row=1, column=3)
 
-        self.TCSPC_Processor = tcspclib.TCSPCprocessor(self.nodeframes['TCSPC'], self.tcspc_maindir_entry)
+        self.TCSPC_Processor = tcspclib.TCSPCprocessor(self.nodeframes['TCSPC'], self.tcspc_maindir_entry, self.tcspc_subdir_entry)
         self.TCSPC_Processor.build_frame()
 
         # load HSI on start ater constructing the GUI

@@ -8,10 +8,15 @@ import mathlib3 as mathlib
 import matplotlib.pyplot as plt
 
 class TCSPCprocessor:
-    def __init__(self, parentframe, filepath):
+    def __init__(self, parentframe, filepath, savedir):
         self.parentframe = parentframe
         self.filepath_str = filepath
-        self.filepath = ''
+        self.filepath = self.filepath_str.get()
+        self.savedir_str = savedir
+        if self.savedir_str is None:
+            self.savedir = f'{self.filepath}_processed'
+        else:
+            self.savedir = self.savedir_str.get()
         self.data = None
         self.figs = []
         self.axis = []
@@ -37,6 +42,12 @@ class TCSPCprocessor:
             return
         parentdirfilenames = os.listdir(self.filepath_str.get())
         self.filepath = self.filepath_str.get()
+        self.savedir = self.savedir_str.get()
+        if not os.path.exists(self.savedir):
+            # create savedir as subdir of parent directory
+            self.savedir = os.path.join(self.filepath, 'processed_TCSPC')
+        if not os.path.exists(self.savedir):
+            os.makedirs(self.savedir)
         timefile = None
         wavefile = None
         tresfile = None
@@ -69,6 +80,11 @@ class TCSPCprocessor:
         self.fig.colorbar(self.im, ax=self.ax, label='Intensitiy (counts)')
         self.ax.set_title('TRES Data (Linear Scale)')
         self.fig.tight_layout()
+        # save figure to savedir
+        figpath = os.path.join(self.savedir, 'TRES_Linear.png')
+        print('Saving TRES linear plot to:', figpath)
+        self.fig.savefig(figpath, dpi=600)
+
         self.fig.show()
     
     def plot_tres_log(self):
@@ -80,6 +96,13 @@ class TCSPCprocessor:
         self.fig.colorbar(self.im, ax=self.ax, label='Log Intensity (counts)')
         self.ax.set_title('TRES Data (Log Scale)')
         self.fig.tight_layout()
+        
+        # save figure to savedir
+        figpath = os.path.join(self.savedir, 'TRES_Log.png')
+        print('Saving TRES log plot to:', figpath)
+
+        self.fig.savefig(figpath, dpi=600)
+
         self.fig.show()
 
 #load time axis in ps from timefile
