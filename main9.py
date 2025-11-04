@@ -197,7 +197,7 @@ class FileProcessorApp:
         # TCSPC load
         self.tcspc_label = tk.Label(self.tcspcframe, text="Select TCSPC directory", width=86)
         self.tcspc_label.grid(row=0, column=1)
-        self.tcspc_file_label = tk.Label(self.tcspcframe, text="main dir")
+        self.tcspc_file_label = tk.Label(self.tcspcframe, text="TCSPC dir")
         self.tcspc_file_label.grid(row=1, column=0)
         self.tcspc_maindir_entrystr = tk.StringVar()
         self.tcspc_maindir_entry = tk.Entry(self.tcspcframe, textvariable=self.tcspc_maindir_entrystr, width=90)
@@ -210,10 +210,10 @@ class FileProcessorApp:
         self.tcspc_subdir_entry.grid(row=2, column=1)
         self.tcspc_process_button = tk.Button(self.tcspcframe, text="Load TCSPC data", command=self.tcspcloadfiles)
         self.tcspc_process_button.grid(row=3, column=1)
-        self.tcspc_folder_button = tk.Button(self.tcspcframe, text="Browse", command= lambda: deflib.select_file(self.tcspc_maindir_entrystr))
+        self.tcspc_folder_button = tk.Button(self.tcspcframe, text="Browse", command= lambda: deflib.select_folder(self.tcspc_maindir_entrystr))
         self.tcspc_folder_button.grid(row=1, column=3)
 
-        self.TCSPC_Processor = tcspclib.TCSPCprocessor(self.nodeframes['TCSPC'], None)
+        self.TCSPC_Processor = tcspclib.TCSPCprocessor(self.nodeframes['TCSPC'], self.tcspc_maindir_entry)
         self.TCSPC_Processor.build_frame()
 
         # load HSI on start ater constructing the GUI
@@ -224,17 +224,16 @@ class FileProcessorApp:
         file = self.tcspc_maindir_entry.get()
         # check, if file is valid
         if not file:
-            messagebox.showerror("Error", "Please select a TCSPC main directory")
+            print('Please select a TCSPC main directory')
             return
         else: 
             # check if file exists
             if not os.path.exists(file):
-                messagebox.showerror("Error", "The selected TCSPC main directory does not exist")
+                print('TCSPC main directory does not exist:', file)
                 return
         
-        print('Loading TCSPC file:', file)
-        print('TCSPC loading not yet implemented')
-        #self.tcspcclass = lib.TCSPCprocessor(self.nodeframes['TCSPC'], file)
+        self.TCSPC_Processor.filepath = file
+        self.TCSPC_Processor.load_tcspc()
 
     def newtonloadfiles(self):
         file = self.newton_file_entry.get()        

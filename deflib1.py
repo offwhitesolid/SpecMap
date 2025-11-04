@@ -306,6 +306,11 @@ def select_file(entry_var):
     if file_path:
         entry_var.set(file_path)
 
+def select_folder(entry_var):
+    folder_path = filedialog.askdirectory()
+    if folder_path:
+        entry_var.set(folder_path)
+
 def browse_folder(folder_entry):
     folder_selected = filedialog.askdirectory()
     if folder_selected:
