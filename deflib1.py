@@ -59,6 +59,8 @@ def load_defaults():
                     variables[name] = value
     return variables
 
+# correlation methods for read data interpolation
+
 def matrix_image_correction_Matrix(SpectrumDataMatrix, thresh, width):
     SpectrumDataMatrix_correlated = copy.copy(SpectrumDataMatrix)
 
@@ -104,10 +106,128 @@ def matrix_image_correction_Matrix(SpectrumDataMatrix, thresh, width):
 
     return SpectrumDataMatrix_correlated
 
-    def cosmics_correction_Matrix(SpectrumDataMatrix, thresh, width, laserfwhm):
+def cosmic_correlation_Matrix(SpectrumDataMatrix, thresh, width):
+    """
+    Identify and correct cosmic rays in a 2D spectrum matrix using Gaussian-weighted interpolation.
+    
+    This function detects pixels that differ from their surroundings more than expected 
+    based on a Gaussian laser profile, then interpolates them using Gaussian-weighted 
+    neighboring pixels.
+    
+    Parameters
+    ----------
+    SpectrumDataMatrix : 2D array of SpectrumData objects
+        Matrix containing spectral data at each spatial position
+    thresh : float
+        Threshold multiplier for cosmic detection (e.g., 3.0 for 3-sigma)
+    width : int
+        Not used in this implementation, kept for compatibility
+        
+    Returns
+    -------
+    SpectrumDataMatrix_corrected : 2D array of SpectrumData objects
+        Corrected spectrum matrix with cosmics interpolated
+    """
+    SpectrumDataMatrix_corrected = copy.deepcopy(SpectrumDataMatrix)
+    
+    # Check if matrix is large enough
+    if SpectrumDataMatrix is None or len(SpectrumDataMatrix) < 3 or len(SpectrumDataMatrix[0]) < 3:
+        return SpectrumDataMatrix
+    
+    # Generate 3x3 Gaussian weighting kernel (normalized)
+    gaussian_weights, _, _ = gaussian_weight_matrix(dx=1.0, dy=1.0, sigma_x=1.0, sigma_y=1.0, size=3)
+    
+    # Pre-compute weights without center
+    weights_no_center = gaussian_weights.copy()
+    weights_no_center[1, 1] = 0
+    
+    # Pre-compute neighbor mask (all except center)
+    neighbor_mask = np.ones((3, 3), dtype=bool)
+    neighbor_mask[1, 1] = False
+    
+    # Iterate over interior pixels (avoid edges)
+    for i in range(1, len(SpectrumDataMatrix) - 1):
+        for j in range(1, len(SpectrumDataMatrix[i]) - 1):
+            # Check if center pixel has spectral data
+            if not hasattr(SpectrumDataMatrix[i][j], 'PLB'):
+                continue
+            
+            # Check which surrounding pixels exist and build spectral cube
+            valid_neighbors = np.ones((3, 3), dtype=bool)
+            spectral_cube = []  # Will hold 3x3 arrays, one per wavelength
+            
+            # Build the spectral cube for all wavelengths at once
+            for di in range(-1, 2):
+                for dj in range(-1, 2):
+                    neighbor = SpectrumDataMatrix[i+di][j+dj]
+                    if neighbor is None or not hasattr(neighbor, 'PLB'):
+                        valid_neighbors[di+1, dj+1] = False
+            
+            # Need at least 80% of neighbors to be valid
+            if np.sum(valid_neighbors) < 0.8 * 9:
+                continue
+            
+            # Extract all spectra into a 3D array [3, 3, n_wavelengths]
+            n_wl = len(SpectrumDataMatrix[i][j].PLB)
+            spectral_cube = np.zeros((3, 3, n_wl))
+            
+            for di in range(-1, 2):
+                for dj in range(-1, 2):
+                    if valid_neighbors[di+1, dj+1]:
+                        spectral_cube[di+1, dj+1, :] = SpectrumDataMatrix[i+di][j+dj].PLB
+            
+            # Vectorized operations over all wavelengths
+            center_spectrum = spectral_cube[1, 1, :]  # Shape: (n_wl,)
+            
+            # Calculate valid weights for neighbors (excluding center)
+            valid_weights_neighbors = weights_no_center * valid_neighbors
+            weight_sum = np.sum(valid_weights_neighbors)
+            
+            if weight_sum > 0:
+                valid_weights_neighbors = valid_weights_neighbors / weight_sum
+                
+                # Expected values for all wavelengths at once: shape (n_wl,)
+                expected_spectrum = np.sum(spectral_cube * valid_weights_neighbors[:, :, np.newaxis], axis=(0, 1))
+                
+                # Calculate std of neighbors across all wavelengths
+                # Extract only valid neighbor values
+                neighbor_valid_mask = neighbor_mask & valid_neighbors  # Exclude center and invalid
+                neighbor_values = spectral_cube[neighbor_valid_mask, :]  # Shape: (n_neighbors, n_wl)
+                
+                if neighbor_values.shape[0] > 0:
+                    neighbor_std = np.std(neighbor_values, axis=0)  # Shape: (n_wl,)
+                    
+                    # Detect cosmics: vectorized deviation check
+                    deviations = np.abs(center_spectrum - expected_spectrum)
+                    cosmic_mask = deviations > (thresh * neighbor_std)  # Boolean array
+                    
+                    # If any cosmics detected, interpolate them
+                    if np.any(cosmic_mask):
+                        # Calculate weights for all valid neighbors (including center position)
+                        weights_all = gaussian_weights * valid_neighbors
+                        weight_sum_all = np.sum(weights_all)
+                        
+                        if weight_sum_all > 0:
+                            weights_all = weights_all / weight_sum_all
+                            
+                            # Corrected values for all wavelengths
+                            corrected_spectrum = np.sum(spectral_cube * weights_all[:, :, np.newaxis], axis=(0, 1))
+                            
+                            # Replace only the cosmic-affected wavelengths
+                            # Convert PLB to numpy array if it's a list, apply correction, convert back
+                            plb_array = np.array(SpectrumDataMatrix_corrected[i][j].PLB)
+                            plb_array[cosmic_mask] = corrected_spectrum[cosmic_mask]
+                            SpectrumDataMatrix_corrected[i][j].PLB = plb_array.tolist() if isinstance(SpectrumDataMatrix_corrected[i][j].PLB, list) else plb_array
+    
+    return SpectrumDataMatrix_corrected
+
+# uncorrelated spectra methods
 
 # Matrix image correction method
 def matrix_image_correction(data, thresh, width):
+    return data # placeholder, no correction applied
+
+def cosmic_correlation(data, thresh, width):
     return data # placeholder, no correction applied
 
 # Linear interpolation provides a simple and fast method for filling in missing values.
@@ -527,12 +647,14 @@ cosmicfuncts = {
                 #'Rolling Mean': remove_cosmics_rolling_mean, 
                 #'Spline Interpolation': remove_cosmics_spline,
                 'Nearest Neighbor average': remove_cosmics_nearest_neighbor, 
-                'Matrix Image correction': matrix_image_correction,
+                'Matrix Image correction': matrix_image_correction, 
+                'Cosmic Correlation Matrix': cosmic_correlation,
                 } 
 
 # Correlation functions for cosmic ray removal must be run by XYMap class instead of SpectrumData class only
 correlationcosmicfuncts = {
-                'Matrix Image correction': matrix_image_correction_Matrix
+                'Matrix Image correction': matrix_image_correction_Matrix,
+                'Cosmic Correlation Matrix': cosmic_correlation_Matrix
                 }
 # Rolling Mean showed not to be good for cosmic removal
 # Spline Interpolation showed not to be good for cosmic removal and took like forever to perform

@@ -336,8 +336,7 @@ class FileProcessorApp:
             messagebox.showerror("Error", "Could not load Clara image. {}".format(error))
     
     def on_closing(self):
-        if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            self.root.destroy()
+        pass
 
     # pickle the Nanomap object, all subobjects and all their attributes
     def saveNanomap(self, filename):
