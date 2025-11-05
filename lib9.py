@@ -1753,7 +1753,8 @@ class XYMap:
     
     def on_close(self):
         plt.close('all')
-        
+        # tkinter destroy
+        self.cmapframe.destroy()
 		
         
 class Roihandler():
