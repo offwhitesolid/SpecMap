@@ -427,23 +427,157 @@ class specfilesorter:
         self.savedir_entrystr.set(savedir)
         self.processdir_entrystr = tk.StringVar()
         self.processdir_entrystr.set(processdir)
+        
         self.files_processed = []
+        # UI state
+        self.scan_results = []
+        self.selected_items = []
+        self.merge_var = tk.IntVar(value=0)
         self.buildGUI()
 
     def buildGUI(self):
-        self.sortframe = tk.Frame(self.tkroot, width=400, height=200, borderwidth=5, relief="ridge")
+        # Main container
+        self.sortframe = ttk.LabelFrame(self.tkroot, text="HSI File Sorter", padding=(8, 8))
         self.sortframe.pack(fill='both', expand=True)
-        # add a entry to select the maindir, savedir, filename pattern, fileend pattern
-        self.maindir_label = tk.Label(self.sortframe, text="Select HSI main dir with multiple measurement folders", width=100)
-        self.maindir_label.pack()
-        self.maindir_entry = tk.Entry(self.sortframe, width=100)
-        self.maindir_entry.pack()
-        self.maindir_entry.insert(0, self.maindir)
-        self.maindir_button = tk.Button(self.sortframe, text="Browse", command=lambda: deflib.browse_folder(self.maindir_entry))
-        self.maindir_button.pack()
+
+        # Left: inputs and controls
+        left = tk.Frame(self.sortframe)
+        left.pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=6)
+
+        # Main dir
+        tk.Label(left, text="Main directory:").grid(row=0, column=0, sticky='w')
+        self.maindir_entry = tk.Entry(left, textvariable=self.maindir_entrystr, width=56)
+        self.maindir_entry.grid(row=1, column=0, columnspan=2, sticky='w')
+        tk.Button(left, text="Browse...", command=lambda: deflib.browse_folder(self.maindir_entry)).grid(row=1, column=2, padx=4)
+
+        # Filename pattern
+        tk.Label(left, text="Filename contains:").grid(row=2, column=0, sticky='w', pady=(8, 0))
+        self.filename_entry = tk.Entry(left, textvariable=self.filename_entrystr, width=20)
+        self.filename_entry.grid(row=3, column=0, sticky='w')
+
+        # Fileend pattern
+        tk.Label(left, text="File extension contains:").grid(row=2, column=1, sticky='w', pady=(8, 0))
+        self.fileend_entry = tk.Entry(left, textvariable=self.fileend_entrystr, width=12)
+        self.fileend_entry.grid(row=3, column=1, sticky='w')
+
+        # Save dir
+        tk.Label(left, text="Save directory:").grid(row=4, column=0, sticky='w', pady=(8, 0))
+        self.savedir_entry = tk.Entry(left, textvariable=self.savedir_entrystr, width=56)
+        self.savedir_entry.grid(row=5, column=0, columnspan=2, sticky='w')
+        tk.Button(left, text="Browse...", command=lambda: deflib.browse_folder(self.savedir_entry)).grid(row=5, column=2, padx=4)
+
+        # Process dir (where merged/processed folders are written)
+        tk.Label(left, text="Process directory:").grid(row=6, column=0, sticky='w', pady=(8, 0))
+        self.processdir_entry = tk.Entry(left, textvariable=self.processdir_entrystr, width=56)
+        self.processdir_entry.grid(row=7, column=0, columnspan=2, sticky='w')
+        tk.Button(left, text="Browse...", command=lambda: deflib.browse_folder(self.processdir_entry)).grid(row=7, column=2, padx=4)
+
+        # Options
+        tk.Checkbutton(left, text="Merge consecutive days", variable=self.merge_var).grid(row=8, column=0, columnspan=2, sticky='w', pady=(8, 0))
+
+        # Control buttons
+        btnframe = tk.Frame(left)
+        btnframe.grid(row=9, column=0, columnspan=3, pady=(12, 0), sticky='w')
+        tk.Button(btnframe, text="Scan", width=12, command=self.scan_maindir).pack(side=tk.LEFT)
+        tk.Button(btnframe, text="Preview Selected", width=14, command=self.preview_selected).pack(side=tk.LEFT, padx=6)
+        tk.Button(btnframe, text="Process Selected", width=14, command=self.sort_and_process).pack(side=tk.LEFT)
+        tk.Button(btnframe, text="Clear", width=8, command=self.clear_list).pack(side=tk.LEFT, padx=6)
+
+        # Right: results treeview
+        right = tk.Frame(self.sortframe)
+        right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        cols = ("#1", "#2", "#3")
+        self.tree = ttk.Treeview(right, columns=cols, show='headings', selectmode='extended')
+        self.tree.heading('#1', text='Folder')
+        self.tree.heading('#2', text='Files')
+        self.tree.heading('#3', text='Path')
+        self.tree.column('#1', width=180)
+        self.tree.column('#2', width=60, anchor='center')
+        self.tree.column('#3', width=380)
+
+        vsb = ttk.Scrollbar(right, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=vsb.set)
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        vsb.pack(side=tk.LEFT, fill=tk.Y)
+
+        self.tree.bind('<<TreeviewSelect>>', self.on_tree_select)
+
+        # Progress bar
+        self.progress = ttk.Progressbar(self.sortframe, orient='horizontal', mode='determinate')
+        self.progress.pack(fill=tk.X, padx=8, pady=(0, 8))
     
     def sort_and_process(self):
-        pass
+        # Process selected treeview items (placeholder implementation)
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showinfo("No selection", "Please select one or more folders in the list to process.")
+            return
+        selected_paths = [self.tree.set(i, '#3') for i in sel]
+        # For now, just print and inform the user. The heavy processing logic can be plugged into this method.
+        print('Processing {} folders...'.format(len(selected_paths)))
+        messagebox.showinfo("Processing", "Processing {} selected folders. See console for details.".format(len(selected_paths)))
+        # update progress bar as a simple feedback
+        self.progress['maximum'] = len(selected_paths)
+        for i, p in enumerate(selected_paths, start=1):
+            self.progress['value'] = i
+            self.sortframe.update_idletasks()
+            print('Processing:', p)
+        self.progress['value'] = 0
+
+    def scan_maindir(self):
+        # Scan main directory for subfolders that contain files matching the filename and fileend patterns
+        maindir = self.maindir_entry.get()
+        filename = self.filename_entry.get()
+        fileend = self.fileend_entry.get()
+        if not maindir or not os.path.exists(maindir):
+            messagebox.showerror("Error", "Please select a valid main directory to scan.")
+            return
+        self.scan_results = []
+        self.tree.delete(*self.tree.get_children())
+        # Walk one level deep: find immediate subfolders
+        for root_dir, dirs, files in os.walk(maindir):
+            # consider leaf directories only
+            if files:
+                match_count = 0
+                for f in files:
+                    if (not filename or filename in f) and (not fileend or fileend in f):
+                        match_count += 1
+                if match_count > 0:
+                    self.scan_results.append((os.path.basename(root_dir), match_count, root_dir))
+        # Sort results by path/name
+        self.scan_results.sort()
+        self.populate_list()
+
+    def populate_list(self):
+        self.tree.delete(*self.tree.get_children())
+        for name, count, path in self.scan_results:
+            self.tree.insert('', 'end', values=(name, count, path))
+
+    def on_tree_select(self, event):
+        sel = self.tree.selection()
+        self.selected_items = [self.tree.set(i, '#3') for i in sel]
+
+    def preview_selected(self):
+        # Open the folder(s) in file explorer where possible
+        if not self.selected_items:
+            messagebox.showinfo("No selection", "Please select a folder to preview.")
+            return
+        for p in self.selected_items:
+            try:
+                if sys.platform == 'win32':
+                    os.startfile(p)
+                else:
+                    # cross-platform fallback
+                    import subprocess
+                    subprocess.run(['xdg-open', p], check=False)
+            except Exception as e:
+                print('Could not open folder', p, e)
+
+    def clear_list(self):
+        self.tree.delete(*self.tree.get_children())
+        self.scan_results = []
+        self.selected_items = []
         
 
 def pressclose(root, app):
