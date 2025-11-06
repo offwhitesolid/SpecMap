@@ -15,6 +15,7 @@ import threading as thr
 import matplotlib.pyplot as plt
 import HSI_debugger as DBG
 import TCSPClib as tcspclib
+import shutil
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -99,6 +100,21 @@ class FileProcessorApp:
         self.powercorrectionBool.set(defaults['power_correction'])
         self.powercorrectioncheck = tk.Checkbutton(self.bgframe, text="Power Correction", variable=self.powercorrectionBool)
         self.powercorrectioncheck.grid(row=2, column=0)
+        # below the frame add another frame for making multiple HSIs
+        # spacing
+        self.multiple_HSIs_inp_frame = tk.Frame(self.loadframe)
+        self.multiple_HSIs_inp_frame.grid(row=4, column=0, columnspan=2)
+        tk.Label(self.multiple_HSIs_inp_frame, text="Make Multiple HSIs from folders in selected dir").grid(row=0, column=0, columnspan=2)
+        self.make_multiple_HSIsbool = tk.IntVar()
+        self.make_multiple_HSIsbool.set(defaults['process_multiple_HSIs_bool'])
+        self.process_multiple_HSIs = tk.Checkbutton(self.multiple_HSIs_inp_frame, text="Process Multiple HSIs", variable=self.make_multiple_HSIsbool).grid(row=1, column=0)
+        # main directory for multiple HSIs entry
+        tk.Label(self.multiple_HSIs_inp_frame, text="File Main Directory:").grid(row=2, column=0)
+        self.multiple_HSIs_dir_entry = tk.Entry(self.multiple_HSIs_inp_frame, width=80)
+        self.multiple_HSIs_dir_entry.grid(row=2, column=1)
+        self.multiple_HSIs_dir_entry.insert(0, defaults['hsifilesorter_maindir'])
+        self.Browse_multiple_HSIs_dir_button = tk.Button(self.multiple_HSIs_inp_frame, text="Browse", command=lambda: deflib.browse_folder(self.multiple_HSIs_dir_entry))
+        self.Browse_multiple_HSIs_dir_button.grid(row=2, column=2)
 
         # Cosmic removal
         # add extra frame for cosmic removal onto loadframe
@@ -249,6 +265,21 @@ class FileProcessorApp:
         file = self.newton_file_entry.get()        
         self.newtonclass = newtonlib.newtonspecopener(self.nodeframes['Newton Spectrum'], file)
 
+    def init_spec_loadfiles(self):
+        if self.make_multiple_HSIsbool.get() == True:
+            # try to get File main directory
+            filemaindir = self.multiple_HSIs_dir_entry.get()
+            if not filemaindir:
+                print("Error while loading HSI data, please select a main directory for multiple HSIs")
+                self.spec_loadfiles()
+            else:
+                foldersinmaindir = [f for f in os.listdir(filemaindir) if os.path.isdir(os.path.join(filemaindir, f))]
+                for folder in foldersinmaindir:
+                    print("Processing folder:", folder)
+                
+        else:
+            self.spec_loadfiles()
+        
     # testcomment
     def spec_loadfiles(self):
         # close all open matplotlib windows        # close all running threads
@@ -273,10 +304,10 @@ class FileProcessorApp:
         fileend = self.fileformat_entry.get()
         
         if not folder:
-            messagebox.showerror("Error", "Please select a folder")
+            print("Error while loading HSI data, please select a folder")
             return
         if not filename:
-            messagebox.showerror("Error", "Please enter a filename")
+            print("Error while loading HSI data, please select a folder")
             return
         files_processed = []
         for dirpath, _, filenames in os.walk(folder):
@@ -284,7 +315,6 @@ class FileProcessorApp:
                 if fileend in i:
                     file_path = os.path.join(dirpath, i)
                     files_processed.append(file_path) # can be accessed to process the files
-        print('Files to process:' , len(files_processed))
         # frames for the colormap and spectral buttons
         if files_processed:
             try:
@@ -322,7 +352,7 @@ class FileProcessorApp:
                 
             print("Success", "Found and loaded {} files.".format(len(files_processed)))
         else:
-            messagebox.showinfo("No Files", "No files found with the specified name.")
+            print("No Files", "No files found with the specified name.")
 
     def filter_substring(self, a, b):
         return [element for element in a if b in element]
@@ -446,8 +476,8 @@ class specfilesorter:
 
         # Main dir
         tk.Label(left, text="Main directory:").grid(row=0, column=0, sticky='w')
-        self.maindir_entry = tk.Entry(left, textvariable=self.maindir_entrystr, width=56)
-        self.maindir_entry.grid(row=1, column=0, columnspan=2, sticky='w')
+        self.maindir_entry = tk.Entry(left, textvariable=self.maindir_entrystr, width=75)
+        self.maindir_entry.grid(row=1, column=0, columnspan=4, sticky='w')
         tk.Button(left, text="Browse...", command=lambda: deflib.browse_folder(self.maindir_entry)).grid(row=1, column=2, padx=4)
 
         # Filename pattern
@@ -462,14 +492,14 @@ class specfilesorter:
 
         # Save dir
         tk.Label(left, text="Save directory:").grid(row=4, column=0, sticky='w', pady=(8, 0))
-        self.savedir_entry = tk.Entry(left, textvariable=self.savedir_entrystr, width=56)
-        self.savedir_entry.grid(row=5, column=0, columnspan=2, sticky='w')
+        self.savedir_entry = tk.Entry(left, textvariable=self.savedir_entrystr, width=75)
+        self.savedir_entry.grid(row=5, column=0, columnspan=4, sticky='w')
         tk.Button(left, text="Browse...", command=lambda: deflib.browse_folder(self.savedir_entry)).grid(row=5, column=2, padx=4)
 
         # Process dir (where merged/processed folders are written)
         tk.Label(left, text="Process directory:").grid(row=6, column=0, sticky='w', pady=(8, 0))
-        self.processdir_entry = tk.Entry(left, textvariable=self.processdir_entrystr, width=56)
-        self.processdir_entry.grid(row=7, column=0, columnspan=2, sticky='w')
+        self.processdir_entry = tk.Entry(left, textvariable=self.processdir_entrystr, width=75)
+        self.processdir_entry.grid(row=7, column=0, columnspan=4, sticky='w')
         tk.Button(left, text="Browse...", command=lambda: deflib.browse_folder(self.processdir_entry)).grid(row=7, column=2, padx=4)
 
         # Options
@@ -478,10 +508,19 @@ class specfilesorter:
         # Control buttons
         btnframe = tk.Frame(left)
         btnframe.grid(row=9, column=0, columnspan=3, pady=(12, 0), sticky='w')
-        tk.Button(btnframe, text="Scan", width=12, command=self.scan_maindir).pack(side=tk.LEFT)
-        tk.Button(btnframe, text="Preview Selected", width=14, command=self.preview_selected).pack(side=tk.LEFT, padx=6)
-        tk.Button(btnframe, text="Process Selected", width=14, command=self.sort_and_process).pack(side=tk.LEFT)
-        tk.Button(btnframe, text="Clear", width=8, command=self.clear_list).pack(side=tk.LEFT, padx=6)
+        self.scan_button = tk.Button(btnframe, text="Scan", width=12, command=self.scan_maindir)
+        self.scan_button.pack(side=tk.LEFT)
+        self.preview_button = tk.Button(btnframe, text="Preview Selected", width=14, command=self.preview_selected)
+        self.preview_button.pack(side=tk.LEFT, padx=6)
+        self.process_button_sf = tk.Button(btnframe, text="Process Selected", width=14, command=self.sort_and_process)
+        self.process_button_sf.pack(side=tk.LEFT)
+        self.clear_button = tk.Button(btnframe, text="Clear", width=8, command=self.clear_list)
+        self.clear_button.pack(side=tk.LEFT, padx=6)
+        # cancel button for background copy (disabled until a job runs)
+        self.cancel_button = tk.Button(btnframe, text="Cancel", width=8, command=self.cancel_copy, state='disabled')
+        self.cancel_button.pack(side=tk.LEFT, padx=6)
+        # add a button below that says "Create HSIs from Processed Folders"
+        tk.Button(btnframe, text="Create HSIs", width=12, command=self.create_hsis_from_processed).pack(side=tk.LEFT, padx=6)
 
         # Right: results treeview
         right = tk.Frame(self.sortframe)
@@ -508,44 +547,204 @@ class specfilesorter:
         self.progress.pack(fill=tk.X, padx=8, pady=(0, 8))
     
     def sort_and_process(self):
-        # Process selected treeview items (placeholder implementation)
-        sel = self.tree.selection()
-        if not sel:
-            messagebox.showinfo("No selection", "Please select one or more folders in the list to process.")
-            return
-        selected_paths = [self.tree.set(i, '#3') for i in sel]
-        # For now, just print and inform the user. The heavy processing logic can be plugged into this method.
-        print('Processing {} folders...'.format(len(selected_paths)))
-        messagebox.showinfo("Processing", "Processing {} selected folders. See console for details.".format(len(selected_paths)))
-        # update progress bar as a simple feedback
-        self.progress['maximum'] = len(selected_paths)
-        for i, p in enumerate(selected_paths, start=1):
-            self.progress['value'] = i
-            self.sortframe.update_idletasks()
-            print('Processing:', p)
-        self.progress['value'] = 0
+        # Prepare processing tasks and launch background worker thread to copy files safely
+        # Operate on the currently scanned folders (self.scan_results)
+        # 1) For each unique folder name, create a folder with that name inside the Process directory
+        # 2) If duplicates (same folder name) exist among scanned results, only the first instance is used
+        # 3) Copy files matching filename and file extension filters into the created process folder
+        # 4) leave a `pass` placeholder for further per-folder processing
 
-    def scan_maindir(self):
-        # Scan main directory for subfolders that contain files matching the filename and fileend patterns
-        maindir = self.maindir_entry.get()
-        filename = self.filename_entry.get()
-        fileend = self.fileend_entry.get()
-        if not maindir or not os.path.exists(maindir):
-            messagebox.showerror("Error", "Please select a valid main directory to scan.")
+        if not self.scan_results:
+            messagebox.showinfo("No data", "No scanned folders available. Run Scan first.")
             return
-        self.scan_results = []
-        self.tree.delete(*self.tree.get_children())
-        # Walk one level deep: find immediate subfolders
-        for root_dir, dirs, files in os.walk(maindir):
-            # consider leaf directories only
-            if files:
-                match_count = 0
+
+        processdir = self.processdir_entry.get()
+        if not processdir:
+            messagebox.showerror("No process directory", "Please select a Process directory before processing.")
+            return
+        # ensure processdir exists
+        try:
+            os.makedirs(processdir, exist_ok=True)
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not create/access Process directory: {e}")
+            return
+
+        # build a mapping of unique folder name -> first seen path
+        unique = {}
+        for name, count, path in self.scan_results:
+            if name not in unique:
+                unique[name] = path
+
+    # collect files to copy per unique folder and compute total file count
+        filename_filter = self.filename_entry.get()
+        fileend_filter = self.fileend_entry.get()
+        tasks = []  # list of (folder_name, src_path, [files])
+        total_files = 0
+        for name, src in unique.items():
+            try:
+                entries = os.listdir(src)
+            except Exception as e:
+                print('Could not list directory', src, e)
+                continue
+            matched = []
+            for f in entries:
+                full = os.path.join(src, f)
+                if not os.path.isfile(full):
+                    continue
+                if (not filename_filter or filename_filter in f) and (not fileend_filter or fileend_filter in f):
+                    matched.append(f)
+            if matched:
+                tasks.append((name, src, matched))
+                total_files += len(matched)
+
+        if not tasks:
+            messagebox.showinfo("No files", "No files matching the filters were found in scanned folders.")
+            return
+
+        # perform copying with progress
+        copied = 0
+        self.progress['maximum'] = total_files
+        for name, src, files in tasks:
+            target_dir = os.path.join(processdir, name)
+            os.makedirs(target_dir, exist_ok=True)
+            # copy each matching file
+            for f in files:
+                srcfile = os.path.join(src, f)
+                dstfile = os.path.join(target_dir, f)
+                try:
+                    shutil.copy2(srcfile, dstfile)
+                except Exception as e:
+                    print('Failed to copy', srcfile, '->', dstfile, e)
+                copied += 1
+                # update progress
+                try:
+                    self.progress['value'] = copied
+                    self.sortframe.update_idletasks()
+                except Exception:
+                    if not tasks:
+                        messagebox.showinfo("No files", "No files matching the filters were found in scanned folders.")
+                        return
+
+                    # store task info for worker
+                    self._copy_tasks = tasks
+                    self._processdir = processdir
+                    self._total_files = total_files
+                    self._copied_count = 0
+                    self._stop_event = thr.Event()
+                    self._lock = thr.Lock()
+
+                    # disable controls that should not be used while copying
+                    self.scan_button.config(state='disabled')
+                    self.preview_button.config(state='disabled')
+                    self.process_button_sf.config(state='disabled')
+                    self.clear_button.config(state='disabled')
+                    self.cancel_button.config(state='normal')
+
+                    # prepare progress
+                    self.progress['maximum'] = total_files
+                    self.progress['value'] = 0
+
+                    # launch background thread (daemon so it won't block exit)
+                    self._copy_thread = thr.Thread(target=self._copy_worker, daemon=True)
+                    self._copy_thread.start()
+
+    def _copy_worker(self):
+        """Background worker that copies files and updates progress via the main thread."""
+        import shutil
+        try:
+            for name, src, files in self._copy_tasks:
+                if self._stop_event.is_set():
+                    break
+                target_dir = os.path.join(self._processdir, name)
+                os.makedirs(target_dir, exist_ok=True)
                 for f in files:
-                    if (not filename or filename in f) and (not fileend or fileend in f):
-                        match_count += 1
-                if match_count > 0:
-                    self.scan_results.append((os.path.basename(root_dir), match_count, root_dir))
-        # Sort results by path/name
+                    if self._stop_event.is_set():
+                        break
+                    srcfile = os.path.join(src, f)
+                    dstfile = os.path.join(target_dir, f)
+                    try:
+                        shutil.copy2(srcfile, dstfile)
+                    except Exception as e:
+                        print('Failed to copy', srcfile, '->', dstfile, e)
+                    # increment counter in thread-safe manner
+                    with self._lock:
+                        self._copied_count += 1
+                        copied = self._copied_count
+                    # schedule a GUI update on the main thread
+                    try:
+                        self.sortframe.after(0, self._update_progress, copied)
+                    except Exception:
+                        pass
+                # placeholder for further processing per folder
+                # pass
+        finally:
+            # schedule finalizer on main thread
+            self.sortframe.after(0, self._copy_finished)
+
+    def _update_progress(self, value):
+        try:
+            self.progress['value'] = value
+        except Exception:
+            pass
+
+    def cancel_copy(self):
+        # signal worker to stop
+        if hasattr(self, '_stop_event') and self._stop_event:
+            self._stop_event.set()
+            # disable cancel to avoid repeated clicks
+            try:
+                self.cancel_button.config(state='disabled')
+            except Exception:
+                pass
+
+    def _copy_finished(self):
+        # re-enable controls
+        try:
+            self.scan_button.config(state='normal')
+            self.preview_button.config(state='normal')
+            self.process_button_sf.config(state='normal')
+            self.clear_button.config(state='normal')
+            self.cancel_button.config(state='disabled')
+        except Exception:
+            pass
+        # inform user
+        copied = getattr(self, '_copied_count', 0)
+        total = getattr(self, '_total_files', 0)
+        if getattr(self, '_stop_event', None) and self._stop_event.is_set():
+            messagebox.showinfo("Cancelled", f"Copy cancelled after {copied} of {total} files.")
+        else:
+            messagebox.showinfo("Done", f"Copied {copied} files into {getattr(self, '_processdir', '')}")
+        # reset progress
+        try:
+            self.progress['value'] = 0
+        except Exception:
+            pass
+        self.scan_results.sort()
+        self.populate_list()
+    
+    def scan_maindir(self):
+        folder = self.maindir_entry.get()
+        filename_filter = self.filename_entry.get()
+        fileend_filter = self.fileend_entry.get()
+
+        if not folder:
+            messagebox.showerror("Error", "Please select a main directory to scan.")
+            return
+        if not os.path.exists(folder):
+            messagebox.showerror("Error", "The selected main directory does not exist.")
+            return
+
+        self.scan_results = []
+        for dirpath, dirnames, filenames in os.walk(folder):
+            matched_files = []
+            for f in filenames:
+                if (not filename_filter or filename_filter in f) and (not fileend_filter or fileend_filter in f):
+                    matched_files.append(f)
+            if matched_files:
+                folder_name = os.path.basename(dirpath)
+                file_count = len(matched_files)
+                self.scan_results.append((folder_name, file_count, dirpath))
+
         self.scan_results.sort()
         self.populate_list()
 
@@ -578,7 +777,30 @@ class specfilesorter:
         self.tree.delete(*self.tree.get_children())
         self.scan_results = []
         self.selected_items = []
-        
+
+    def create_hsis_from_processed(self):
+        # Placeholder: user will implement detailed processing pipeline here
+        processdir = self.processdir_entry.get()
+        if not processdir:
+            print('Please select a Process directory to create HSIs from.')
+            return
+        processfolders = [os.path.join(processdir, d) for d in os.listdir(processdir) if os.path.isdir(os.path.join(processdir, d))]
+        if len(processfolders) == 0:
+            print('No folders found in Process directory to create HSIs from.')
+            return
+        for folder in processfolders: 
+            try: 
+                self.make_HSI_from_folder(folder)
+            except Exception as e:
+                print('Error creating HSI from folder', folder, e)
+
+    def make_HSI_from_folder(self, folder):
+        # set self.folder_entry, self.filename_entry and self.fileformat_entry accordingly
+        pass
+
+        #self.folder_entry.delete(0, tk.END)
+        #self.folder_entry.insert(0, folder)
+
 
 def pressclose(root, app):
     # Get all running threads

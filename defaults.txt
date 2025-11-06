@@ -7,7 +7,7 @@ data_file = C:/Users/volib/Desktop/PhD/Homeoffice/251017/PbI_undoped/HSI20251016
 # C:/Users/volib/Desktop/Projects/PCP_Microscopy/Datasets/MoS2_test/okay/Z150_dx05_dy05_areascan3 
 filename = HSI
 windowsize_X = 1200
-windowsize_Y = 800
+windowsize_Y = 1200
 file_extension = .txt
 multiple_Background = False
 linear_Background = True
@@ -42,3 +42,4 @@ HSI_from_fitparam_useROI = True
 power_correction = False 
 tcspc_maindir = None
 tcspc_subdir = None
+process_multiple_HSIs_bool = False

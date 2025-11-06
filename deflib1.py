@@ -1227,6 +1227,7 @@ defaults={
     'hsifilesorter_fileend': '.txt',
     'hsifilesorter_savedir': '',
     'hsifilesorter_processdir': False,
+    'process_multiple_HSIs_bool': False,
 }
 
 defaulttypes = {
@@ -1278,7 +1279,8 @@ defaulttypes = {
     'hsifilesoter_filename': str,
     'hsifilesorter_fileend': str,
     'hsifilesorter_savedir': str,
-    'hsifilesorter_processdir': str
+    'hsifilesorter_processdir': str, 
+    'process_multiple_HSIs_bool': bool,
 
 }
 
