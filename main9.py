@@ -75,7 +75,7 @@ class FileProcessorApp:
         self.fileformat_entry.pack(fill=tk.X)
         self.fileformat_entry.insert(0, defaults['file_extension'])
         # Process button
-        self.process_button = tk.Button(self.open_frame, text="Load HSI data", command=self.spec_loadfiles)
+        self.process_button = tk.Button(self.open_frame, text="Load HSI data", command=self.init_spec_loadfiles)
         self.process_button.pack()
         # space between frames
         tk.Frame(self.open_frame, height=10).pack()
@@ -115,6 +115,13 @@ class FileProcessorApp:
         self.multiple_HSIs_dir_entry.insert(0, defaults['hsifilesorter_maindir'])
         self.Browse_multiple_HSIs_dir_button = tk.Button(self.multiple_HSIs_inp_frame, text="Browse", command=lambda: deflib.browse_folder(self.multiple_HSIs_dir_entry))
         self.Browse_multiple_HSIs_dir_button.grid(row=2, column=2)
+        # save directory to save the HSI output images
+        tk.Label(self.multiple_HSIs_inp_frame, text="Save Directory:").grid(row=3, column=0)
+        self.multiple_HSIs_save_dir_entry = tk.Entry(self.multiple_HSIs_inp_frame, width=80)
+        self.multiple_HSIs_save_dir_entry.grid(row=3, column=1)
+        self.multiple_HSIs_save_dir_entry.insert(0, defaults['hsifilesorter_savedir'])
+        self.Browse_multiple_HSIs_save_dir_button = tk.Button(self.multiple_HSIs_inp_frame, text="Browse", command=lambda: deflib.browse_folder(self.multiple_HSIs_save_dir_entry))
+        self.Browse_multiple_HSIs_save_dir_button.grid(row=3, column=2)
 
         # Cosmic removal
         # add extra frame for cosmic removal onto loadframe
@@ -269,13 +276,28 @@ class FileProcessorApp:
         if self.make_multiple_HSIsbool.get() == True:
             # try to get File main directory
             filemaindir = self.multiple_HSIs_dir_entry.get()
+            savedir = self.multiple_HSIs_save_dir_entry.get()
             if not filemaindir:
                 print("Error while loading HSI data, please select a main directory for multiple HSIs")
+                self.spec_loadfiles()
+            if not savedir:
+                print("Error while loading HSI data, please select a save directory for multiple HSIs")
                 self.spec_loadfiles()
             else:
                 foldersinmaindir = [f for f in os.listdir(filemaindir) if os.path.isdir(os.path.join(filemaindir, f))]
                 for folder in foldersinmaindir:
-                    print("Processing folder:", folder)
+                    fullfolderpath =  os.path.join(filemaindir, folder)
+                    self.folder_entry.delete(0, tk.END)
+                    self.folder_entry.insert(0, fullfolderpath)
+                    filename = str(folder+"_HSI.png")
+                    imagesavefolder = os.path.join(savedir, filename)
+                    try:
+                        self.spec_loadfiles()
+                        # create intensity colormap and save spectra
+                        self.Nanomap.buildandPlotIntCmap(savetoimage=imagesavefolder)
+                    except:
+                        print("Error processing folder:", fullfolderpath)
+                        continue
                 
         else:
             self.spec_loadfiles()
@@ -350,9 +372,9 @@ class FileProcessorApp:
                 self.Nanomap.powercorrection()
             self.Exporter = xplib.Exportframe(self.nodeframes['Export'], self.Nanomap)
                 
-            print("Success", "Found and loaded {} files.".format(len(files_processed)))
+            print("Success, Found and loaded {} files.".format(len(files_processed)))
         else:
-            print("No Files", "No files found with the specified name.")
+            print("No files found with the specified name.")
 
     def filter_substring(self, a, b):
         return [element for element in a if b in element]
@@ -360,7 +382,7 @@ class FileProcessorApp:
     def cl_loadfiles(self):
         file = self.cl_file_entry.get()
         if not file:
-            messagebox.showerror("Error", "Please select a file")
+            print("Error", "Please select a file")
             return
         try:
             # clara 100x scaling factor 56.8 nm /pixel
@@ -373,7 +395,7 @@ class FileProcessorApp:
                 dy = claralib.cl_scalings[scaling]
             self.claraimage = claralib.imageprocessor(self.nodeframes['Clara Image'], file, deflib.loadclaraimage, None, dx, dy)# 0.568, 0.568) 100x scaling
         except Exception as error:
-            messagebox.showerror("Error", "Could not load Clara image. {}".format(error))
+            print("Error", "Could not load Clara image. {}".format(error))
     
     def on_closing(self):
         pass
@@ -382,13 +404,13 @@ class FileProcessorApp:
     def saveNanomap(self, filename):
         # check if the filename is empty
         if not filename:
-            messagebox.showerror("Error", "Please enter a filename")
+            print("Error", "Please enter a filename")
             return
         # check if the Nanomap object exists
         try:
             self.Nanomap
         except:
-            messagebox.showerror("Error", "No Nanomap object to save")
+            print("Error", "No Nanomap object to save")
             return
         # check if filename is a valid path
         canopen = False
@@ -555,18 +577,18 @@ class specfilesorter:
         # 4) leave a `pass` placeholder for further per-folder processing
 
         if not self.scan_results:
-            messagebox.showinfo("No data", "No scanned folders available. Run Scan first.")
+            print("No data", "No scanned folders available. Run Scan first.")
             return
 
         processdir = self.processdir_entry.get()
         if not processdir:
-            messagebox.showerror("No process directory", "Please select a Process directory before processing.")
+            print("No process directory", "Please select a Process directory before processing.")
             return
         # ensure processdir exists
         try:
             os.makedirs(processdir, exist_ok=True)
         except Exception as e:
-            messagebox.showerror("Error", f"Could not create/access Process directory: {e}")
+            print("Error", f"Could not create/access Process directory: {e}")
             return
 
         # build a mapping of unique folder name -> first seen path
@@ -598,7 +620,7 @@ class specfilesorter:
                 total_files += len(matched)
 
         if not tasks:
-            messagebox.showinfo("No files", "No files matching the filters were found in scanned folders.")
+            print("No files", "No files matching the filters were found in scanned folders.")
             return
 
         # perform copying with progress
@@ -622,7 +644,7 @@ class specfilesorter:
                     self.sortframe.update_idletasks()
                 except Exception:
                     if not tasks:
-                        messagebox.showinfo("No files", "No files matching the filters were found in scanned folders.")
+                        print("No files", "No files matching the filters were found in scanned folders.")
                         return
 
                     # store task info for worker
@@ -711,9 +733,9 @@ class specfilesorter:
         copied = getattr(self, '_copied_count', 0)
         total = getattr(self, '_total_files', 0)
         if getattr(self, '_stop_event', None) and self._stop_event.is_set():
-            messagebox.showinfo("Cancelled", f"Copy cancelled after {copied} of {total} files.")
+            print("Cancelled", f"Copy cancelled after {copied} of {total} files.")
         else:
-            messagebox.showinfo("Done", f"Copied {copied} files into {getattr(self, '_processdir', '')}")
+            print("Done", f"Copied {copied} files into {getattr(self, '_processdir', '')}")
         # reset progress
         try:
             self.progress['value'] = 0
@@ -728,10 +750,10 @@ class specfilesorter:
         fileend_filter = self.fileend_entry.get()
 
         if not folder:
-            messagebox.showerror("Error", "Please select a main directory to scan.")
+            print("Error", "Please select a main directory to scan.")
             return
         if not os.path.exists(folder):
-            messagebox.showerror("Error", "The selected main directory does not exist.")
+            print("Error", "The selected main directory does not exist.")
             return
 
         self.scan_results = []
@@ -760,7 +782,7 @@ class specfilesorter:
     def preview_selected(self):
         # Open the folder(s) in file explorer where possible
         if not self.selected_items:
-            messagebox.showinfo("No selection", "Please select a folder to preview.")
+            print("No selection", "Please select a folder to preview.")
             return
         for p in self.selected_items:
             try:

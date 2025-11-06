@@ -1296,7 +1296,7 @@ def testdefaults():
 def newton_loadfiles(file):
     data = None
     if not file:
-        messagebox.showerror("Error", "Please select a file")
+        print("Error, Please select a file")
         return
     try:
         data = np.loadtxt(file, skiprows=34)

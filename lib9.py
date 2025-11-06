@@ -5,7 +5,6 @@ import sys, pickle, copy
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox
 #from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.widgets import Cursor
 from matplotlib.widgets import Button
@@ -14,8 +13,6 @@ import matplotlib.patches as mpatches
 from scipy.optimize import curve_fit
 from scipy.special import wofz
 from tkinter import filedialog as tkfd
-# import for tk.messagebox
-import tkinter.messagebox as tkmb
 import threading as thre
 
 import mathlib3 as matl # type: ignore
@@ -109,7 +106,7 @@ class SpectrumData:
                         #self.WL.append(float(parts[0]))  WL is only read once by XYMap since each SpectrumData has the same WL-axis
                         self.PL.append(int(parts[2]))
                     except Exception as e:
-                        messagebox.showerror("Error", str(e))
+                        print("Error", str(e))
         if self.loadeachbg == True and self.linearbg == True:
             av = np.mean(self.BG)
             for i in range(len(self.BG)):
@@ -118,7 +115,7 @@ class SpectrumData:
         try:
             self.PLB = np.subtract(self.PL, self.BG).tolist() # add PLB = PL-BG
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            print("Error", str(e))
         # write openstate list
         for i in SpectDataFloats:
             if i not in list(self.data.keys()):
@@ -225,7 +222,7 @@ class XYMap:
         try:
             self.countthreshv = int(self.countthresh.get())
         except Exception as e:
-            messagebox.showerror("Error", '{} Insert valid threshold of type int.'.format(str(e)))
+            print("Error", '{} Insert valid threshold of type int.'.format(str(e)))
 
     # Spectral Plot Input Update
     def updatewl(self):
@@ -233,10 +230,10 @@ class XYMap:
             self.wlstart = float(self.proc_spec_min.get())
             self.wlend = float(self.proc_spec_max.get())
         except Exception as e:
-            messagebox.showerror("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
+            print("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
         passt = False
         if self.wlstart > self.wlend:
-            tkmb.showerror('ERROR', 'Lowest Wavelength must be smaller than Highest Wavelength! Reconsider Input!')
+            print('ERROR', 'Lowest Wavelength must be smaller than Highest Wavelength! Reconsider Input!')
             self.wlstart = self.DataSpecMin
             self.proc_spec_min.delete(0, tk.END)
             self.proc_spec_min.insert(0, self.DataSpecMin)
@@ -245,23 +242,23 @@ class XYMap:
             self.proc_spec_max.insert(0, self.DataSpecMax)
         elif self.wlstart < self.DataSpecMin:
             passt = True
-            tkmb.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
+            print('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
             self.wlstart = self.DataSpecMin
             self.proc_spec_min.delete(0, tk.END)
             self.proc_spec_min.insert(0, self.DataSpecMin)
             if self.wlend > self.DataSpecMax:
-                tkmb.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
+                print('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
                 self.wlend = self.DataSpecMax
                 self.proc_spec_max.delete(0, tk.END)
                 self.proc_spec_max.insert(0, self.DataSpecMax)
         elif self.wlend > self.DataSpecMax:
             passt = True
-            tkmb.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
+            print('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
             self.wlend = self.DataSpecMax
             self.proc_spec_max.delete(0, tk.END)
             self.proc_spec_max.insert(0, self.DataSpecMax)
             if self.wlstart < self.DataSpecMin:
-                tkmb.showwarning('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
+                print('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
                 self.wlstart = self.DataSpecMin
                 self.proc_spec_min.delete(0, tk.END)
                 self.proc_spec_min.insert(0, self.DataSpecMin)
@@ -279,7 +276,7 @@ class XYMap:
             self.proc_spec_max.delete(0, tk.END)
             self.proc_spec_max.insert(0, str(self.wlend))
         except Exception as e:
-            messagebox.showerror("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
+            print("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
         self.updatewl()
 
     # min and max wl can be inserted here for preceed window
@@ -728,7 +725,7 @@ class XYMap:
         self.selectPixY.insert(0, str(self.newsely))
 
     # Max Counts Colormap
-    def buildandPlotIntCmap(self, savetoimage=False):
+    def buildandPlotIntCmap(self, savetoimage='False'):
         self.readfontsize()
         self.updatecountthresh()
         # update spec min and max values
@@ -752,10 +749,10 @@ class XYMap:
         else:
             # get the selected ROI mask
             if self.roisel.get() == '':
-                tkmb.showerror('Error', 'No ROI selected. Please select a ROI first.')
+                print('Error', 'No ROI selected. Please select a ROI first.')
                 return
             elif self.roisel.get() not in self.roihandler.roilist.keys():
-                tkmb.showerror('Error', 'Selected ROI not found. Please select a valid ROI.')
+                print('Error', 'Selected ROI not found. Please select a valid ROI.')
                 return
             else: # if the ROI is valid, copy it onto roi
                 roi = self.roihandler.roilist[self.roisel.get()][:]
@@ -1135,7 +1132,7 @@ class XYMap:
         try:
             self.fontsize =abs(float(self.CMFont.get()))
         except Exception as e:
-            messagebox.showerror("Error", '{} Font Size must be Number.'.format(str(e)))
+            print("Error", '{} Font Size must be Number.'.format(str(e)))
 
     def validpixelinput(self):
         x = self.selectPixX.get()
@@ -1146,17 +1143,17 @@ class XYMap:
             if x < len(self.SpecDataMatrix[0]):
                 valid[0] = True
             else:
-                messagebox.showerror("Error", "No Pixel on X-Position.")
+                print("Error", "No Pixel on X-Position.")
         except Exception as e:
-            messagebox.showerror("Error", '{} Insert valid X-Position.'.format(str(e)))
+            print("Error", '{} Insert valid X-Position.'.format(str(e)))
         try:
             y = int(y)
             if y < len(self.SpecDataMatrix):
                 valid[1] = True
             else:
-                messagebox.showerror("Error", "No Pixel on Y-Position.")
+                print("Error", "No Pixel on Y-Position.")
         except Exception as e:
-            messagebox.showerror("Error", '{} Insert valid Y-Position.'.format(str(e)))
+            print("Error", '{} Insert valid Y-Position.'.format(str(e)))
         return(int(x), int(y), valid)
 
     # Function to handle click events of the image
@@ -1269,7 +1266,7 @@ class XYMap:
         plt.tight_layout()
         plt.show()
 
-    def plotPixelMatrix(self, HSIname, leglabel='Spectrometer Counts', savetoimage=False):
+    def plotPixelMatrix(self, HSIname, leglabel='Spectrometer Counts', savetoimage='False'):
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
         # Display the data as an image with a colormap
@@ -1299,19 +1296,22 @@ class XYMap:
         ax.tick_params(axis='both', which='major', labelsize=self.fontsize)
         plt.tight_layout()
         # if savetoimage is not False, save the image to the given path
-        if savetoimage != False:
+        if savetoimage != 'False':
             try:
-                plt.savefig(savetoimage, dpi=6000)
+                plt.savefig(savetoimage, dpi=600)
+                # discard the plot after saving
+                plt.close()
                 print('Image saved to {}'.format(savetoimage))
             except Exception as e:
                 print('Could not save image to {}. {}'.format(savetoimage, str(e)))
 
-        # click event
-        cid = fig.canvas.mpl_connect('button_press_event', lambda event: self.on_click(event, self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix))
-        self.updateselectionentries()
-        fig.canvas.mpl_connect('motion_notify_event', lambda event: deflib.fig_on_hoverevent(event, ax, fig, self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, (self.PixAxX[0], self.PixAxX[-1]), (self.PixAxY[0], self.PixAxY[-1])))
+        else:
+            # click event
+            cid = fig.canvas.mpl_connect('button_press_event', lambda event: self.on_click(event, self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix))
+            self.updateselectionentries()
+            fig.canvas.mpl_connect('motion_notify_event', lambda event: deflib.fig_on_hoverevent(event, ax, fig, self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix, (self.PixAxX[0], self.PixAxX[-1]), (self.PixAxY[0], self.PixAxY[-1])))
 
-        plt.show()
+            plt.show()
 
     def getPixMatrixSelection(self, PMname=None):
         if PMname == None:
@@ -1508,7 +1508,7 @@ class XYMap:
         self.mycoords = []
         self.PMmetadata = {}
         if len(self.specs) == 0:
-            messagebox.showerror("Error", 'No valid Data found. Check Data Files.')
+            print("Error", 'No valid Data found. Check Data Files.')
         elif len(self.specs) == 1:
             self.mxcoords.append(self.specs[0].data['x-position'])
             self.mycoords.append(self.specs[0].data['y-position'])
@@ -1569,7 +1569,7 @@ class XYMap:
     
     def delHSI(self):
         if len(self.PMdict) == 1:
-            messagebox.showerror("Error", 'Cannot delete last HSI.')
+            print("Error", 'Cannot delete last HSI.')
         else:
             del self.PMdict[self.hsiselect.get()]
             #del self.PMmetadata[self.hsiselect.get()]
