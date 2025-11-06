@@ -12,7 +12,7 @@ from matplotlib.path import Path
 import matplotlib.pyplot as plt
 import copy
 
-Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'TCSPC', 'Settings']
+Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'TCSPC', 'HSI File Sorter', 'Settings']
 # dir of this file
 DIR = os.path.dirname(os.path.abspath(__file__))
 # Default values for the application
@@ -1221,6 +1221,12 @@ defaults={
     'HSI_from_fitparam_useROI': True, 
     'power_correction': False, 
     'laser_spotsize_nm': 1000.0,
+    # hsi specfilesorter defaults
+    'hsifilesorter_maindir': '',
+    'hsifilesorter_filename': '',
+    'hsifilesorter_fileend': '.txt',
+    'hsifilesorter_savedir': '',
+    'hsifilesorter_processdir': False,
 }
 
 defaulttypes = {
@@ -1267,6 +1273,12 @@ defaulttypes = {
     'HSI_from_fitparam_useROI': bool, 
     'power_correction': bool,
     'laser_spotsize_nm': float,
+    # hsi specfilesorter defaults
+    'hsifilesorter_maindir': str,
+    'hsifilesoter_filename': str,
+    'hsifilesorter_fileend': str,
+    'hsifilesorter_savedir': str,
+    'hsifilesorter_processdir': str
 
 }
 
@@ -1349,6 +1361,14 @@ def gaussian_weight_matrix(dx=1.0, dy=1.0, sigma_x=None, sigma_y=None, size=3):
     # normalize to sum = 1
     w_norm = w / np.sum(w)
     return w_norm, X, Y        
+
+# returnallfolders
+def returnallfolders(maindir):
+    allfolders = []
+    for root, dirs, files in os.walk(maindir):
+        for dir in dirs:
+            allfolders.append(os.path.join(root, dir))
+    return allfolders
 
 # check definitions 
 if __name__ == '__main__':

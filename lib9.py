@@ -728,7 +728,7 @@ class XYMap:
         self.selectPixY.insert(0, str(self.newsely))
 
     # Max Counts Colormap
-    def buildandPlotIntCmap(self):
+    def buildandPlotIntCmap(self, savetoimage=False):
         self.readfontsize()
         self.updatecountthresh()
         # update spec min and max values
@@ -738,7 +738,7 @@ class XYMap:
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
         self.UpdateHSIselect()
-        self.plotPixelMatrix(self.hsiselect.get())
+        self.plotPixelMatrix(self.hsiselect.get(), savetoimage=savetoimage)
         
     # Spectral Maximum Colormap
     def buildandPlotSpecCmap(self):
@@ -1269,7 +1269,7 @@ class XYMap:
         plt.tight_layout()
         plt.show()
 
-    def plotPixelMatrix(self, HSIname, leglabel='Spectrometer Counts'):
+    def plotPixelMatrix(self, HSIname, leglabel='Spectrometer Counts', savetoimage=False):
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
         # Display the data as an image with a colormap
@@ -1298,6 +1298,13 @@ class XYMap:
         # Set the font size of the ticks on both axes
         ax.tick_params(axis='both', which='major', labelsize=self.fontsize)
         plt.tight_layout()
+        # if savetoimage is not False, save the image to the given path
+        if savetoimage != False:
+            try:
+                plt.savefig(savetoimage, dpi=6000)
+                print('Image saved to {}'.format(savetoimage))
+            except Exception as e:
+                print('Could not save image to {}. {}'.format(savetoimage, str(e)))
 
         # click event
         cid = fig.canvas.mpl_connect('button_press_event', lambda event: self.on_click(event, self.PMdict[self.getPixMatrixSelection(self.hsiselect.get())].PixMatrix))

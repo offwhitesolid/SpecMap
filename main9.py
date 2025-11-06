@@ -219,6 +219,16 @@ class FileProcessorApp:
         # load HSI on start ater constructing the GUI
         if defaults['loadonstart'] == True:
             self.spec_loadfiles()
+        
+        # build specfilesorter frame on the specfilesorter notebook
+        self.specfilesorterframe = specfilesorter(
+            self.nodeframes['HSI File Sorter'], 
+            defaults['hsifilesorter_maindir'], 
+            defaults['hsifilesorter_filename'], 
+            defaults['hsifilesorter_fileend'], 
+            defaults['hsifilesorter_savedir'], 
+            defaults['hsifilesorter_processdir']
+            )
     
     def tcspcloadfiles(self):
         file = self.tcspc_maindir_entry.get()
@@ -391,6 +401,50 @@ class FileProcessorApp:
             except:
                 print('No Nanomap object to load data into')
                 return
+
+# sort files and multiple HSI processings
+# what is the taks of specfilesorter: 
+# 1. Step:
+# select a dir with multiple measurement days, on each day HSIs were measured, but some of them went for multiple days. Therefore find the "deepest" folder instance for each folder name. 
+# then create a list of all days on which HSIs were measured. For each day, on which on the following day a measurement appears, check if they must be merged. Merge them into a single folder. If no measurement followed, just copy the folder to the savedir (no merge needed)
+# 2. Step: 
+# for each HSI in savedir, process the HSI with the FileProcessorApp class, create a HSI image, then save it to the savedir as a image. by the HSI name. 
+
+class specfilesorter:
+    def __init__(self, tkroot, maindir, filename, fileend, savedir, processdir):
+        self.tkroot = tkroot
+        self.maindir = maindir
+        self.filename = filename
+        self.fileend = fileend
+        self.savedir = savedir
+        self.maindir_entrystr = tk.StringVar()
+        self.maindir_entrystr.set(maindir)
+        self.filename_entrystr = tk.StringVar()
+        self.filename_entrystr.set(filename)
+        self.fileend_entrystr = tk.StringVar()
+        self.fileend_entrystr.set(fileend)
+        self.savedir_entrystr = tk.StringVar()
+        self.savedir_entrystr.set(savedir)
+        self.processdir_entrystr = tk.StringVar()
+        self.processdir_entrystr.set(processdir)
+        self.files_processed = []
+        self.buildGUI()
+
+    def buildGUI(self):
+        self.sortframe = tk.Frame(self.tkroot, width=400, height=200, borderwidth=5, relief="ridge")
+        self.sortframe.pack(fill='both', expand=True)
+        # add a entry to select the maindir, savedir, filename pattern, fileend pattern
+        self.maindir_label = tk.Label(self.sortframe, text="Select HSI main dir with multiple measurement folders", width=100)
+        self.maindir_label.pack()
+        self.maindir_entry = tk.Entry(self.sortframe, width=100)
+        self.maindir_entry.pack()
+        self.maindir_entry.insert(0, self.maindir)
+        self.maindir_button = tk.Button(self.sortframe, text="Browse", command=lambda: deflib.browse_folder(self.maindir_entry))
+        self.maindir_button.pack()
+    
+    def sort_and_process(self):
+        pass
+        
 
 def pressclose(root, app):
     # Get all running threads
