@@ -133,6 +133,8 @@ class SpectrumData:
                 self.PLB = deflib.cosmicfuncts[self.removecosmicsmethod](self.PLB, self.cosmicthreshold, self.cosmicpixels)
             except Exception as e:
                 print('Cosmic removal failed. {}'.format(str(e)))
+        
+        del lines
 
     def setOK(self):
         if False in self.openFstate:
@@ -1501,8 +1503,6 @@ class XYMap:
         
 		# after specra are loaded, they must be put into matrix, after this, correlated cosmic ray removal can be applied (see autogenmatrix) # correlatedcosmicrayremoval
 
-
-
     def autogenmatrix(self):
         self.mxcoords = []
         self.mycoords = []
@@ -1762,6 +1762,7 @@ class XYMap:
         plt.close('all')
         # tkinter destroy
         self.cmapframe.destroy()
+        # delete all attributes
 		
         
 class Roihandler():

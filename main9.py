@@ -286,12 +286,17 @@ class FileProcessorApp:
             else:
                 foldersinmaindir = [f for f in os.listdir(filemaindir) if os.path.isdir(os.path.join(filemaindir, f))]
                 for folder in foldersinmaindir:
+                    #
                     fullfolderpath =  os.path.join(filemaindir, folder)
                     self.folder_entry.delete(0, tk.END)
                     self.folder_entry.insert(0, fullfolderpath)
                     filename = str(folder+"_HSI.png")
                     imagesavefolder = os.path.join(savedir, filename)
                     try:
+                        # before loading: delete self.Nanomap if it exists
+                        if hasattr(self, 'Nanomap'):
+                            self.Nanomap.on_close()
+                            del self.Nanomap
                         self.spec_loadfiles()
                         # create intensity colormap and save spectra
                         self.Nanomap.buildandPlotIntCmap(savetoimage=imagesavefolder)
