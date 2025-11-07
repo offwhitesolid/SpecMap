@@ -542,7 +542,6 @@ class specfilesorter:
         self.cancel_button = tk.Button(self.btnframe, text="Cancel", width=8, command=self.cancel_copy, state='disabled')
         self.cancel_button.pack(side=tk.LEFT, padx=6)
 
-
         # Right: results treeview
         right = tk.Frame(self.sortframe)
         right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=6, pady=6)
