@@ -101,7 +101,7 @@ class FileProcessorApp:
         self.powercorrectioncheck = tk.Checkbutton(self.bgframe, text="Power Correction", variable=self.powercorrectionBool)
         self.powercorrectioncheck.grid(row=2, column=0)
         # below the frame add another frame for making multiple HSIs
-        # spacing
+        # spacings
         self.multiple_HSIs_inp_frame = tk.Frame(self.loadframe)
         self.multiple_HSIs_inp_frame.grid(row=4, column=0, columnspan=2)
         tk.Label(self.multiple_HSIs_inp_frame, text="Make Multiple HSIs from folders in selected dir").grid(row=0, column=0, columnspan=2)
@@ -498,7 +498,7 @@ class specfilesorter:
 
         # Main dir
         tk.Label(left, text="Main directory:").grid(row=0, column=0, sticky='w')
-        self.maindir_entry = tk.Entry(left, textvariable=self.maindir_entrystr, width=75)
+        self.maindir_entry = tk.Entry(left, textvariable=self.maindir_entrystr, width=63)
         self.maindir_entry.grid(row=1, column=0, columnspan=4, sticky='w')
         tk.Button(left, text="Browse...", command=lambda: deflib.browse_folder(self.maindir_entry)).grid(row=1, column=2, padx=4)
 
@@ -514,13 +514,13 @@ class specfilesorter:
 
         # Save dir
         tk.Label(left, text="Save directory:").grid(row=4, column=0, sticky='w', pady=(8, 0))
-        self.savedir_entry = tk.Entry(left, textvariable=self.savedir_entrystr, width=75)
+        self.savedir_entry = tk.Entry(left, textvariable=self.savedir_entrystr, width=63)
         self.savedir_entry.grid(row=5, column=0, columnspan=4, sticky='w')
         tk.Button(left, text="Browse...", command=lambda: deflib.browse_folder(self.savedir_entry)).grid(row=5, column=2, padx=4)
 
         # Process dir (where merged/processed folders are written)
         tk.Label(left, text="Process directory:").grid(row=6, column=0, sticky='w', pady=(8, 0))
-        self.processdir_entry = tk.Entry(left, textvariable=self.processdir_entrystr, width=75)
+        self.processdir_entry = tk.Entry(left, textvariable=self.processdir_entrystr, width=63)
         self.processdir_entry.grid(row=7, column=0, columnspan=4, sticky='w')
         tk.Button(left, text="Browse...", command=lambda: deflib.browse_folder(self.processdir_entry)).grid(row=7, column=2, padx=4)
 
@@ -528,21 +528,20 @@ class specfilesorter:
         tk.Checkbutton(left, text="Merge consecutive days", variable=self.merge_var).grid(row=8, column=0, columnspan=2, sticky='w', pady=(8, 0))
 
         # Control buttons
-        btnframe = tk.Frame(left)
-        btnframe.grid(row=9, column=0, columnspan=3, pady=(12, 0), sticky='w')
-        self.scan_button = tk.Button(btnframe, text="Scan", width=12, command=self.scan_maindir)
+        self.btnframe = tk.Frame(left)
+        self.btnframe.grid(row=9, column=0, columnspan=3, pady=(12, 0), sticky='w')
+        self.scan_button = tk.Button(self.btnframe, text="Scan", width=12, command=self.scan_maindir)
         self.scan_button.pack(side=tk.LEFT)
-        self.preview_button = tk.Button(btnframe, text="Preview Selected", width=14, command=self.preview_selected)
+        self.preview_button = tk.Button(self.btnframe, text="Preview Selected", width=14, command=self.preview_selected)
         self.preview_button.pack(side=tk.LEFT, padx=6)
-        self.process_button_sf = tk.Button(btnframe, text="Process Selected", width=14, command=self.sort_and_process)
+        self.process_button_sf = tk.Button(self.btnframe, text="Process Selected", width=14, command=self.sort_and_process)
         self.process_button_sf.pack(side=tk.LEFT)
-        self.clear_button = tk.Button(btnframe, text="Clear", width=8, command=self.clear_list)
+        self.clear_button = tk.Button(self.btnframe, text="Clear", width=8, command=self.clear_list)
         self.clear_button.pack(side=tk.LEFT, padx=6)
         # cancel button for background copy (disabled until a job runs)
-        self.cancel_button = tk.Button(btnframe, text="Cancel", width=8, command=self.cancel_copy, state='disabled')
+        self.cancel_button = tk.Button(self.btnframe, text="Cancel", width=8, command=self.cancel_copy, state='disabled')
         self.cancel_button.pack(side=tk.LEFT, padx=6)
-        # add a button below that says "Create HSIs from Processed Folders"
-        tk.Button(btnframe, text="Create HSIs", width=12, command=self.create_hsis_from_processed).pack(side=tk.LEFT, padx=6)
+
 
         # Right: results treeview
         right = tk.Frame(self.sortframe)
@@ -565,8 +564,14 @@ class specfilesorter:
         self.tree.bind('<<TreeviewSelect>>', self.on_tree_select)
 
         # Progress bar
-        self.progress = ttk.Progressbar(self.sortframe, orient='horizontal', mode='determinate')
-        self.progress.pack(fill=tk.X, padx=8, pady=(0, 8))
+        # below buttonframe, ad a progress barframe
+        self.progressfame = tk.Frame(left)
+        self.progressfame.grid(row=10, column=0, columnspan=3, pady=(12, 0), sticky='we')
+        lablel = tk.Label(self.progressfame, text="Progress:").pack(side=tk.LEFT)
+        self.progress = ttk.Progressbar(self.progressfame, orient='horizontal', mode='determinate')
+        self.progress.pack(side=tk.LEFT, padx=8, pady=(0, 8), fill=tk.X, expand=True)
+        #self.progress.pack(fill=tk.X, padx=8, pady=(0, 8))
+        #self.progress.pack(side=tk.LEFT, padx=8, pady=(12, 0), fill=tk.X, expand=True)
     
     def sort_and_process(self):
         # Prepare processing tasks and launch background worker thread to copy files safely
@@ -580,13 +585,13 @@ class specfilesorter:
             print("No data", "No scanned folders available. Run Scan first.")
             return
 
-        processdir = self.processdir_entry.get()
-        if not processdir:
+        savedir = self.savedir_entry.get()
+        if not savedir:
             print("No process directory", "Please select a Process directory before processing.")
             return
         # ensure processdir exists
         try:
-            os.makedirs(processdir, exist_ok=True)
+            os.makedirs(savedir, exist_ok=True)
         except Exception as e:
             print("Error", f"Could not create/access Process directory: {e}")
             return
@@ -627,7 +632,7 @@ class specfilesorter:
         copied = 0
         self.progress['maximum'] = total_files
         for name, src, files in tasks:
-            target_dir = os.path.join(processdir, name)
+            target_dir = os.path.join(savedir, name)
             os.makedirs(target_dir, exist_ok=True)
             # copy each matching file
             for f in files:
@@ -649,7 +654,7 @@ class specfilesorter:
 
                     # store task info for worker
                     self._copy_tasks = tasks
-                    self._processdir = processdir
+                    self._savedir = savedir
                     self._total_files = total_files
                     self._copied_count = 0
                     self._stop_event = thr.Event()
@@ -677,7 +682,7 @@ class specfilesorter:
             for name, src, files in self._copy_tasks:
                 if self._stop_event.is_set():
                     break
-                target_dir = os.path.join(self._processdir, name)
+                target_dir = os.path.join(self._savedir, name)
                 os.makedirs(target_dir, exist_ok=True)
                 for f in files:
                     if self._stop_event.is_set():
@@ -735,7 +740,7 @@ class specfilesorter:
         if getattr(self, '_stop_event', None) and self._stop_event.is_set():
             print("Cancelled", f"Copy cancelled after {copied} of {total} files.")
         else:
-            print("Done", f"Copied {copied} files into {getattr(self, '_processdir', '')}")
+            print("Done", f"Copied {copied} files into {getattr(self, '_savedir', '')}")
         # reset progress
         try:
             self.progress['value'] = 0
@@ -799,22 +804,6 @@ class specfilesorter:
         self.tree.delete(*self.tree.get_children())
         self.scan_results = []
         self.selected_items = []
-
-    def create_hsis_from_processed(self):
-        # Placeholder: user will implement detailed processing pipeline here
-        processdir = self.processdir_entry.get()
-        if not processdir:
-            print('Please select a Process directory to create HSIs from.')
-            return
-        processfolders = [os.path.join(processdir, d) for d in os.listdir(processdir) if os.path.isdir(os.path.join(processdir, d))]
-        if len(processfolders) == 0:
-            print('No folders found in Process directory to create HSIs from.')
-            return
-        for folder in processfolders: 
-            try: 
-                self.make_HSI_from_folder(folder)
-            except Exception as e:
-                print('Error creating HSI from folder', folder, e)
 
     def make_HSI_from_folder(self, folder):
         # set self.folder_entry, self.filename_entry and self.fileformat_entry accordingly
