@@ -57,6 +57,8 @@ def load_defaults():
                     elif value.lower() in ('true', 'false'):
                         value = value.lower() == 'true'
                     variables[name] = value
+        # close the file
+        del file
     return variables
 
 # correlation methods for read data interpolation

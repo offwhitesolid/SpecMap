@@ -15,7 +15,7 @@ import threading as thr
 import matplotlib.pyplot as plt
 import HSI_debugger as DBG
 import TCSPClib as tcspclib
-import shutil
+import shutil#, resource
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -286,6 +286,8 @@ class FileProcessorApp:
             else:
                 foldersinmaindir = [f for f in os.listdir(filemaindir) if os.path.isdir(os.path.join(filemaindir, f))]
                 for folder in foldersinmaindir:
+                    # debug: print all open files
+                    #print("Open files:", len(os.listdir(f"/proc/{os.getpid()}/fd")))
                     #
                     fullfolderpath =  os.path.join(filemaindir, folder)
                     self.folder_entry.delete(0, tk.END)
@@ -334,7 +336,7 @@ class FileProcessorApp:
             print("Error while loading HSI data, please select a folder")
             return
         if not filename:
-            print("Error while loading HSI data, please select a folder")
+            print("Error while loading HSI data, please select a file")
             return
         files_processed = []
         for dirpath, _, filenames in os.walk(folder):
@@ -681,7 +683,6 @@ class specfilesorter:
 
     def _copy_worker(self):
         """Background worker that copies files and updates progress via the main thread."""
-        import shutil
         try:
             for name, src, files in self._copy_tasks:
                 if self._stop_event.is_set():

@@ -134,6 +134,7 @@ class SpectrumData:
             except Exception as e:
                 print('Cosmic removal failed. {}'.format(str(e)))
         
+        # important: clean up! delete everything that is not needed anymore
         del lines
 
     def setOK(self):
@@ -482,6 +483,7 @@ class XYMap:
                 spec.append(float(parts[1]))
         self.correctionWL = WL
         self.correctionSpec = spec
+        del lines
     
     def averageHSItoSpecData(self):
         # average all HSI to a single SpectrumData
@@ -1302,7 +1304,7 @@ class XYMap:
             try:
                 plt.savefig(savetoimage, dpi=600)
                 # discard the plot after saving
-                plt.close()
+                plt.close('all')
                 print('Image saved to {}'.format(savetoimage))
             except Exception as e:
                 print('Could not save image to {}. {}'.format(savetoimage, str(e)))
@@ -1488,8 +1490,12 @@ class XYMap:
 
         # parallel loading of spectra
         self.parallel_load_spectra()
+        del lines
 
     def parallel_load_spectra(self):
+        # before starting threads, clear specs
+        self.specs = []
+
         threads = []
         lock = thre.Lock()  # To avoid race conditions when modifying self.specs
 
