@@ -14,10 +14,11 @@ from scipy.optimize import curve_fit
 from scipy.special import wofz
 from tkinter import filedialog as tkfd
 import threading as thre
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import mathlib3 as matl # type: ignore
 import deflib1 as deflib # type: ignore
 import PMclasslib1 as PMlib # type: ignore
+import os, gc
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -151,6 +152,17 @@ class SpectrumData:
             return getattr(self, attr_name)
         except AttributeError as e:
             print("Attribute {} not found in class SpectrumData.".format(attr_name))
+    
+    def __del__(self):
+        """Destructor to clean up resources"""
+        # Clear large data arrays to help garbage collector
+        if hasattr(self, 'PL'):
+            self.PL = []
+        if hasattr(self, 'BG'):
+            self.BG = []
+        if hasattr(self, 'PLB'):
+            self.PLB = []
+        # Note: WL is shared reference, don't clear it
 
 
 # create XY Map that contains the Pixels 
@@ -1479,12 +1491,6 @@ class XYMap:
                 for i in range(len(self.BG)):
                     self.BG[i] = av
 
-        ''' old version
-        for i in self.fnames:
-            specobj = SpectrumData(i, self.WL, self.BG, self.loadeachbg, self.linearbg, self.removecosmics,  self.cosmicthreshold, self.cosmicpixels, self.remcosmicfunc)
-            if specobj.dataokay == True:
-                self.specs.append(specobj)
-        ''' 
         # convert WL in nm to eV and strore as WL_eV
         self.WL_eV = deflib.wl_array_to_ev(self.WL[:])
 
@@ -1496,16 +1502,22 @@ class XYMap:
         # before starting threads, clear specs
         self.specs = []
 
-        threads = []
         lock = thre.Lock()  # To avoid race conditions when modifying self.specs
 
-        for fname in self.fnames:
-            t = thre.Thread(target=load_spectrum, args=(fname, self, lock))
-            threads.append(t)
-            t.start()
-
-        for t in threads: # wait for all threads to finish
-            t.join()
+        # Use ThreadPoolExecutor to limit concurrent threads and prevent "too many open files" error
+        # Max workers = min(32, number of CPU cores + 4) is a good default
+        max_workers = min(32, (os.cpu_count() or 4) + 4)
+        
+        # Use ThreadPoolExecutor with a limited number of workers
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            futures = [executor.submit(load_spectrum, fname, self, lock) for fname in self.fnames]
+            # Wait for all tasks to complete
+            for future in as_completed(futures):
+                try:
+                    future.result()  # This will raise any exceptions from the worker threads
+                except Exception as e:
+                    print(f'Error loading spectrum: {e}')
         
 		# after specra are loaded, they must be put into matrix, after this, correlated cosmic ray removal can be applied (see autogenmatrix) # correlatedcosmicrayremoval
 
@@ -1767,8 +1779,39 @@ class XYMap:
     def on_close(self):
         plt.close('all')
         # tkinter destroy
-        self.cmapframe.destroy()
-        # delete all attributes
+        try:
+            self.cmapframe.destroy()
+        except:
+            pass
+        # explicitly clean up spectra to release file handles
+        if hasattr(self, 'specs'):
+            for spec in self.specs:
+                if spec is not None:
+                    # clear large data arrays
+                    if hasattr(spec, 'PL'):
+                        spec.PL = []
+                    if hasattr(spec, 'BG'):
+                        spec.BG = []
+                    if hasattr(spec, 'PLB'):
+                        spec.PLB = []
+                    if hasattr(spec, 'WL'):
+                        spec.WL = []
+            self.specs = []
+        # clear the matrix
+        if hasattr(self, 'SpecDataMatrix'):
+            for row in self.SpecDataMatrix:
+                for i in range(len(row)):
+                    row[i] = None
+            self.SpecDataMatrix = []
+        # force garbage collection to release file handles
+        gc.collect()
+    
+    def __del__(self):
+        """Destructor to ensure cleanup when object is deleted"""
+        try:
+            self.on_close()
+        except:
+            pass
 		
         
 class Roihandler():

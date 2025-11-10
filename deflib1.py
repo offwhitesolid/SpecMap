@@ -7,10 +7,9 @@ from tkinter import filedialog
 from scipy.ndimage import median_filter
 import pandas as pd
 from scipy.interpolate import UnivariateSpline
-import os, csv
+import os, copy
 from matplotlib.path import Path
 import matplotlib.pyplot as plt
-import copy
 
 Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'TCSPC', 'HSI File Sorter', 'Settings']
 # dir of this file
@@ -1323,7 +1322,10 @@ def wl_array_to_ev(wl):
     h = 4.135667696e-15  # Planck's constant in eV·s
     c = 299792458e9      # Speed of light in nm/s
     for i in range(len(wl)): 
-        wl[i] = h * c / wl[i]
+        if wl[i] != 0:
+            wl[i] = h * c / wl[i]
+        else:
+            wl[i] = 0
     return wl  # Energy in eV
 
 def gaussian_weight_matrix(dx=1.0, dy=1.0, sigma_x=None, sigma_y=None, size=3):

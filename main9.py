@@ -15,7 +15,7 @@ import threading as thr
 import matplotlib.pyplot as plt
 import HSI_debugger as DBG
 import TCSPClib as tcspclib
-import shutil#, resource
+import shutil, gc
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -277,6 +277,7 @@ class FileProcessorApp:
             # try to get File main directory
             filemaindir = self.multiple_HSIs_dir_entry.get()
             savedir = self.multiple_HSIs_save_dir_entry.get()
+
             if not filemaindir:
                 print("Error while loading HSI data, please select a main directory for multiple HSIs")
                 self.spec_loadfiles()
@@ -299,6 +300,8 @@ class FileProcessorApp:
                         if hasattr(self, 'Nanomap'):
                             self.Nanomap.on_close()
                             del self.Nanomap
+                            # force garbage collection to release file handles immediately
+                            gc.collect()
                         self.spec_loadfiles()
                         # create intensity colormap and save spectra
                         self.Nanomap.buildandPlotIntCmap(savetoimage=imagesavefolder)
@@ -325,6 +328,8 @@ class FileProcessorApp:
             self.cmapframe.destroy()
             self.specframe.destroy()
             del self.Exporter
+            # force garbage collection to release file handles immediately
+            gc.collect()
         except:
              pass
         self.defaults = deflib.initdefaults()
