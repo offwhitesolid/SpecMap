@@ -1099,39 +1099,42 @@ def remove_nan(arr):
     reta = []
     return reta
 
+def return0():
+    return 0
+
 def fig_on_hoverevent(event, ax, fig, Z, x_range, y_range):
- def on_hover(event, ax, fig, Z, x_range, y_range):
-    """
-    Handles mouse hover event to display x, y, and z values dynamically for a 2D list or array.
+    def on_hover(event, ax, fig, Z, x_range, y_range):
+        """
+        Handles mouse hover event to display x, y, and z values dynamically for a 2D list or array.
 
-    Parameters:
-    - event: The mouse motion event.
-    - ax: The axes of the plot.
-    - fig: The matplotlib figure object.
-    - Z: The 2D list (or array) of values.
-    - x_range: Tuple (x_min, x_max) representing the x-coordinate range.
-    - y_range: Tuple (y_min, y_max) representing the y-coordinate range.
-    """
-    if event.inaxes == ax:
-        x_min, x_max = x_range
-        y_min, y_max = y_range
+        Parameters:
+        - event: The mouse motion event.
+        - ax: The axes of the plot.
+        - fig: The matplotlib figure object.
+        - Z: The 2D list (or array) of values.
+        - x_range: Tuple (x_min, x_max) representing the x-coordinate range.
+        - y_range: Tuple (y_min, y_max) representing the y-coordinate range.
+        """
+        if event.inaxes == ax:
+            x_min, x_max = x_range
+            y_min, y_max = y_range
 
-        # Check if Z is a 2D list (list of lists)
-        if not (isinstance(Z, list) and all(isinstance(row, list) for row in Z)):
-            raise ValueError("Z must be a 2D list.")
+            # Check if Z is a 2D list (list of lists)
+            if not (isinstance(Z, list) and all(isinstance(row, list) for row in Z)):
+                raise ValueError("Z must be a 2D list.")
 
-        # Get the number of rows and columns
-        num_rows = len(Z)
-        num_cols = len(Z[0])
+            # Get the number of rows and columns
+            num_rows = len(Z)
+            num_cols = len(Z[0])
 
-        # Calculate indices based on cursor position and plot extent
-        x_idx = int((event.xdata - x_min) / (x_max - x_min) * (num_cols - 1))
-        y_idx = int((event.ydata - y_min) / (y_max - y_min) * (num_rows - 1))
+            # Calculate indices based on cursor position and plot extent
+            x_idx = int((event.xdata - x_min) / (x_max - x_min) * (num_cols - 1))
+            y_idx = int((event.ydata - y_min) / (y_max - y_min) * (num_rows - 1))
 
-        if 0 <= x_idx < num_cols and 0 <= y_idx < num_rows:
-            z_value = Z[y_idx][x_idx]  # Access the element in the 2D list
-            ax.set_title(f"x: {event.xdata:.2f}, y: {event.ydata:.2f}, z: {z_value:.2f}")
-            fig.canvas.draw_idle()
+            if 0 <= x_idx < num_cols and 0 <= y_idx < num_rows:
+                z_value = Z[y_idx][x_idx]  # Access the element in the 2D list
+                ax.set_title(f"x: {event.xdata:.2f}, y: {event.ydata:.2f}, z: {z_value:.2f}")
+                fig.canvas.draw_idle()
 
 cosmicfuncts = {
                 'Linear Interpolation': remove_cosmics_linear, 
