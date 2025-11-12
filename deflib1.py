@@ -932,9 +932,25 @@ def browse_folder(folder_entry):
     
 def loadclaraimage(file):
     with open(file) as f:
-        for i in range(34):
-            f.readline()
+        # Read header lines until we find 2 consecutive lines without ':'
+        consecutive_no_colon = 0
+        while consecutive_no_colon < 2:
+            line = f.readline()
+            if not line:  # End of file
+                break
+            if ':' not in line:
+                consecutive_no_colon += 1
+            else:
+                consecutive_no_colon = 0
+        
+        # now: skip empty lines
+        line = f.readline()
+        while line.strip() == '':
+            line = f.readline()
+
+        # Read remaining data lines
         fload = f.readlines()
+    
     x = []
     y = []
     data = []

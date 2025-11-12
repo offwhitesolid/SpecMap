@@ -41,17 +41,25 @@ class imageprocessor():
         self.area = tk.Button(self.image_frame, text='Area', command=lambda: area2dgaussian(self.imagefile, self.g2dpopt, np.exp(-2), self.dx, self.dy))
         self.area.grid(row=0, column=3)
 
+        # plot: add entry for the image label
+        tk.Label(self.image_frame, text='Image Label:').grid(row=1, column=0)
+        self.imagelabel = tk.Entry(self.image_frame, width=60)
+        self.imagelabel.grid(row=1, column=1, columnspan=7)
+        tk.Label(self.image_frame, text='Legend Label:').grid(row=2, column=0)
+        self.legendlabel = tk.Entry(self.image_frame, width=60)
+        self.legendlabel.grid(row=2, column=1, columnspan=7)
+
     def plotimage(self):
         fig, ax = plt.subplots()
         cim = ax.imshow(self.imagedata, cmap='viridis')
-        '''
-        fig.colorbar()
+        ''''''
+        #fig.colorbar()
         # Get current ticks
         current_xticks = np.arange(self.imagedata.shape[1])
         current_yticks = np.arange(self.imagedata.shape[0])
         # Multiply ticks by constants
-        new_xticks = np.multiply(current_xticks, self.dx).round(2)
-        new_yticks = np.multiply(current_yticks, self.dy).round(2)
+        new_xticks = np.multiply(current_xticks, self.dx).round().astype(int)
+        new_yticks = np.multiply(current_yticks, self.dy).round().astype(int)
         # Set new ticks
         ax.set_xticks(current_xticks)  # Set the ticks to be at the indices of the current ticks
         ax.set_yticks(current_yticks)
@@ -63,9 +71,17 @@ class imageprocessor():
         ax.yaxis.set_major_locator(MaxNLocator(nbins=6))  # Adjust the number of bins to fit the plot size
 
         # Add axis labels
-        ax.set_xlabel('X (scaled)')
-        ax.set_ylabel('Y (scaled)')
-        '''
+        ax.set_xlabel('x axis in $\\mu m$')
+        ax.set_ylabel('y axis in $\\mu m$')
+
+        # add colorbar with Legend label
+        cbar = fig.colorbar(cim)
+        legend_label_text = self.legendlabel.get()
+        if legend_label_text:
+            cbar.set_label(legend_label_text)
+        else:
+            cbar.set_label('Counts')
+        ''''''
         # Show the plot
         plt.tight_layout()  # Adjust layout to avoid overlapping
         plt.show()
