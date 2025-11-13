@@ -608,8 +608,8 @@ def calc_r_squared(fit, data): # args: data, y_fit(data)
 # ss_tot is the total sum of squares
 
 # + is for ss_res, ss_tot, r_squared, pixstart, pixend, wlstart, wlend, fwhm, max_x, max_y
-addtofitparms = ['ss_res', 'ss_tot', 'r_squared', 'fwhm', 'pixstart', 'pixend', 'wlstart', 'wlend', 'max_x', 'max_y'] # Note: this one is essential to exist
-unitstoaddfit = ['Counts', 'Counts', '', 'nm', 'nm', 'nm', 'nm', 'nm', 'nm'] # add further units to the array after r_squared
+addtofitparms = ['ss_res', 'ss_tot', 'r_squared', 'fwhm', 'pixstart', 'pixend', 'wlstart', 'wlend', 'max_x', 'max_y', 'fit_status'] # Note: this one is essential to exist
+unitstoaddfit = ['Counts', 'Counts', '', 'nm', 'nm', 'nm', 'nm', 'nm', 'nm', ''] # add further units to the array after r_squared
 # add further parameters to the array after r_squared
 def buildfitparas():
     fa = []
