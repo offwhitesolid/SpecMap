@@ -218,10 +218,16 @@ class XYMap:
         #if self.defentries['enable_buttonmatrix'] == True:
         self.build_PixMatrix_frame(self.cmapframe)                          # build Pixel Matrix GUI
         self.buildselectboxes(self.cmapframe, list(self.speckeys.keys()))
+        # add a frame for the plot options
+        self.build_plot_optionsframe(self.cmapframe)
 
         self.updatewl()
         self.PMmetadata['HSI0'] = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
         self.UpdateHSIselect()
+    
+    def build_plot_optionsframe(self, parframe):
+        self.plot_optionsframe = tk.Frame(parframe, border=5, relief="raised")
+        tk.Label(self.plot_optionsframe, text="Plot Options").grid(row=0, column=0)
 
     def buildselectboxes(self, frame, values):
         tk.Label(frame, text="Select Data Set".format(self.DataSpecMax)).grid(row=0, column=1)
