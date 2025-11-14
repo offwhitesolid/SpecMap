@@ -1395,6 +1395,143 @@ def returnallfolders(maindir):
             allfolders.append(os.path.join(root, dir))
     return allfolders
 
+class HSIPlotManager:
+    """Manage creation and storage of HSI plots using the existing plot_HSI function.
+
+    Usage:
+      mgr = HSIPlotManager(tk_root, params)
+      fig, ax = mgr.construct_plot(data, metadata)
+      mgr.plot([data1, data2], [meta1, meta2])  # plots multiple and stores them
+
+    The constructor accepts a Tk root element and a params object which may be either
+    a dict of parameter names to values or a list/tuple of values (less recommended).
+    Recognized params (defaults provided):
+      cmap, vmin, vmax, scalebarlength, scalebarwidth, scalebarpos,
+      figsize, title, xlabel, ylabel, show_colorbar, cbar_unit,
+      scalebarfontsize, enable_drag, dx, unit
+    """
+
+    def __init__(self, tk_root=None, params=None):
+        self.tk_root = tk_root
+        # default parameters
+        defaults = {
+            'cmap': 'hot', 'vmin': None, 'vmax': None,
+            'scalebarlength': 20, 'scalebarwidth': 2, 'scalebarpos': (2, 2),
+            'figsize': (7, 6), 'title': '', 'xlabel': None, 'ylabel': None,
+            'show_colorbar': True, 'cbar_unit': '', 'scalebarfontsize': 12,
+            'enable_drag': True, 'dx': 1, 'unit': '$\\mu m$'
+        }
+        # normalize params into a dict
+        self.params = defaults
+        if params is not None:
+            if isinstance(params, dict):
+                for k, v in params.items():
+                    if k in self.params:
+                        self.params[k] = v
+                    else:
+                        # allow unknown params to be stored as well
+                        self.params[k] = v
+            elif isinstance(params, (list, tuple)):
+                # If user passed a list, try to map in order of the defaults keys
+                keys = list(defaults.keys())
+                for i, v in enumerate(params):
+                    if i < len(keys):
+                        self.params[keys[i]] = v
+            else:
+                # leave defaults
+                pass
+
+        # storage for created plots
+        # each entry: dict with keys 'fig', 'ax', 'data', 'metadata', 'params'
+        self.plots = []
+
+    def construct_plot(self, data, metadata=None, params_override=None):
+        """Construct a single plot using plot_HSI and store the fig/ax.
+
+        Args:
+          data: 2D array-like image data
+          metadata: optional metadata dict
+          params_override: optional dict to override parameters for this plot
+
+        Returns:
+          fig, ax
+        """
+        # merge params
+        call_params = dict(self.params)
+        if params_override:
+            call_params.update(params_override)
+
+        # call the existing plot_HSI function; it returns fig, ax
+        fig, ax = plot_HSI(data, metadata=metadata,
+                           cmap=call_params.get('cmap'),
+                           vmin=call_params.get('vmin'),
+                           vmax=call_params.get('vmax'),
+                           scalebarlength=call_params.get('scalebarlength'),
+                           scalebarwidth=call_params.get('scalebarwidth'),
+                           scalebarpos=call_params.get('scalebarpos'),
+                           figsize=call_params.get('figsize'),
+                           title=call_params.get('title'),
+                           xlabel=call_params.get('xlabel'),
+                           ylabel=call_params.get('ylabel'),
+                           show_colorbar=call_params.get('show_colorbar'),
+                           cbar_unit=call_params.get('cbar_unit'),
+                           scalebarfontsize=call_params.get('scalebarfontsize'),
+                           enable_drag=call_params.get('enable_drag'))
+
+        self.plots.append({'fig': fig, 'ax': ax, 'data': data, 'metadata': metadata, 'params': call_params})
+        return fig, ax
+
+    def plot(self, data_list, metadata_list=None, params_override_list=None):
+        """Plot multiple images and store them in self.plots.
+
+        Args:
+          data_list: iterable of 2D arrays
+          metadata_list: optional iterable of metadata dicts (same length as data_list)
+          params_override_list: optional iterable of params dicts (same length) to override defaults per-plot
+
+        Returns:
+          list of (fig, ax) tuples
+        """
+        if metadata_list is None:
+            metadata_list = [None] * len(data_list)
+        if params_override_list is None:
+            params_override_list = [None] * len(data_list)
+
+        results = []
+        for d, m, p in zip(data_list, metadata_list, params_override_list):
+            fig, ax = self.construct_plot(d, metadata=m, params_override=p)
+            results.append((fig, ax))
+        return results
+
+    def clear(self):
+        """Close and clear all stored figures."""
+        for entry in self.plots:
+            try:
+                entry['fig'].clf()
+                plt.close(entry['fig'])
+            except Exception:
+                pass
+        self.plots = []
+
+    def show_all(self):
+        """Bring all stored figures to front/show them (useful when using interactive backends)."""
+        for entry in self.plots:
+            try:
+                entry['fig'].canvas.manager.window.lift()
+            except Exception:
+                try:
+                    entry['fig'].show()
+                except Exception:
+                    pass
+
+
+# Example usage (put this in a new cell or run interactively):
+# root = tk.Tk()
+# mgr = HSIPlotManager(root, params={'cbar_unit': 'kHz', 'scalebarfontsize': 14})
+# figs = mgr.plot([image1, image2], metadata_list=[meta1, meta2])
+# each stored in mgr.plots
+
+
 # check definitions 
 if __name__ == '__main__':
     try:

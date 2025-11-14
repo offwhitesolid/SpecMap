@@ -359,7 +359,7 @@ class FileProcessorApp:
                 pass
             self.cmapframe = tk.Frame(self.nodeframes['Hyperspectra'], width=100, height=50, borderwidth=5, relief="raised")
             self.cmapframe.pack(fill=tk.BOTH)
-            self.specframe = tk.Frame(self.nodeframes['Hyperspectra'], borderwidth=5, relief="sunken")#, width=400, height=400)
+            self.specframe = tk.Frame(self.nodeframes['Hyperspectra'], borderwidth=5, relief="sunken")
             self.specframe.pack(fill=tk.BOTH, expand=True)
             
             # get the cosmic threshold and width

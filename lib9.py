@@ -226,8 +226,12 @@ class XYMap:
         self.UpdateHSIselect()
     
     def build_plot_optionsframe(self, parframe):
-        self.plot_optionsframe = tk.Frame(parframe, border=5, relief="raised")
-        tk.Label(self.plot_optionsframe, text="Plot Options").grid(row=0, column=0)
+        #self.plot_optionsframe = tk.Frame(parframe, border=5, relief="raised")
+        #tk.Label(self.plot_optionsframe, text="Plot Options").grid(row=0, column=0)
+        self.plotoptions_frame = tk.Frame(parframe, border=5, relief="sunken")
+        self.plotoptions_frame.grid(row=0, column=5, rowspan=6, sticky=tk.NW)
+        # test: add text
+        tk.Label(self.plotoptions_frame, text="Plot Options").grid(row=0, column=0)
 
     def buildselectboxes(self, frame, values):
         tk.Label(frame, text="Select Data Set".format(self.DataSpecMax)).grid(row=0, column=1)
@@ -2019,3 +2023,4 @@ def load_spectrum(fname, instance, lock):
     if specobj.dataokay:
         with lock:
             instance.specs.append(specobj)
+
