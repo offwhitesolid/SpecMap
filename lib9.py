@@ -19,6 +19,7 @@ import mathlib3 as matl # type: ignore
 import deflib1 as deflib # type: ignore
 import PMclasslib1 as PMlib # type: ignore
 import os, gc
+import traceback
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -422,6 +423,225 @@ class XYMap:
         b11 = tk.Button(frame, text="Correct Spectrum", command= lambda: self.correctSpectrum(self.specselect.get()))
         b11.grid(row=8, column=2)
     
+    def build_plot_options_frame(self, parframe):
+        """Build GUI frame for HSI plot options with scale bar and advanced formatting."""
+        frame = tk.Frame(parframe, border=5, relief="ridge")
+        frame.grid(row=0, column=6, rowspan=6, sticky=tk.NW)
+        
+        # Title
+        tk.Label(frame, text="HSI Plot Options", font=('Arial', 10, 'bold')).grid(row=0, column=0, columnspan=2, pady=5)
+        
+        # Colormap selection
+        tk.Label(frame, text="Colormap:").grid(row=1, column=0, sticky=tk.W, padx=5)
+        self.hsi_cmap_var = tk.StringVar(value=self.defentries.get('hsi_cmap', 'hot'))
+        self.hsi_cmap_combo = ttk.Combobox(frame, textvariable=self.hsi_cmap_var, 
+                                           values=['hot', 'viridis', 'plasma', 'inferno', 'magma', 'cividis', 'gray', 'jet'],
+                                           width=15)
+        self.hsi_cmap_combo.grid(row=1, column=1, padx=5, pady=2)
+        
+        # vmin/vmax for color scale
+        tk.Label(frame, text="vmin (leave empty for auto):").grid(row=2, column=0, sticky=tk.W, padx=5)
+        self.hsi_vmin_var = tk.StringVar(value=str(self.defentries.get('hsi_vmin', '')))
+        self.hsi_vmin_entry = tk.Entry(frame, textvariable=self.hsi_vmin_var, width=18)
+        self.hsi_vmin_entry.grid(row=2, column=1, padx=5, pady=2)
+        
+        tk.Label(frame, text="vmax (leave empty for auto):").grid(row=3, column=0, sticky=tk.W, padx=5)
+        self.hsi_vmax_var = tk.StringVar(value=str(self.defentries.get('hsi_vmax', '')))
+        self.hsi_vmax_entry = tk.Entry(frame, textvariable=self.hsi_vmax_var, width=18)
+        self.hsi_vmax_entry.grid(row=3, column=1, padx=5, pady=2)
+        
+        # Scale bar options
+        tk.Label(frame, text="Scale bar length (μm):").grid(row=4, column=0, sticky=tk.W, padx=5)
+        self.hsi_scalebar_len_var = tk.DoubleVar(value=self.defentries.get('hsi_scalebar_length', 20.0))
+        self.hsi_scalebar_len_entry = tk.Entry(frame, textvariable=self.hsi_scalebar_len_var, width=18)
+        self.hsi_scalebar_len_entry.grid(row=4, column=1, padx=5, pady=2)
+        
+        tk.Label(frame, text="Scale bar width (μm):").grid(row=5, column=0, sticky=tk.W, padx=5)
+        self.hsi_scalebar_width_var = tk.DoubleVar(value=self.defentries.get('hsi_scalebar_width', 2.0))
+        self.hsi_scalebar_width_entry = tk.Entry(frame, textvariable=self.hsi_scalebar_width_var, width=18)
+        self.hsi_scalebar_width_entry.grid(row=5, column=1, padx=5, pady=2)
+        
+        tk.Label(frame, text="Scale bar position X (μm):").grid(row=6, column=0, sticky=tk.W, padx=5)
+        self.hsi_scalebar_pos_x_var = tk.DoubleVar(value=self.defentries.get('hsi_scalebar_pos_x', 2.0))
+        self.hsi_scalebar_pos_x_entry = tk.Entry(frame, textvariable=self.hsi_scalebar_pos_x_var, width=18)
+        self.hsi_scalebar_pos_x_entry.grid(row=6, column=1, padx=5, pady=2)
+        
+        tk.Label(frame, text="Scale bar position Y (μm):").grid(row=7, column=0, sticky=tk.W, padx=5)
+        self.hsi_scalebar_pos_y_var = tk.DoubleVar(value=self.defentries.get('hsi_scalebar_pos_y', 2.0))
+        self.hsi_scalebar_pos_y_entry = tk.Entry(frame, textvariable=self.hsi_scalebar_pos_y_var, width=18)
+        self.hsi_scalebar_pos_y_entry.grid(row=7, column=1, padx=5, pady=2)
+        
+        # Figure size
+        tk.Label(frame, text="Figure width (inches):").grid(row=8, column=0, sticky=tk.W, padx=5)
+        self.hsi_figsize_width_var = tk.DoubleVar(value=self.defentries.get('hsi_figsize_width', 7.0))
+        self.hsi_figsize_width_entry = tk.Entry(frame, textvariable=self.hsi_figsize_width_var, width=18)
+        self.hsi_figsize_width_entry.grid(row=8, column=1, padx=5, pady=2)
+        
+        tk.Label(frame, text="Figure height (inches):").grid(row=9, column=0, sticky=tk.W, padx=5)
+        self.hsi_figsize_height_var = tk.DoubleVar(value=self.defentries.get('hsi_figsize_height', 6.0))
+        self.hsi_figsize_height_entry = tk.Entry(frame, textvariable=self.hsi_figsize_height_var, width=18)
+        self.hsi_figsize_height_entry.grid(row=9, column=1, padx=5, pady=2)
+        
+        # Title
+        tk.Label(frame, text="Plot title:").grid(row=10, column=0, sticky=tk.W, padx=5)
+        self.hsi_title_var = tk.StringVar(value=self.defentries.get('hsi_title', ''))
+        self.hsi_title_entry = tk.Entry(frame, textvariable=self.hsi_title_var, width=18)
+        self.hsi_title_entry.grid(row=10, column=1, padx=5, pady=2)
+        
+        # Colorbar options
+        tk.Label(frame, text="Colorbar unit:").grid(row=11, column=0, sticky=tk.W, padx=5)
+        self.hsi_cbar_unit_var = tk.StringVar(value=self.defentries.get('hsi_cbar_unit', 'Kilo counts'))
+        self.hsi_cbar_unit_entry = tk.Entry(frame, textvariable=self.hsi_cbar_unit_var, width=18)
+        self.hsi_cbar_unit_entry.grid(row=11, column=1, padx=5, pady=2)
+        
+        self.hsi_show_colorbar_var = tk.BooleanVar(value=self.defentries.get('hsi_show_colorbar', True))
+        tk.Checkbutton(frame, text="Show colorbar", variable=self.hsi_show_colorbar_var).grid(row=12, column=0, columnspan=2, pady=2)
+        
+        # Font size
+        tk.Label(frame, text="Scale bar font size:").grid(row=13, column=0, sticky=tk.W, padx=5)
+        self.hsi_scalebar_fontsize_var = tk.IntVar(value=self.defentries.get('hsi_scalebar_fontsize', 12))
+        self.hsi_scalebar_fontsize_entry = tk.Entry(frame, textvariable=self.hsi_scalebar_fontsize_var, width=18)
+        self.hsi_scalebar_fontsize_entry.grid(row=13, column=1, padx=5, pady=2)
+        
+        # Unit
+        tk.Label(frame, text="Unit (e.g., $\\mu m$):").grid(row=14, column=0, sticky=tk.W, padx=5)
+        self.hsi_unit_var = tk.StringVar(value=self.defentries.get('hsi_unit', '$\\mu m$'))
+        self.hsi_unit_entry = tk.Entry(frame, textvariable=self.hsi_unit_var, width=18)
+        self.hsi_unit_entry.grid(row=14, column=1, padx=5, pady=2)
+        
+        # Plot button
+        tk.Button(frame, text="Plot HSI with Options", command=self.plot_hsi_with_options, 
+                 bg='lightblue').grid(row=15, column=0, columnspan=2, pady=10, padx=5, sticky=tk.EW)
+        
+        # Save to file button
+        tk.Button(frame, text="Save Plot to File", command=self.save_hsi_plot_to_file,
+                 bg='lightgreen').grid(row=16, column=0, columnspan=2, pady=5, padx=5, sticky=tk.EW)
+    
+    def plot_hsi_with_options(self):
+        """Plot the selected HSI using the options from the GUI."""
+        try:
+            # Get selected HSI
+            hsi_name = self.hsiselect.get()
+            if hsi_name not in self.PMdict.keys():
+                print('Error: No valid HSI selected.')
+                return
+            
+            # Get the PMclass object
+            pm_obj = self.PMdict[hsi_name]
+            data = pm_obj.PixMatrix
+            
+            # Parse vmin/vmax (empty string means None)
+            vmin_str = self.hsi_vmin_var.get().strip()
+            vmax_str = self.hsi_vmax_var.get().strip()
+            vmin = float(vmin_str) if vmin_str else None
+            vmax = float(vmax_str) if vmax_str else None
+            
+            # Prepare metadata
+            metadata = {
+                'dx': pm_obj.gdx,
+                'dy': pm_obj.gdy,
+                'unit': self.hsi_unit_var.get()
+            }
+            
+            # Prepare parameters
+            params = {
+                'cmap': self.hsi_cmap_var.get(),
+                'vmin': vmin,
+                'vmax': vmax,
+                'scalebarlength': self.hsi_scalebar_len_var.get(),
+                'scalebarwidth': self.hsi_scalebar_width_var.get(),
+                'scalebarpos': (self.hsi_scalebar_pos_x_var.get(), self.hsi_scalebar_pos_y_var.get()),
+                'figsize': (self.hsi_figsize_width_var.get(), self.hsi_figsize_height_var.get()),
+                'title': self.hsi_title_var.get(),
+                'show_colorbar': self.hsi_show_colorbar_var.get(),
+                'cbar_unit': self.hsi_cbar_unit_var.get(),
+                'scalebarfontsize': self.hsi_scalebar_fontsize_var.get(),
+                'enable_drag': False,
+                'dx': pm_obj.gdx,
+                'unit': self.hsi_unit_var.get()
+            }
+            
+            # Initialize HSIPlotManager if not exists
+            if not hasattr(self, 'hsi_plot_manager'):
+                self.hsi_plot_manager = deflib.HSIPlotManager(None, params)
+            else:
+                self.hsi_plot_manager.params.update(params)
+            
+            # Create the plot
+            fig, ax = self.hsi_plot_manager.construct_plot(data, metadata=metadata)
+            plt.show()
+            
+        except Exception as e:
+            print(f'Error plotting HSI with options: {e}')
+            import traceback
+            traceback.print_exc()
+    
+    def save_hsi_plot_to_file(self):
+        """Save the HSI plot to a file."""
+        try:
+            # Get selected HSI
+            hsi_name = self.hsiselect.get()
+            if hsi_name not in self.PMdict.keys():
+                print('Error: No valid HSI selected.')
+                return
+            
+            # Ask for filename
+            filename = tkfd.asksaveasfilename(
+                defaultextension='.png',
+                filetypes=[('PNG files', '*.png'), ('PDF files', '*.pdf'), ('SVG files', '*.svg'), ('All files', '*.*')]
+            )
+            
+            if not filename:
+                return
+            
+            # Get the PMclass object
+            pm_obj = self.PMdict[hsi_name]
+            data = pm_obj.PixMatrix
+            
+            # Parse vmin/vmax
+            vmin_str = self.hsi_vmin_var.get().strip()
+            vmax_str = self.hsi_vmax_var.get().strip()
+            vmin = float(vmin_str) if vmin_str else None
+            vmax = float(vmax_str) if vmax_str else None
+            
+            # Prepare metadata
+            metadata = {
+                'dx': pm_obj.gdx,
+                'dy': pm_obj.gdy,
+                'unit': self.hsi_unit_var.get()
+            }
+            
+            # Prepare parameters
+            params = {
+                'cmap': self.hsi_cmap_var.get(),
+                'vmin': vmin,
+                'vmax': vmax,
+                'scalebarlength': self.hsi_scalebar_len_var.get(),
+                'scalebarwidth': self.hsi_scalebar_width_var.get(),
+                'scalebarpos': (self.hsi_scalebar_pos_x_var.get(), self.hsi_scalebar_pos_y_var.get()),
+                'figsize': (self.hsi_figsize_width_var.get(), self.hsi_figsize_height_var.get()),
+                'title': self.hsi_title_var.get(),
+                'show_colorbar': self.hsi_show_colorbar_var.get(),
+                'cbar_unit': self.hsi_cbar_unit_var.get(),
+                'scalebarfontsize': self.hsi_scalebar_fontsize_var.get(),
+                'enable_drag': False,
+                'dx': pm_obj.gdx,
+                'unit': self.hsi_unit_var.get()
+            }
+            
+            # Create plot
+            fig, ax = deflib.plot_HSI(data, metadata=metadata, **params)
+            
+            # Save to file
+            fig.savefig(filename, dpi=600, bbox_inches='tight')
+            plt.close(fig)
+            
+            print(f'HSI plot saved to: {filename}')
+            
+        except Exception as e:
+            print(f'Error saving HSI plot: {e}')
+            traceback.print_exc()
+    
     def select_correction_spectrum_file(self):
         self.correctionspecname = tkfd.askopenfilename(filetypes=[("Correction spectrum", "*")])
         self.loadcorrectionSpectrum()
@@ -686,6 +906,7 @@ class XYMap:
         b4 = tk.Checkbutton(fitframe, text="Use ROI for parameter plot", variable=self.HSI_from_fitparam_useROI).pack(side=tk.TOP, anchor=tk.W)
 
         self.build_roi_frame(placeframe)
+        self.build_plot_options_frame(placeframe)
         buttons = []
         self.SpecButtons = []
         return buttons

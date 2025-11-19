@@ -10,6 +10,8 @@ from scipy.interpolate import UnivariateSpline
 import os, copy
 from matplotlib.path import Path
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.patches import Rectangle
 
 Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'Export', 'Newton Spectrum', 'TCSPC', 'HSI File Sorter', 'Settings']
 # dir of this file
@@ -1248,6 +1250,21 @@ defaults={
     'hsifilesorter_savedir': '',
     'hsifilesorter_processdir': False,
     'process_multiple_HSIs_bool': False,
+    # HSI Plot Options defaults
+    'hsi_cmap': 'hot',
+    'hsi_vmin': '',
+    'hsi_vmax': '',
+    'hsi_scalebar_length': 20.0,
+    'hsi_scalebar_width': 2.0,
+    'hsi_scalebar_pos_x': 2.0,
+    'hsi_scalebar_pos_y': 2.0,
+    'hsi_figsize_width': 7.0,
+    'hsi_figsize_height': 6.0,
+    'hsi_title': '',
+    'hsi_cbar_unit': 'Kilo counts',
+    'hsi_show_colorbar': True,
+    'hsi_scalebar_fontsize': 12,
+    'hsi_unit': '$\\mu m$',
 }
 
 defaulttypes = {
@@ -1301,6 +1318,21 @@ defaulttypes = {
     'hsifilesorter_savedir': str,
     'hsifilesorter_processdir': str, 
     'process_multiple_HSIs_bool': bool,
+    # HSI Plot Options types
+    'hsi_cmap': str,
+    'hsi_vmin': str,
+    'hsi_vmax': str,
+    'hsi_scalebar_length': float,
+    'hsi_scalebar_width': float,
+    'hsi_scalebar_pos_x': float,
+    'hsi_scalebar_pos_y': float,
+    'hsi_figsize_width': float,
+    'hsi_figsize_height': float,
+    'hsi_title': str,
+    'hsi_cbar_unit': str,
+    'hsi_show_colorbar': bool,
+    'hsi_scalebar_fontsize': int,
+    'hsi_unit': str,
 
 }
 
@@ -1531,6 +1563,108 @@ class HSIPlotManager:
 # figs = mgr.plot([image1, image2], metadata_list=[meta1, meta2])
 # each stored in mgr.plots
 
+def plot_HSI(data, metadata=None, cmap='hot', vmin=None, vmax=None,
+             scalebarlength=20, scalebarwidth=2, scalebarpos=(2, 2),
+             figsize=(7, 6), title='', xlabel=None, ylabel=None,
+             show_colorbar=True, cbar_unit='', scalebarfontsize=12,
+             enable_drag=True, dx=1, unit='$\\mu m$'):
+    """
+    Plot HSI data with scale bar and colorbar similar to the reference image.
+    
+    Parameters:
+    -----------
+    data : 2D array
+        The HSI image data to plot
+    metadata : dict, optional
+        Metadata dictionary (can contain 'dx', 'dy', 'unit', etc.)
+    cmap : str
+        Matplotlib colormap name (default 'hot')
+    vmin, vmax : float, optional
+        Color scale limits
+    scalebarlength : float
+        Length of scale bar in units (default 20)
+    scalebarwidth : float
+        Width of scale bar in units (default 2)
+    scalebarpos : tuple
+        Position of scale bar (x, y) in units from origin (default (2, 2))
+    figsize : tuple
+        Figure size in inches (default (7, 6))
+    title : str
+        Plot title
+    xlabel, ylabel : str, optional
+        Axis labels
+    show_colorbar : bool
+        Whether to show colorbar (default True)
+    cbar_unit : str
+        Unit label for colorbar (default '')
+    scalebarfontsize : int
+        Font size for scale bar text (default 12)
+    enable_drag : bool
+        Enable interactive dragging (not implemented yet)
+    dx : float
+        Pixel spacing (default 1)
+    unit : str
+        Unit string for scale bar (default '$\\mu m$')
+    
+    Returns:
+    --------
+    fig, ax : matplotlib figure and axes objects
+    """
+    
+    # Extract dx from metadata if available
+    if metadata and 'dx' in metadata:
+        dx = metadata['dx']
+    if metadata and 'unit' in metadata:
+        unit = metadata['unit']
+    
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Plot the image
+    im = ax.imshow(data, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower')
+    
+    # Add colorbar
+    if show_colorbar:
+        cbar = fig.colorbar(im, ax=ax)
+        if cbar_unit:
+            cbar.set_label(cbar_unit, fontsize=scalebarfontsize)
+        cbar.ax.tick_params(labelsize=scalebarfontsize-2)
+    
+    # Add scale bar
+    # Convert scale bar length from real units to pixels
+    scalebar_length_pixels = scalebarlength / dx
+    scalebar_width_pixels = scalebarwidth / dx
+    scalebar_x_pixels = scalebarpos[0] / dx
+    scalebar_y_pixels = scalebarpos[1] / dx
+    
+    # Create scale bar rectangle (white)
+    rect = Rectangle((scalebar_x_pixels, scalebar_y_pixels), 
+                     scalebar_length_pixels, scalebar_width_pixels,
+                     linewidth=1, edgecolor='white', facecolor='white')
+    ax.add_patch(rect)
+    
+    # Add scale bar text
+    text_x = scalebar_x_pixels
+    text_y = scalebar_y_pixels + scalebar_width_pixels + (2 / dx)  # Slightly above the bar
+    ax.text(text_x, text_y, f'{scalebarlength:.2f} {unit}', 
+            color='white', fontsize=scalebarfontsize, 
+            verticalalignment='bottom', fontweight='bold')
+    
+    # Set title and labels
+    if title:
+        ax.set_title(title, fontsize=scalebarfontsize+2)
+    if xlabel:
+        ax.set_xlabel(xlabel, fontsize=scalebarfontsize)
+    if ylabel:
+        ax.set_ylabel(ylabel, fontsize=scalebarfontsize)
+    
+    # Remove axis ticks for cleaner look (like the reference image)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    
+    plt.tight_layout()
+    
+    return fig, ax
 
 # check definitions 
 if __name__ == '__main__':
