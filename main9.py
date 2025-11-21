@@ -178,24 +178,45 @@ class FileProcessorApp:
         # frame to save the current hsi object
         self.saveframe = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
         self.saveframe.grid(row=2, column=0)
+        
         # save the current hsi object
         self.save_label = tk.Label(self.saveframe, text="Save the current Data object")
-        self.save_label.pack()
+        self.save_label.grid(row=0, column=0, columnspan=3, pady=(5,2))
+        
+        # Save path entry and browse button
+        save_entry_frame = tk.Frame(self.saveframe)
+        save_entry_frame.grid(row=1, column=0, columnspan=3, padx=5, pady=2)
         self.savehsipath = tk.StringVar()
-        self.save_entry = tk.Entry(self.saveframe, textvariable=self.savehsipath, width=117)
-        self.save_entry.pack()
+        self.save_entry = tk.Entry(save_entry_frame, textvariable=self.savehsipath, width=100)
+        self.save_entry.pack(side=tk.LEFT, padx=(0,5))
         self.save_entry.insert(0, defaults['save_hsi'])
-        self.save_button = tk.Button(self.saveframe, text="Save", command=lambda: self.saveNanomap(self.savehsipath.get()))
-        self.save_button.pack()
+        tk.Button(save_entry_frame, text="Browse", 
+                 command=lambda: self.browse_save_path()).pack(side=tk.LEFT, padx=(0,5))
+        self.save_button = tk.Button(save_entry_frame, text="Save", 
+                                     command=lambda: self.saveNanomap(self.savehsipath.get()),
+                                     width=5)
+        self.save_button.pack(side=tk.LEFT)
+        
+        # Separator
+        tk.Frame(self.saveframe, height=2, bg='gray').grid(row=2, column=0, columnspan=3, sticky='ew', padx=5, pady=10)
+        
         # load saved spectra to current object
         self.load_label = tk.Label(self.saveframe, text="Load a saved Data object")
-        self.load_label.pack()
+        self.load_label.grid(row=3, column=0, columnspan=3, pady=(5,2))
+        
+        # Load path entry and browse button
+        load_entry_frame = tk.Frame(self.saveframe)
+        load_entry_frame.grid(row=4, column=0, columnspan=3, padx=5, pady=2)
         self.loadhsipath = tk.StringVar()
-        self.load_entry = tk.Entry(self.saveframe, textvariable=self.loadhsipath, width=117)
-        self.load_entry.pack()
+        self.load_entry = tk.Entry(load_entry_frame, textvariable=self.loadhsipath, width=100)
+        self.load_entry.pack(side=tk.LEFT, padx=(0,5))
         self.load_entry.insert(0, defaults['load_hsi_saved'])
-        self.load_button = tk.Button(self.saveframe, text="Load", command=lambda: self.loadhsisaved(self.loadhsipath.get()))
-        self.load_button.pack()
+        tk.Button(load_entry_frame, text="Browse", 
+                 command=lambda: self.browse_load_path()).pack(side=tk.LEFT, padx=(0,5))
+        self.load_button = tk.Button(load_entry_frame, text="Load", 
+                                     command=lambda: self.loadhsisaved(self.loadhsipath.get()),
+                                     width=5)
+        self.load_button.pack(side=tk.LEFT)
 
         # frame to load Newton spectrum
         self.newtonframe = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
@@ -252,6 +273,26 @@ class FileProcessorApp:
             defaults['hsifilesorter_savedir'], 
             defaults['hsifilesorter_processdir']
             )
+    
+    def browse_save_path(self):
+        """Open file dialog to select save path"""
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".pkl",
+            filetypes=[("Pickle files", "*.pkl"), ("All files", "*.*")],
+            title="Select save location for Data object"
+        )
+        if filename:
+            self.savehsipath.set(filename)
+    
+    def browse_load_path(self):
+        """Open file dialog to select load path"""
+        filename = filedialog.askopenfilename(
+            defaultextension=".pkl",
+            filetypes=[("Pickle files", "*.pkl"), ("All files", "*.*")],
+            title="Select Data object to load"
+        )
+        if filename:
+            self.loadhsipath.set(filename)
     
     def tcspcloadfiles(self):
         file = self.tcspc_maindir_entry.get()
@@ -412,59 +453,97 @@ class FileProcessorApp:
     def on_closing(self):
         pass
 
-    # pickle the Nanomap object, all subobjects and all their attributes
     def saveNanomap(self, filename):
+        """
+        Save the complete XYMap state to a file.
+        This saves all data, processing parameters, HSI images, and ROI masks.
+        """
         # check if the filename is empty
         if not filename:
-            print("Error", "Please enter a filename")
+            print("Error: Please enter a filename")
             return
+        
         # check if the Nanomap object exists
-        try:
-            self.Nanomap
-        except:
-            print("Error", "No Nanomap object to save")
+        if not hasattr(self, 'Nanomap'):
+            print("Error: No data loaded to save")
             return
-        # check if filename is a valid path
-        canopen = False
-        while os.path.exists(filename):
+        
+        # Ensure .pkl extension
+        if not filename.endswith('.pkl'):
+            filename += '.pkl'
+        
+        # Handle file already exists
+        if os.path.exists(filename):
+            response = messagebox.askyesno(
+                "File Exists", 
+                f"File {os.path.basename(filename)} already exists. Overwrite?"
+            )
+            if not response:
+                # Auto-increment filename
                 filename = deflib.increment_filename(filename)
-                canopen = True
-                with open(filename, 'wb') as output: # clear the file
-                    pass
+                print(f"Saving to: {filename}")
+        
+        # Call the XYMap save_state method
+        success = self.Nanomap.save_state(filename)
+        
+        if success:
+            messagebox.showinfo("Success", f"Data saved successfully to:\n{filename}")
+            # Update the entry field with the actual saved path
+            self.savehsipath.set(filename)
         else:
-            # check if / is in the filename
-            if '/' in filename:
-                # create the path
-                os.makedirs(os.path.dirname(filename), exist_ok=True)
-                canopen = True
-
-        if canopen:
-            savearray = []
-            for i in self.Nanomap.specs:
-                savearray.append(i)
-            with open(filename, 'ab') as output:
-                pickle.dump(savearray, output)
-        else:
-            print(canopen, filename)
-            print('Invalid filename to save HSI data')
+            messagebox.showerror("Error", "Failed to save data. Check console for details.")
     
     def loadhsisaved(self, filename):
+        """
+        Load a previously saved XYMap state from a file.
+        This restores all data, processing parameters, HSI images, and ROI masks.
+        """
         # check if the filename is empty
         if not filename:
-            print('Please enter a filename to load')
-            return 
+            print('Error: Please enter a filename to load')
+            messagebox.showerror("Error", "Please select a file to load")
+            return
+        
         # check if filename is a valid path
-        if os.path.exists(filename):
-            with open(filename, 'rb') as input:
-                specs = pickle.load(input)
-            # check if the Nanomap object exists
+        if not os.path.exists(filename):
+            print(f'Error: File not found: {filename}')
+            messagebox.showerror("Error", f"File not found:\n{filename}")
+            return
+        
+        # Check if the Nanomap object exists; if not, we need to create one
+        if not hasattr(self, 'Nanomap'):
+            print("Creating new XYMap instance to load data into...")
+            # Create minimal frames for the XYMap if they don't exist
             try:
-                self.Nanomap
-                self.Nanomap.specs = specs  
-                self.Nanomap.SpecdataintoMatrix(True)                
+                self.cmapframe = tk.Frame(self.nodeframes['Hyperspectra'], width=100, height=50, borderwidth=5, relief="raised")
+                self.cmapframe.pack(fill=tk.BOTH)
+                self.specframe = tk.Frame(self.nodeframes['Hyperspectra'], borderwidth=5, relief="sunken")
+                self.specframe.pack(fill=tk.BOTH, expand=True)
             except:
-                print('No Nanomap object to load data into')
-                return
+                pass
+            
+            # Create a temporary XYMap instance with minimal parameters
+            # Skip GUI building - it will be built after load_state() populates the data
+            self.Nanomap = lib.XYMap(
+                [], self.cmapframe, self.specframe, 
+                False, False, False, 
+                20, 3, list(deflib.cosmicfuncts.keys())[0], 
+                self.defaults,
+                skip_gui_build=True  # Don't build GUI yet - will build after loading data
+            )
+            
+            # Create Exporter
+            self.Exporter = xplib.Exportframe(self.nodeframes['Export'], self.Nanomap)
+        
+        # Load the state
+        success = self.Nanomap.load_state(filename)
+        
+        if success:
+            messagebox.showinfo("Success", f"Data loaded successfully from:\n{filename}")
+            # Update the entry field
+            self.loadhsipath.set(filename)
+        else:
+            messagebox.showerror("Error", "Failed to load data. Check console for details.")
 
 # sort files and multiple HSI processings
 # what is the taks of specfilesorter: 

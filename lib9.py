@@ -168,7 +168,7 @@ class SpectrumData:
 
 # create XY Map that contains the Pixels 
 class XYMap:
-    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults):
+    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults, skip_gui_build=False):
         self.defentries = defentries
         self.remcosmicfunc = cosmicmethod
         self.removecosmics = removecosmics
@@ -192,38 +192,94 @@ class XYMap:
         
         self.fitkeys = matl.fitkeys
         self.countthreshv = self.defentries['colormap_threshold']
-        self.loadfiles()
-        self.PMdict = {}                                                    # Pixel Matrix Dictionary
-        self.disspecs = {}                                                  # displayed spectra Objects contains [spec][wl]{metadata}
+        
+        # Store frames for GUI building
         self.cmapframe = cmapframe                                          # Colormap Frame
         self.specframe = specframe                                          # Spectrum Frame
-        self.DataSpecMin = np.amin(self.WL)                                 # Spectrum Start
-        self.DataSpecMax = np.amax(self.WL[-1])                             # Spectrum End
-        self.DataSpecdL = self.specs[0].data['Delta Wavelength (nm)']       # delta Lambda
-        self.wlstart = self.defentries['lowest_wavelength']                 # lowest wavelength
-        self.wlend = self.defentries['highest_wavelength']                  # highest wavelength
+        
+        # Initialize data structures
+        self.PMdict = {}                                                    # Pixel Matrix Dictionary
+        self.disspecs = {}                                                  # displayed spectra Objects contains [spec][wl]{metadata}
         self.allfpnames = matl.getlistofallFitparameters()
         self.allfpnamesinone = matl.getlistofallFitparaminone()
         self.speckeys = {'Wavelength axis': 'WL', 'Background (BG)': 'BG',
                          'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB'} # WLB is BG corrected (=PL-BG)
-        # self.windowfunctions = ['gaussian', 'lorentz', 'voigt', 'double gaussian', 'double lorentz', 'double voigt', 'linear']  # Window Functions
         self.windowfunctions = list(matl.fitkeys.keys())                    # Window Functions from matl.fitkeys
+        
+        # Load data if files provided
+        if len(fnames) > 0:
+            self.load_data()
+        else:
+            # Initialize empty structures for loading from saved state
+            self.WL = []
+            self.WL_eV = []
+            self.BG = []
+            self.DataSpecMin = 0
+            self.DataSpecMax = 1000
+            self.DataSpecdL = 0.1
+            self.DataPixSt = 0
+            self.wlstart = self.defentries['lowest_wavelength']
+            self.wlend = self.defentries['highest_wavelength']
+            self.SpecDataMatrix = []
+            self.gdx = 0
+            self.gdy = 0
+            self.DataPixDX = 0
+            self.DataPixDY = 0
+            self.aqpixstart = 0
+            self.aqpixend = -1
+            self.mxcoords = []
+            self.mycoords = []
+            self.PixAxX = []
+            self.PixAxY = []
+            self.PMmetadata = {}
+        
+        # Build GUI only if not skipped
+        if not skip_gui_build:
+            self.build_gui()
+    
+    def load_data(self):
+        """Load spectral data from files"""
+        self.loadfiles()
+        
+        # Initialize data ranges
+        if len(self.WL) > 0 and len(self.specs) > 0:
+            self.DataSpecMin = np.amin(self.WL)                             # Spectrum Start
+            self.DataSpecMax = np.amax(self.WL[-1])                         # Spectrum End
+            self.DataSpecdL = self.specs[0].data['Delta Wavelength (nm)']   # delta Lambda
+        else:
+            self.DataSpecMin = 0
+            self.DataSpecMax = 1000
+            self.DataSpecdL = 0.1
+        
+        self.wlstart = self.defentries['lowest_wavelength']                 # lowest wavelength
+        self.wlend = self.defentries['highest_wavelength']                  # highest wavelength
+        
         self.autogenmatrix()                                                # generate emty grid and fill Data obj into Matrix
-        self.DataPixSt = len(self.specs[0].WL)                              # Number of WL Pixels                   
-        self.DataPixDX = self.gdx                                           # Plot Pixel dx
-        self.DataPixDY = self.gdy                                           # Plot Pixel dy
+        
+        # Initialize pixel data
+        if len(self.specs) > 0:
+            self.DataPixSt = len(self.specs[0].WL)                          # Number of WL Pixels
+        else:
+            self.DataPixSt = 0
+        
+        self.DataPixDX = self.gdx if hasattr(self, 'gdx') else 0           # Plot Pixel dx
+        self.DataPixDY = self.gdy if hasattr(self, 'gdy') else 0           # Plot Pixel dy
         self.aqpixstart = 0                                                 # evaluate window start dL
         self.aqpixend = -1                                                  # evaluate window end dL
+        
+        # Set metadata if we have data
+        if len(self.PMdict) > 0:
+            self.PMmetadata['HSI0'] = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
+    
+    def build_gui(self):
+        """Build the GUI elements - separated from data loading"""
         self.SpecButtons = self.build_button_frame(self.specframe)          # build Spec GUI
         self.buildMinMaxSpec(self.cmapframe)                                # build CMAP grid GUI
-        #if self.defentries['enable_buttonmatrix'] == True:
         self.build_PixMatrix_frame(self.cmapframe)                          # build Pixel Matrix GUI
         self.buildselectboxes(self.cmapframe, list(self.speckeys.keys()))
-        # add a frame for the plot options
         self.build_plot_optionsframe(self.cmapframe)
-
+        
         self.updatewl()
-        self.PMmetadata['HSI0'] = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
         self.UpdateHSIselect()
     
     def build_plot_optionsframe(self, parframe):
@@ -834,6 +890,14 @@ class XYMap:
         parframe.grid(row=0, column=0, sticky=tk.NW)
 
         # create input GUI, ButtonMatrix is created in buildButtonMatrix in seperate frame
+        # Handle case where PMdict is empty (loading from saved state)
+        if len(self.PMdict) == 0:
+            # Create placeholder frame - will be populated after load_state()
+            plotframe = tk.Frame(parframe, border=5, relief="raised")
+            plotframe.grid(row=0, column=0, sticky=tk.NW)
+            tk.Label(plotframe, text='No data loaded yet').pack(side=tk.TOP, anchor=tk.W)
+            return parframe
+        
         firstPM = list(self.PMdict.keys())[0]
         n = len(firstPM)
         m = len(firstPM[0])
@@ -1749,12 +1813,20 @@ class XYMap:
         i = 0
         self.WL = []
         self.BG = []
+        
+        # Check if there are any files to load
+        if len(self.fnames) == 0:
+            print("No files to load. Skipping loadfiles() - will be populated by load_state().")
+            self.WL_eV = []
+            return
+        
         while gotWL == False or gotBG == False:
             try:
                 with open(self.fnames[i], 'r') as file:
                     lines = file.readlines()
             except Exception as e:
                 print('Error While trying to read WL axis. No WL found in {} Files. {}'.format(i, str(e)))
+                break
             # Process lines to store variables
             startreaddata = False 
             for line in lines:
@@ -1827,7 +1899,14 @@ class XYMap:
         self.mycoords = []
         self.PMmetadata = {}
         if len(self.specs) == 0:
-            print("Error", 'No valid Data found. Check Data Files.')
+            print("No spectra loaded - initializing empty structures (will be populated by load_state)")
+            # Initialize empty structures for loading from saved state
+            self.PixAxX = []
+            self.PixAxY = []
+            self.SpecDataMatrix = []
+            self.gdx = 0
+            self.gdy = 0
+            return
         elif len(self.specs) == 1:
             self.mxcoords.append(self.specs[0].data['x-position'])
             self.mycoords.append(self.specs[0].data['y-position'])
@@ -1860,10 +1939,11 @@ class XYMap:
                     pass
     
     def UpdateHSIselect(self):
-        self.hsiselect['values'] = list(self.PMdict.keys())
-        self.hsiselect.current(0)
-        # select the last HSI
-        self.hsiselect.set(list(self.PMdict.keys())[-1])
+        if len(self.PMdict) > 0:
+            self.hsiselect['values'] = list(self.PMdict.keys())
+            self.hsiselect.current(0)
+            # select the last HSI
+            self.hsiselect.set(list(self.PMdict.keys())[-1])
 
     def multiroitopixmatrix(self):
         fig, ax = plt.subplots()
@@ -2113,6 +2193,208 @@ class XYMap:
             self.on_close()
         except:
             pass
+    
+    def save_state(self, filename):
+        """
+        Save the complete state of the XYMap instance to a file.
+        This includes all data, processing parameters, and results.
+        """
+        # Create a dictionary with all important state
+        state = {
+            # Core data - WL and WL_eV arrays (shared references)
+            'WL': self.WL,
+            'WL_eV': self.WL_eV if hasattr(self, 'WL_eV') else None,
+            'BG': self.BG if hasattr(self, 'BG') else [],
+            'fnames': self.fnames,
+            
+            # Spectral data objects
+            'specs': self.specs,
+            
+            # Matrix data
+            'SpecDataMatrix': self.SpecDataMatrix,
+            
+            # PMdict - contains all HSI images (PixMatrix objects with fit results)
+            'PMdict': self.PMdict,
+            'PMmetadata': self.PMmetadata if hasattr(self, 'PMmetadata') else {},
+            
+            # ROI data - masks and selections
+            'roilist': self.roihandler.roilist if hasattr(self, 'roihandler') else {},
+            
+            # Processing parameters
+            'wlstart': self.wlstart,
+            'wlend': self.wlend,
+            'countthreshv': self.countthreshv,
+            'aqpixstart': self.aqpixstart,
+            'aqpixend': self.aqpixend,
+            
+            # Grid parameters
+            'mxcoords': self.mxcoords if hasattr(self, 'mxcoords') else [],
+            'mycoords': self.mycoords if hasattr(self, 'mycoords') else [],
+            'PixAxX': self.PixAxX if hasattr(self, 'PixAxX') else [],
+            'PixAxY': self.PixAxY if hasattr(self, 'PixAxY') else [],
+            'gdx': self.gdx if hasattr(self, 'gdx') else 0,
+            'gdy': self.gdy if hasattr(self, 'gdy') else 0,
+            
+            # Data ranges
+            'DataSpecMin': self.DataSpecMin,
+            'DataSpecMax': self.DataSpecMax,
+            'DataSpecdL': self.DataSpecdL,
+            'DataPixSt': self.DataPixSt,
+            'DataPixDX': self.DataPixDX if hasattr(self, 'DataPixDX') else 0,
+            'DataPixDY': self.DataPixDY if hasattr(self, 'DataPixDY') else 0,
+            
+            # Configuration
+            'loadeachbg': self.loadeachbg,
+            'linearbg': self.linearbg,
+            'removecosmics': self.removecosmics,
+            'cosmicthreshold': self.cosmicthreshold,
+            'cosmicpixels': self.cosmicpixels,
+            'remcosmicfunc': self.remcosmicfunc,
+            'fontsize': self.fontsize,
+            
+            # Settings
+            'colormap': self.colormap.get(),
+            'WL_selection': self.WL_selection.get(),
+            'HSI_fit_useROI': self.HSI_fit_useROI.get(),
+            'HSI_from_fitparam_useROI': self.HSI_from_fitparam_useROI.get(),
+            
+            # Additional attributes
+            'defentries': self.defentries,
+        }
+        
+        # Save to file with error handling
+        try:
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(filename), exist_ok=True) if os.path.dirname(filename) else None
+            
+            with open(filename, 'wb') as f:
+                pickle.dump(state, f, protocol=pickle.HIGHEST_PROTOCOL)
+            print(f"Successfully saved XYMap state to: {filename}")
+            print(f"  - Saved {len(self.specs)} spectra")
+            print(f"  - Saved {len(self.PMdict)} HSI images")
+            print(f"  - Saved {len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0} ROI masks")
+            return True
+        except Exception as e:
+            print(f"Error saving XYMap state: {e}")
+            traceback.print_exc()
+            return False
+    
+    def load_state(self, filename):
+        """
+        Load a previously saved XYMap state from a file.
+        This restores all data, processing parameters, and results.
+        """
+        try:
+            with open(filename, 'rb') as f:
+                state = pickle.load(f)
+            
+            # Restore WL arrays FIRST (these are shared references)
+            self.WL = state['WL']
+            self.WL_eV = state.get('WL_eV', None)
+            self.BG = state.get('BG', [])
+            self.fnames = state['fnames']
+            
+            # Restore spectral data objects
+            # Important: WL is already set above, so specs will use the restored WL
+            self.specs = state['specs']
+            
+            # Ensure all specs have the correct WL reference
+            # This fixes the issue where WL was a pointer and needs to be restored
+            for spec in self.specs:
+                if spec is not None:
+                    spec.WL = self.WL  # Set the shared WL reference
+                    if self.WL_eV is not None:
+                        spec.WL_eV = self.WL_eV
+            
+            # Restore matrix data
+            self.SpecDataMatrix = state['SpecDataMatrix']
+            
+            # Ensure all SpectrumData objects in matrix have correct WL reference
+            for i in range(len(self.SpecDataMatrix)):
+                for j in range(len(self.SpecDataMatrix[i])):
+                    if isinstance(self.SpecDataMatrix[i][j], SpectrumData):
+                        self.SpecDataMatrix[i][j].WL = self.WL
+                        if self.WL_eV is not None:
+                            self.SpecDataMatrix[i][j].WL_eV = self.WL_eV
+            
+            # Restore PMdict - contains all HSI images with fit results
+            self.PMdict = state['PMdict']
+            self.PMmetadata = state.get('PMmetadata', {})
+            
+            # Restore ROI data
+            if hasattr(self, 'roihandler'):
+                self.roihandler.roilist = state.get('roilist', {})
+            
+            # Restore processing parameters
+            self.wlstart = state['wlstart']
+            self.wlend = state['wlend']
+            self.countthreshv = state['countthreshv']
+            self.aqpixstart = state['aqpixstart']
+            self.aqpixend = state['aqpixend']
+            
+            # Restore grid parameters
+            self.mxcoords = state.get('mxcoords', [])
+            self.mycoords = state.get('mycoords', [])
+            self.PixAxX = state.get('PixAxX', [])
+            self.PixAxY = state.get('PixAxY', [])
+            self.gdx = state.get('gdx', 0)
+            self.gdy = state.get('gdy', 0)
+            
+            # Restore data ranges
+            self.DataSpecMin = state['DataSpecMin']
+            self.DataSpecMax = state['DataSpecMax']
+            self.DataSpecdL = state['DataSpecdL']
+            self.DataPixSt = state['DataPixSt']
+            self.DataPixDX = state.get('DataPixDX', self.gdx)
+            self.DataPixDY = state.get('DataPixDY', self.gdy)
+            
+            # Restore configuration
+            self.loadeachbg = state['loadeachbg']
+            self.linearbg = state['linearbg']
+            self.removecosmics = state['removecosmics']
+            self.cosmicthreshold = state['cosmicthreshold']
+            self.cosmicpixels = state['cosmicpixels']
+            self.remcosmicfunc = state['remcosmicfunc']
+            self.fontsize = state['fontsize']
+            
+            # Restore additional attributes
+            if 'defentries' in state:
+                self.defentries = state['defentries']
+            
+            # Restore settings (tk variables)
+            self.colormap.set(state.get('colormap', 'viridis'))
+            self.WL_selection.set(state.get('WL_selection', self.WL_values[0]))
+            self.HSI_fit_useROI.set(state.get('HSI_fit_useROI', False))
+            self.HSI_from_fitparam_useROI.set(state.get('HSI_from_fitparam_useROI', False))
+            
+            # Update GUI elements
+            self.UpdateHSIselect()
+            self.updateproc_spec_max()
+            
+            # Update threshold display
+            if hasattr(self, 'countthresh'):
+                self.countthresh.delete(0, tk.END)
+                self.countthresh.insert(0, str(self.countthreshv))
+            
+            # Update font size display
+            if hasattr(self, 'CMFont'):
+                self.CMFont.delete(0, tk.END)
+                self.CMFont.insert(0, str(self.fontsize))
+            
+            # Rebuild GUI with loaded data
+            self.build_gui()
+            
+            print(f"Successfully loaded XYMap state from: {filename}")
+            print(f"  - Loaded {len(self.specs)} spectra")
+            print(f"  - Loaded {len(self.PMdict)} HSI images")
+            print(f"  - Loaded {len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0} ROI masks")
+            print(f"  - WL axis: {len(self.WL)} points from {self.DataSpecMin:.2f} to {self.DataSpecMax:.2f} nm")
+            return True
+            
+        except Exception as e:
+            print(f"Error loading XYMap state: {e}")
+            traceback.print_exc()
+            return False
 		
         
 class Roihandler():
