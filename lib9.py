@@ -890,20 +890,29 @@ class XYMap:
         parframe.grid(row=0, column=0, sticky=tk.NW)
 
         # create input GUI, ButtonMatrix is created in buildButtonMatrix in seperate frame
-        # Handle case where PMdict is empty (loading from saved state)
-        if len(self.PMdict) == 0:
-            # Create placeholder frame - will be populated after load_state()
-            plotframe = tk.Frame(parframe, border=5, relief="raised")
-            plotframe.grid(row=0, column=0, sticky=tk.NW)
-            tk.Label(plotframe, text='No data loaded yet').pack(side=tk.TOP, anchor=tk.W)
-            return parframe
+        # Build full GUI even if no data is loaded yet
         
-        firstPM = list(self.PMdict.keys())[0]
-        n = len(firstPM)
-        m = len(firstPM[0])
+        # Determine if we have data loaded
+        has_data = len(self.PMdict) > 0
+        
+        # Get dimensions for button matrix if data exists
+        if has_data:
+            firstPM = list(self.PMdict.keys())[0]
+            n = len(firstPM)
+            m = len(firstPM[0])
+        else:
+            n = 0
+            m = 0
+        
         plotframe = tk.Frame(parframe, border=5, relief="raised")
         plotframe.grid(row=0, column=0, sticky=tk.NW)
-        tk.Label(plotframe, text='Pixel Loaded: {} x {}'.format(len(self.SpecDataMatrix[0]), len(self.SpecDataMatrix))).pack(side=tk.TOP, anchor=tk.W)
+        
+        # Show appropriate status message
+        if has_data:
+            self.loadinfolabel = tk.Label(plotframe, text='Pixel Loaded: {} x {}'.format(len(self.SpecDataMatrix[0]), len(self.SpecDataMatrix))).pack(side=tk.TOP, anchor=tk.W)
+        else:
+            self.loadinfolabel = tk.Label(plotframe, text='No data loaded yet \n - Load HSI data to begin', ).pack(side=tk.TOP, anchor=tk.W)
+        
         tk.Label(plotframe, text='selected Pixel: ').pack(side=tk.TOP, anchor=tk.W)
         xyframe = tk.Frame(plotframe)
         xyframe.pack(side=tk.TOP, anchor=tk.W)
@@ -936,8 +945,11 @@ class XYMap:
 
         b1 = tk.Button(plotframe, text="Plot Spectrum", command=self.PlotPixelSpectrum)
         b1.pack(side=tk.TOP, anchor=tk.W)
+        # Disable button if no data
+        if not has_data:
+            b1.config(state='disabled')
 
-        if self.defentries['enable_buttonmatrix'] == True:
+        if self.defentries['enable_buttonmatrix'] == True and has_data:
             b2 = tk.Button(parframe, text="Create Button Matrix", command= lambda: self.buildButtonMatrix(parframe, n, m)) # do not use the buttonmatrix !!!
             b2.pack(side=tk.BOTTOM, anchor=tk.W)
 
@@ -952,9 +964,15 @@ class XYMap:
         self.selectwindowbox.pack(side=tk.TOP, anchor=tk.W)
         b3 = tk.Button(fitframe, text="Fit Window to Spectrum", command=lambda: self.fitwindowtospec('fitmaxX', newfit=True))
         b3.pack(side=tk.TOP, anchor=tk.W)
+        if not has_data:
+            b3.config(state='disabled')
+            
         self.sepfitfunct = tk.BooleanVar()
         b4 = tk.Button(fitframe, text="plot existing fit and spectrum", command=lambda: self.runPlotFitSpectrum())
         b4.pack(side=tk.TOP, anchor=tk.W)
+        if not has_data:
+            b4.config(state='disabled')
+            
         self.sepfitfunct.set(False)
         self.sepfitfunctsbut = tk.Checkbutton(fitframe, text="Seperate Fit Functions", variable=self.sepfitfunct)
         self.sepfitfunctsbut.pack(side=tk.TOP, anchor=tk.W)
@@ -964,10 +982,13 @@ class XYMap:
         self.selectfitparambox = ttk.Combobox(fitframe, values=self.allfpnamesinone, width=27)
         self.selectfitparambox.pack(side=tk.TOP, anchor=tk.W)
         self.selectfitparambox.set(self.allfpnamesinone[0]) # set default value
-        b3 = tk.Button(fitframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam())
-        b3.pack(side=tk.TOP, anchor=tk.W)
+        b5 = tk.Button(fitframe, text="Plot HSI from Fit Parameter", command= lambda: self.plotHSIfromfitparam())
+        b5.pack(side=tk.TOP, anchor=tk.W)
+        if not has_data:
+            b5.config(state='disabled')
+            
         # add a bool var to check and uncheck HSI_from_fitparam_useROI
-        b4 = tk.Checkbutton(fitframe, text="Use ROI for parameter plot", variable=self.HSI_from_fitparam_useROI).pack(side=tk.TOP, anchor=tk.W)
+        b6 = tk.Checkbutton(fitframe, text="Use ROI for parameter plot", variable=self.HSI_from_fitparam_useROI).pack(side=tk.TOP, anchor=tk.W)
 
         self.build_roi_frame(placeframe)
         self.build_plot_options_frame(placeframe)

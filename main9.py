@@ -27,7 +27,24 @@ class FileProcessorApp:
         self.removecosmicsBool = tk.IntVar()
         self.createmenue()
         self.windownotebook(deflib.Notebooks)
+        # init XYMap GUI components
+        
         self.createbuttons(self.nodeframes['Load Data'])
+        
+        # Create frames for Nanomap object
+        self.cmapframe = tk.Frame(self.nodeframes['Hyperspectra'], width=100, height=50, borderwidth=5, relief="raised")
+        self.cmapframe.pack(fill=tk.BOTH)
+        self.specframe = tk.Frame(self.nodeframes['Hyperspectra'], borderwidth=5, relief="sunken")
+        self.specframe.pack(fill=tk.BOTH, expand=True)
+        
+        # Create Nanomap object with GUI (no data loaded yet)
+        self.Nanomap = lib.XYMap(
+            [], self.cmapframe, self.specframe, 
+            False, False, False, 
+            20, 3, list(deflib.cosmicfuncts.keys())[0], 
+            self.defaults
+        )
+        #self.Nanomap.build_gui()  # Build GUI components now
 
     def createmenue(self):
         # Create the menu bar
