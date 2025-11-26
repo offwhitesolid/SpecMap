@@ -9,7 +9,7 @@ import lib9 as lib # type: ignore
 import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib
-import export1 as xplib
+import export2 as xplib
 import newtonspeclib1 as newtonlib
 import threading as thr
 import matplotlib.pyplot as plt
@@ -440,7 +440,7 @@ class FileProcessorApp:
                 )
             if self.powercorrectionBool.get() == 1:
                 self.Nanomap.powercorrection()
-            self.Exporter = xplib.Exportframe(self.nodeframes['Export'], self.Nanomap)
+            self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
                 
             print("Success, Found and loaded {} files.".format(len(files_processed)))
         else:
@@ -550,7 +550,7 @@ class FileProcessorApp:
             )
             
             # Create Exporter
-            self.Exporter = xplib.Exportframe(self.nodeframes['Export'], self.Nanomap)
+            self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
         
         # Load the state
         success = self.Nanomap.load_state(filename)
