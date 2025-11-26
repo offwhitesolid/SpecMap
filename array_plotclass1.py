@@ -37,7 +37,7 @@ class PlotHSI:
             get_hsi_func: Optional function to load HSI data (signature: func(filepath) -> (metadata, data))
         """
         self.root = root
-        self.root.title("HSI Plotter")
+        #self.root.title("HSI Plotter")
         self.get_hsi_func = get_hsi_func
         
         # Data storage

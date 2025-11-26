@@ -31,6 +31,8 @@ class FileProcessorApp:
         
         self.createbuttons(self.nodeframes['Load Data'])
         
+
+        
         # Create frames for Nanomap object
         self.cmapframe = tk.Frame(self.nodeframes['Hyperspectra'], width=100, height=50, borderwidth=5, relief="raised")
         self.cmapframe.pack(fill=tk.BOTH)
@@ -45,6 +47,9 @@ class FileProcessorApp:
             self.defaults
         )
         #self.Nanomap.build_gui()  # Build GUI components now
+        
+        # construct Exportframe to create a fancy Image from the HSI
+        self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
 
     def createmenue(self):
         # Create the menu bar
@@ -442,7 +447,6 @@ class FileProcessorApp:
                 self.Nanomap.powercorrection()
             self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
                 
-            print("Success, Found and loaded {} files.".format(len(files_processed)))
         else:
             print("No files found with the specified name.")
 
