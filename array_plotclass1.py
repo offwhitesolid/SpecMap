@@ -1399,6 +1399,9 @@ def get_HSI(file_path):
 
     return metadata, data_arr
 
+def hsi_asarray(array2d):
+    """Convert a 2D array to a NumPy array of floats."""
+    return np.array(array2d, dtype=float)
 
 def main():
     """Main function to run the PlotHSI GUI."""
