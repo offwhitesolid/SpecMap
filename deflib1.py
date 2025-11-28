@@ -1154,6 +1154,8 @@ def fig_on_hoverevent(event, ax, fig, Z, x_range, y_range):
                 ax.set_title(f"x: {event.xdata:.2f}, y: {event.ydata:.2f}, z: {z_value:.2f}")
                 fig.canvas.draw_idle()
 
+# todo: add a method that uses linear interpolation first and afterwards applies Nearest Neighbor average for remaining cosmics
+
 cosmicfuncts = {
                 'Linear Interpolation': remove_cosmics_linear, 
                 'Median Filter': remove_cosmics_median_filter, 
