@@ -817,6 +817,87 @@ def remove_cosmics_nearest_neighbor(data, thresh, width):
     
     return interpolated_data
 
+# Combined method: Linear interpolation followed by nearest neighbor averaging
+def remove_cosmics_linear_then_neighbor(data, thresh, width):
+    """
+    Two-stage cosmic ray removal:
+    1. First pass: Linear interpolation for cosmics detected by gradient changes
+    2. Second pass: Nearest neighbor averaging for any remaining outliers
+    
+    Parameters:
+    -----------
+    data : array-like
+        The spectrum data to clean
+    thresh : float
+        Threshold for cosmic detection
+    width : int
+        Width parameter for cosmic region detection
+        
+    Returns:
+    --------
+    corrected_data : array
+        Spectrum with cosmics removed
+    """
+    data = np.array(data)
+    
+    # Stage 1: Linear interpolation for gradient-based cosmic detection
+    # Calculate the finite differences (first derivative)
+    diff = np.diff(data)
+    
+    # Identify where the absolute value of the difference is greater than the threshold
+    cosmic_starts = np.where(np.abs(diff) > thresh)[0]
+    
+    # Copy the data to avoid modifying the original array
+    corrected_data = np.copy(data)
+    
+    # Track which indices were corrected in stage 1
+    corrected_indices = set()
+    
+    for start in cosmic_starts:
+        # Define the range to look for the end of the cosmic
+        end_range = min(start + width, len(data) - 1)
+        
+        # Identify the end of the cosmic within the given width
+        for end in range(start + 1, end_range + 1):
+            if np.abs(data[end] - data[start]) < thresh:
+                # Perform linear interpolation between start and end
+                corrected_data[start:end+1] = np.linspace(data[start], data[end], end - start + 1)
+                corrected_indices.update(range(start, end + 1))
+                break
+    
+    # Stage 2: Nearest neighbor averaging for remaining outliers
+    # Apply median filter to get smoothed reference
+    from scipy.ndimage import median_filter as medfilt
+    
+    if len(corrected_data) >= width:
+        median_filtered = medfilt(corrected_data, size=width)
+        
+        # Calculate deviation from median
+        deviation = np.abs(corrected_data - median_filtered)
+        
+        # Use MAD (Median Absolute Deviation) for robust threshold
+        mad = np.median(deviation)
+        
+        # Detect remaining cosmics (excluding already corrected indices)
+        if mad > 0:
+            remaining_cosmic_mask = deviation > (thresh * 0.5)  # Use lower threshold for second pass
+            
+            # Only correct indices that weren't already fixed in stage 1
+            for idx in np.where(remaining_cosmic_mask)[0]:
+                if idx not in corrected_indices:
+                    # Use local window average (nearest neighbors)
+                    left = max(0, idx - width // 2)
+                    right = min(len(corrected_data), idx + width // 2 + 1)
+                    
+                    # Get neighbors excluding the cosmic point itself
+                    neighbors = np.concatenate([corrected_data[left:idx], corrected_data[idx+1:right]])
+                    
+                    if len(neighbors) > 0:
+                        # Use median of neighbors for robust estimation
+                        corrected_data[idx] = np.median(neighbors)
+    
+    return corrected_data.tolist() if isinstance(data, list) else corrected_data
+
 # get grid dx and dy
 def most_freq_element(arr):
     # Use a dictionary to count occurrences of each element
@@ -1161,7 +1242,8 @@ cosmicfuncts = {
                 'Median Filter': remove_cosmics_median_filter, 
                 #'Rolling Mean': remove_cosmics_rolling_mean, 
                 #'Spline Interpolation': remove_cosmics_spline,
-                'Nearest Neighbor average': remove_cosmics_nearest_neighbor, 
+                'Nearest Neighbor average': remove_cosmics_nearest_neighbor,
+                'Linear + Neighbor (Combined)': remove_cosmics_linear_then_neighbor,
                 'Matrix Image correction': matrix_image_correction, 
                 'Cosmic Correlation': cosmic_correlation,
                 'Adaptive Threshold': adaptive_threshold,
