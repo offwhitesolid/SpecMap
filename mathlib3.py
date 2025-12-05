@@ -29,8 +29,21 @@ def voigtwindapprox(x, anp, cen, sig, gam):
     # returns the pseudo-voigt provile as a sum of gaussian and lorentzian profiles
     return anp * (1 - gam / (2 * sig) * np.sqrt(2 * np.pi) * np.exp(-2 * np.log(2) * ((x - cen) / sig)**2) + (1 - gam) / np.pi / sig / (1 + ((x - cen) / sig)**2))
 
-def voigtwind(x, amp, cen, wid, gamma):
-    return amp * np.real(wofz(((x - cen) + 1j*gamma) / wid / np.sqrt(2))) / wid / np.sqrt(2*np.pi)
+# def voigtwind(x, amp, cen, wid, gamma): old version
+#    return amp * np.real(wofz(((x - cen) + 1j*gamma) / wid / np.sqrt(2))) / wid / np.sqrt(2*np.pi)
+
+def voigtwind_complex(x, amp, cen, wid, gamma):
+    sigma = wid / np.sqrt(2 * np.log(2))  # Convert FWHM to standard deviation
+    z = ((x - cen) + 1j * gamma) / (sigma * np.sqrt(2))
+    return amp * np.real(wofz(z)) / (sigma * np.sqrt(2 * np.pi))
+
+# pseudo-voigt function for faster fitting
+def voigtwind(x, amp, cen, fwhm, eta):
+    sigma = fwhm / 2.354820045
+    gamma = fwhm / 2.0
+    G = np.exp(-0.5*((x-cen)/sigma)**2)
+    L = gamma**2 / ((x-cen)**2 + gamma**2)
+    return amp * (eta*L + (1-eta)*G)
 
 def linearwind(x, a, b):
     return np.multiply(a, x) + b
