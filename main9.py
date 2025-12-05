@@ -31,12 +31,43 @@ class FileProcessorApp:
         
         self.createbuttons(self.nodeframes['Load Data'])
         
-
+        # Add scrollbars to Hyperspectra notebook tab
+        self.hyper_canvas = tk.Canvas(self.nodeframes['Hyperspectra'])
+        self.hyper_canvas.grid(row=0, column=0, sticky='nsew')
         
-        # Create frames for Nanomap object
-        self.cmapframe = tk.Frame(self.nodeframes['Hyperspectra'], width=100, height=50, borderwidth=5, relief="raised")
+        # Configure grid weights for Hyperspectra frame
+        self.nodeframes['Hyperspectra'].grid_rowconfigure(0, weight=1)
+        self.nodeframes['Hyperspectra'].grid_columnconfigure(0, weight=1)
+        
+        # Add vertical scrollbar
+        self.hyper_vsb = tk.Scrollbar(self.nodeframes['Hyperspectra'], orient="vertical", command=self.hyper_canvas.yview)
+        self.hyper_vsb.grid(row=0, column=1, sticky='ns')
+        
+        # Add horizontal scrollbar
+        self.hyper_hsb = tk.Scrollbar(self.nodeframes['Hyperspectra'], orient="horizontal", command=self.hyper_canvas.xview)
+        self.hyper_hsb.grid(row=1, column=0, sticky='ew')
+        
+        # Configure canvas scrolling
+        self.hyper_canvas.configure(yscrollcommand=self.hyper_vsb.set, xscrollcommand=self.hyper_hsb.set)
+        
+        # Create content frame inside canvas for Hyperspectra
+        self.hyper_content_frame = tk.Frame(self.hyper_canvas)
+        self.hyper_canvas_window = self.hyper_canvas.create_window((0, 0), window=self.hyper_content_frame, anchor='nw')
+        
+        # Bind configure event to update scroll region
+        self.hyper_content_frame.bind('<Configure>', lambda e: self.hyper_canvas.configure(scrollregion=self.hyper_canvas.bbox('all')))
+        
+        # Bind canvas resize to adjust frame width (minimum 1200 pixels for Hyperspectra)
+        self.hyper_canvas.bind('<Configure>', self._on_hyper_canvas_configure)
+        
+        # Enable mousewheel scrolling
+        self.hyper_canvas.bind('<Enter>', self._bind_hyper_mousewheel)
+        self.hyper_canvas.bind('<Leave>', self._unbind_hyper_mousewheel)
+        
+        # Create frames for Nanomap object inside hyper_content_frame
+        self.cmapframe = tk.Frame(self.hyper_content_frame, width=100, height=50, borderwidth=5, relief="raised")
         self.cmapframe.pack(fill=tk.BOTH)
-        self.specframe = tk.Frame(self.nodeframes['Hyperspectra'], borderwidth=5, relief="sunken")
+        self.specframe = tk.Frame(self.hyper_content_frame, borderwidth=5, relief="sunken")
         self.specframe.pack(fill=tk.BOTH, expand=True)
         
         # Create Nanomap object with GUI (no data loaded yet)
@@ -331,9 +362,15 @@ class FileProcessorApp:
     
     def _on_canvas_configure(self, event):
         """Update canvas window width when canvas is resized"""
-        # Ensure minimum width of 800 pixels for proper horizontal scrolling
-        canvas_width = max(event.width, 800)
+        # Ensure minimum width of 500 pixels for proper horizontal scrolling
+        canvas_width = max(event.width, 500)
         self.load_canvas.itemconfig(self.canvas_window, width=canvas_width)
+    
+    def _on_hyper_canvas_configure(self, event):
+        """Update canvas window width for Hyperspectra canvas when resized"""
+        # Ensure minimum width of 1200 pixels for Hyperspectra frame
+        canvas_width = max(event.width, 1200)
+        self.hyper_canvas.itemconfig(self.hyper_canvas_window, width=canvas_width)
     
     def _on_mousewheel(self, event):
         """Handle mousewheel scrolling"""
@@ -356,6 +393,28 @@ class FileProcessorApp:
         self.load_canvas.unbind_all("<MouseWheel>")
         self.load_canvas.unbind_all("<Button-4>")
         self.load_canvas.unbind_all("<Button-5>")
+    
+    def _on_hyper_mousewheel(self, event):
+        """Handle mousewheel scrolling for Hyperspectra canvas"""
+        if event.delta:
+            self.hyper_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        else:
+            if event.num == 4:
+                self.hyper_canvas.yview_scroll(-1, "units")
+            elif event.num == 5:
+                self.hyper_canvas.yview_scroll(1, "units")
+    
+    def _bind_hyper_mousewheel(self, event):
+        """Bind mousewheel events when mouse enters Hyperspectra canvas"""
+        self.hyper_canvas.bind_all("<MouseWheel>", self._on_hyper_mousewheel)
+        self.hyper_canvas.bind_all("<Button-4>", self._on_hyper_mousewheel)
+        self.hyper_canvas.bind_all("<Button-5>", self._on_hyper_mousewheel)
+    
+    def _unbind_hyper_mousewheel(self, event):
+        """Unbind mousewheel events when mouse leaves Hyperspectra canvas"""
+        self.hyper_canvas.unbind_all("<MouseWheel>")
+        self.hyper_canvas.unbind_all("<Button-4>")
+        self.hyper_canvas.unbind_all("<Button-5>")
     
     def browse_save_path(self):
         """Open file dialog to select save path"""
@@ -481,9 +540,10 @@ class FileProcessorApp:
                 del self.Nanomap
             except:
                 pass
-            self.cmapframe = tk.Frame(self.nodeframes['Hyperspectra'], width=100, height=50, borderwidth=5, relief="raised")
+            # Recreate frames inside hyper_content_frame
+            self.cmapframe = tk.Frame(self.hyper_content_frame, width=100, height=50, borderwidth=5, relief="raised")
             self.cmapframe.pack(fill=tk.BOTH)
-            self.specframe = tk.Frame(self.nodeframes['Hyperspectra'], borderwidth=5, relief="sunken")
+            self.specframe = tk.Frame(self.hyper_content_frame, borderwidth=5, relief="sunken")
             self.specframe.pack(fill=tk.BOTH, expand=True)
             
             # get the cosmic threshold and width
@@ -597,9 +657,9 @@ class FileProcessorApp:
             print("Creating new XYMap instance to load data into...")
             # Create minimal frames for the XYMap if they don't exist
             try:
-                self.cmapframe = tk.Frame(self.nodeframes['Hyperspectra'], width=100, height=50, borderwidth=5, relief="raised")
+                self.cmapframe = tk.Frame(self.hyper_content_frame, width=100, height=50, borderwidth=5, relief="raised")
                 self.cmapframe.pack(fill=tk.BOTH)
-                self.specframe = tk.Frame(self.nodeframes['Hyperspectra'], borderwidth=5, relief="sunken")
+                self.specframe = tk.Frame(self.hyper_content_frame, borderwidth=5, relief="sunken")
                 self.specframe.pack(fill=tk.BOTH, expand=True)
             except:
                 pass

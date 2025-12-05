@@ -5,3 +5,4 @@
 .venv/
 oldfiles/
 debugger_output/
+__pycache__/*
