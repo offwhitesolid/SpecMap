@@ -70,9 +70,42 @@ class FileProcessorApp:
             self.nodeframes[notebookentries[i]] = frame
 
     def createbuttons(self, Notebook):
-        # Specmap Load Frame
-        self.open_frame = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
-        self.open_frame.grid(row=0, column=0)
+        # Create a canvas with scrollbars for the Load Data tab
+        self.load_canvas = tk.Canvas(Notebook)
+        self.load_canvas.grid(row=0, column=0, sticky='nsew')
+        
+        # Configure grid weights to allow expansion
+        Notebook.grid_rowconfigure(0, weight=1)
+        Notebook.grid_columnconfigure(0, weight=1)
+        
+        # Add vertical scrollbar
+        self.load_vsb = tk.Scrollbar(Notebook, orient="vertical", command=self.load_canvas.yview)
+        self.load_vsb.grid(row=0, column=1, sticky='ns')
+        
+        # Add horizontal scrollbar
+        self.load_hsb = tk.Scrollbar(Notebook, orient="horizontal", command=self.load_canvas.xview)
+        self.load_hsb.grid(row=1, column=0, sticky='ew')
+        
+        # Configure canvas scrolling
+        self.load_canvas.configure(yscrollcommand=self.load_vsb.set, xscrollcommand=self.load_hsb.set)
+        
+        # Create a frame inside the canvas to hold all content
+        self.load_content_frame = tk.Frame(self.load_canvas)
+        self.canvas_window = self.load_canvas.create_window((0, 0), window=self.load_content_frame, anchor='nw')
+        
+        # Bind configure event to update scroll region
+        self.load_content_frame.bind('<Configure>', lambda e: self.load_canvas.configure(scrollregion=self.load_canvas.bbox('all')))
+        
+        # Bind canvas resize to adjust frame width
+        self.load_canvas.bind('<Configure>', self._on_canvas_configure)
+        
+        # Enable mousewheel scrolling
+        self.load_canvas.bind('<Enter>', self._bind_mousewheel)
+        self.load_canvas.bind('<Leave>', self._unbind_mousewheel)
+        
+        # Specmap Load Frame (now inside load_content_frame)
+        self.open_frame = tk.Frame(self.load_content_frame, width=100, height=100, borderwidth=5, relief="ridge")
+        self.open_frame.grid(row=0, column=0, padx=5, pady=5)
         # Folder selection
         self.SpecMapLoad_label = tk.Label(self.open_frame, text="Select folder with spectra for Hyperspectral processing", width=100)
         self.SpecMapLoad_label.pack()
@@ -170,9 +203,9 @@ class FileProcessorApp:
         self.laserspotsizeentry.grid(row=3, column=2)
         self.laserspotsizeentry.insert(0, defaults['laser_spotsize_nm'])
     
-        # Clara load frame  
-        self.claraloadframe = tk.Frame(Notebook, width=60, height=100, borderwidth=5, relief="ridge")
-        self.claraloadframe.grid(row=1, column=0)
+        # Clara load frame (now inside load_content_frame)
+        self.claraloadframe = tk.Frame(self.load_content_frame, width=60, height=100, borderwidth=5, relief="ridge")
+        self.claraloadframe.grid(row=1, column=0, padx=5, pady=5)
         # Folder selection
         self.clara_label = tk.Label(self.claraloadframe, text="Select folder with spectra for Clara processing", width=100)
         self.clara_label.pack()
@@ -197,9 +230,9 @@ class FileProcessorApp:
         self.cl_folder_button = tk.Button(self.claraloadframe, text="Browse", command= lambda: deflib.select_file(self.cl_file_entrystr))
         self.cl_folder_button.pack(side=tk.RIGHT, anchor='center')
 
-        # frame to save the current hsi object
-        self.saveframe = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
-        self.saveframe.grid(row=2, column=0)
+        # frame to save the current hsi object (now inside load_content_frame)
+        self.saveframe = tk.Frame(self.load_content_frame, width=100, height=100, borderwidth=5, relief="ridge")
+        self.saveframe.grid(row=2, column=0, padx=5, pady=5)
         
         # save the current hsi object
         self.save_label = tk.Label(self.saveframe, text="Save the current Data object")
@@ -240,9 +273,9 @@ class FileProcessorApp:
                                      width=5)
         self.load_button.pack(side=tk.LEFT)
 
-        # frame to load Newton spectrum
-        self.newtonframe = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
-        self.newtonframe.grid(row=3, column=0)
+        # frame to load Newton spectrum (now inside load_content_frame)
+        self.newtonframe = tk.Frame(self.load_content_frame, width=100, height=100, borderwidth=5, relief="ridge")
+        self.newtonframe.grid(row=3, column=0, padx=5, pady=5)
         # Newton spectrum load
         self.newton_label = tk.Label(self.newtonframe, text="Select Newton spectrum file", width=85)
         self.newton_label.grid(row=0, column=1)
@@ -257,9 +290,9 @@ class FileProcessorApp:
         self.newton_folder_button = tk.Button(self.newtonframe, text="Browse", command= lambda: deflib.select_file(self.newton_file_entrystr))
         self.newton_folder_button.grid(row=1, column=3)
 
-        # frame to load TCSPC data
-        self.tcspcframe = tk.Frame(Notebook, width=100, height=100, borderwidth=5, relief="ridge")
-        self.tcspcframe.grid(row=4, column=0)
+        # frame to load TCSPC data (now inside load_content_frame)
+        self.tcspcframe = tk.Frame(self.load_content_frame, width=100, height=100, borderwidth=5, relief="ridge")
+        self.tcspcframe.grid(row=4, column=0, padx=5, pady=5)
         # TCSPC load
         self.tcspc_label = tk.Label(self.tcspcframe, text="Select TCSPC directory", width=86)
         self.tcspc_label.grid(row=0, column=1)
@@ -295,6 +328,34 @@ class FileProcessorApp:
             defaults['hsifilesorter_savedir'], 
             defaults['hsifilesorter_processdir']
             )
+    
+    def _on_canvas_configure(self, event):
+        """Update canvas window width when canvas is resized"""
+        # Ensure minimum width of 800 pixels for proper horizontal scrolling
+        canvas_width = max(event.width, 800)
+        self.load_canvas.itemconfig(self.canvas_window, width=canvas_width)
+    
+    def _on_mousewheel(self, event):
+        """Handle mousewheel scrolling"""
+        if event.delta:
+            self.load_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        else:
+            if event.num == 4:
+                self.load_canvas.yview_scroll(-1, "units")
+            elif event.num == 5:
+                self.load_canvas.yview_scroll(1, "units")
+    
+    def _bind_mousewheel(self, event):
+        """Bind mousewheel events when mouse enters canvas"""
+        self.load_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.load_canvas.bind_all("<Button-4>", self._on_mousewheel)
+        self.load_canvas.bind_all("<Button-5>", self._on_mousewheel)
+    
+    def _unbind_mousewheel(self, event):
+        """Unbind mousewheel events when mouse leaves canvas"""
+        self.load_canvas.unbind_all("<MouseWheel>")
+        self.load_canvas.unbind_all("<Button-4>")
+        self.load_canvas.unbind_all("<Button-5>")
     
     def browse_save_path(self):
         """Open file dialog to select save path"""
