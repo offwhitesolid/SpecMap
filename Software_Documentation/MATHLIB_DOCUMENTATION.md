@@ -35,6 +35,7 @@ These methods use `scipy.optimize.curve_fit` to minimize the least-squares error
 
 #### **Gaussian Fit** (`'gaussian'`)
 Models the peak as a Gaussian distribution.
+
 $$ G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right) $$
 *   **Parameters**:
     *   `Gaussian amplitude` ($A$): Peak height.
@@ -44,6 +45,7 @@ $$ G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right) $$
 
 #### **Lorentzian Fit** (`'lorentz'`)
 Models the peak as a Lorentzian (Cauchy) distribution.
+
 $$ L(x) = \frac{A}{1 + \left(\frac{x - x_0}{w}\right)^2} $$
 *   **Parameters**:
     *   `Lorentzian amplitude` ($A$): Peak height.
@@ -53,6 +55,7 @@ $$ L(x) = \frac{A}{1 + \left(\frac{x - x_0}{w}\right)^2} $$
 
 #### **Voigt Fit** (`'voigt'`)
 Models the peak as a Pseudo-Voigt profile (linear combination of Gaussian and Lorentzian).
+
 $$ V(x) = A \cdot [\eta \cdot L(x) + (1 - \eta) \cdot G(x)] $$
 *   **Parameters**:
     *   `Voigt amplitude` ($A$): Peak height.
@@ -62,6 +65,7 @@ $$ V(x) = A \cdot [\eta \cdot L(x) + (1 - \eta) \cdot G(x)] $$
 
 #### **Linear Fit** (`'linear'`)
 Models the background as a straight line.
+
 $$ y = a \cdot x + b $$
 *   **Parameters**:
     *   `Linear slope` ($a$): Gradient.
@@ -69,6 +73,7 @@ $$ y = a \cdot x + b $$
 
 #### **Double Variants** (`'double gaussian'`, `'double lorentz'`, `'double voigt'`)
 Sum of two independent profiles.
+
 $$ F_{double}(x) = F_1(x) + F_2(x) $$
 *   **Parameters**: Concatenation of parameters for Peak 1 and Peak 2.
 
@@ -81,6 +86,7 @@ These methods calculate metrics directly from the data arrays `X` and `Y` withou
 Analyzes the steepness of the peak flanks.
 1.  **Flank Slopes**: Performs linear regression on the left ($a_L$) and right ($a_R$) flanks (between baseline and 50% peak height).
 2.  **Asymmetry**:
+
     $$ S_{asym} = \frac{|a_R| - a_L}{|a_R| + a_L} $$
 3.  **Curvature**: Fits a quadratic $I(E) = c_0 + c_1(E-E_{max}) + c_2(E-E_{max})^2$ to the peak top (top 10%).
     *   `Curvature` = $c_2$ (Second derivative proxy).
@@ -92,22 +98,28 @@ Uses a Savitzky-Golay filter to compute smooth derivatives.
 3.  **Max Fall Slope**: $\min(d1)$ on the right flank (steepest descent).
 4.  **Inflection Width**: Distance between the energy positions of Max Rise and Max Fall slopes.
 5.  **Slope Asymmetry**:
+
     $$ A_{slope} = \frac{|Slope_{fall}| - Slope_{rise}}{|Slope_{fall}| + Slope_{rise}} $$
 
 #### **Moment Analysis** (`'moments'`)
 Treats the normalized spectrum $P(x) = \frac{I(x)}{\sum I(x)}$ as a probability distribution.
 1.  **Center of Mass** ($\mu$): First Moment.
+
     $$ \mu = \sum x_i \cdot P(x_i) $$
 2.  **Sigma** ($\sigma$): Square root of Second Moment (Variance).
+
     $$ \sigma = \sqrt{\sum (x_i - \mu)^2 \cdot P(x_i)} $$
 3.  **Skewness** ($\gamma$): Third Standardized Moment.
+
     $$ \gamma = \frac{\sum (x_i - \mu)^3 \cdot P(x_i)}{\sigma^3} $$
 4.  **Quantile Width**: Width containing 68% of total intensity.
+
     $$ W_{68} = x_{84\%} - x_{16\%} $$
     Where $x_{p\%}$ is the energy where the cumulative sum reaches $p\%$.
 
 #### **Center of Mass** (`'com'`)
 Calculates the intensity-weighted average position.
+
 $$ \lambda_{COM} = \frac{\sum \lambda_i \cdot I_i}{\sum I_i} $$
 *   **Parameters**: `Center of Mass`, `Integrated Intensity` ($\sum I_i$).
 
@@ -121,6 +133,7 @@ Calculates the steepest slopes using discrete derivatives $s_i = \frac{I_{i+1} -
 Resamples the spectrum to reduce dimensionality.
 1.  **Resampling**: Interpolates the spectrum onto 11 equidistant points across the range.
 2.  **Differencing**: Calculates the intensity change between consecutive bins.
+
     $$ \Delta I_j = I_{bin, j+1} - I_{bin, j} $$
 *   **Parameters**: `Start Intensity` ($I_{bin, 0}$) and 10 `Bin Diff` values.
 
@@ -132,6 +145,7 @@ Extracts periodic signals overlaying a broad background.
 2.  **Isolation**: $O(x) = Y(x) - B(x)$.
 3.  **Peak Finding**: Identifies local maxima and minima in $O(x)$.
 4.  **Phase Evolution**: Calculates instantaneous frequency $f(E)$ from peak spacing.
+
     $$ f(E) \approx \frac{1}{\Delta E_{peaks}} $$
     Fits a linear trend $f(E) = m \cdot E + c$ to quantify "chirp".
 *   **Parameters**: Amplitude, Frequency Estimate, Phase Chirp Rate, etc.
