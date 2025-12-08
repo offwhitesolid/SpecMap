@@ -176,6 +176,13 @@ SpecMap1/
 - `double_*()`: Double-peak fitting functions
 - `linearwind()`: Linear baseline fitting
 
+**Fit-Free Analysis**:
+- **Stiffness**: Flank slope and asymmetry analysis
+- **Derivative**: Savitzky-Golay based slope and inflection analysis
+- **Moments**: Statistical moment analysis (COM, Variance, Skewness)
+- **Decay/Rise**: Discrete derivative analysis for steepest slopes
+- **Binning**: Resampling and difference analysis
+
 **Parameter Estimation**:
 - `estimate_voigt_params()`: Intelligent initial parameter estimation
 - Peak detection and analysis utilities
@@ -333,6 +340,16 @@ For detailed project structure and architecture:
 
 📘 **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)**
 
+### Software Documentation
+For comprehensive developer documentation including program structure, GUI hierarchy, and detailed math library documentation:
+
+📘 **[Software Documentation Summary](Software_Documentation/DOCUMENTATION_SUMMARY.md)**
+
+Key documents include:
+- **[MATHLIB_DOCUMENTATION.md](Software_Documentation/MATHLIB_DOCUMENTATION.md)**: Detailed mathematical formulations for all fit functions and analysis methods.
+- **[PROGRAM_STRUCTURE.md](Software_Documentation/PROGRAM_STRUCTURE.md)**: Complete software tree and module hierarchy.
+- **[GUI_HIERARCHY_AND_LIFECYCLE.md](Software_Documentation/GUI_HIERARCHY_AND_LIFECYCLE.md)**: GUI component structure and lifecycle management.
+
 ## Development and Version Control
 
 The project uses Git for version control:
@@ -347,35 +364,3 @@ For contributors:
 4. Create pull request for review and merge
 
 This documentation provides a complete overview of the SpecMap hyperspectral analysis application, covering all major features and implementation details.
-Launch Visual Studio Code:
-
-Open Visual Studio Code on your computer.
-Open the Cloned Repository:
-
-In Visual Studio Code, go to File > Open Folder....
-Navigate to the directory where you cloned the repository and select it.
-Start Editing:
-
-Now you can start editing the files in the repository.
-Use the Source Control feature in VS Code (accessible via the Git icon on the left sidebar) to see changes, stage them, and commit.
-
-Step 4: Commit and Push Changes
-Stage Changes:
-
-After making changes, go to the Source Control panel in VS Code.
-Stage the changes by clicking the + icon next to the file names.
-Commit Changes:
-
-Add a commit message in the text box and click the checkmark icon to commit.
-Push Changes:
-
-To push your changes to the remote repository, click on the three dots in the Source Control panel, then choose Push.
-That's it! You've successfully cloned a GitHub repository, edited it locally, and pushed changes back to GitHub using Visual Studio Code.
-
-Python: 
-install python 3.12 and the packages
-numpy, pandas, matplotlib, scipy using pip install
-
-Igor: 
-
-See Igor Program folder and the Readme.txt file in the folder

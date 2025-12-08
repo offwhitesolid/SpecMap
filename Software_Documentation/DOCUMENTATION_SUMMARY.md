@@ -13,10 +13,11 @@
 Software_Documentation/
 ├── README.md                              (2,400+ lines)
 ├── PROGRAM_STRUCTURE.md                   (1,100+ lines)
-└── GUI_HIERARCHY_AND_LIFECYCLE.md         (1,300+ lines)
+├── GUI_HIERARCHY_AND_LIFECYCLE.md         (1,300+ lines)
+└── MATHLIB_DOCUMENTATION.md               (100+ lines)
 ```
 
-**Total:** 4,800+ lines of comprehensive documentation with ASCII art diagrams
+**Total:** 4,900+ lines of comprehensive documentation with ASCII art diagrams
 
 ---
 
@@ -247,6 +248,26 @@ All child widgets
 ✅ **Code References:** Line numbers and file paths  
 ✅ **Visual Clarity:** Unicode box drawing, arrows, trees  
 ✅ **Comprehensive Coverage:** All major components documented  
+
+### 4. MATHLIB_DOCUMENTATION.md
+
+**Purpose:** Detailed documentation of the mathematical library and analysis functions.
+
+**Key Sections:**
+- ✅ Core Architecture
+  - `fitkeys` registry structure
+  - Window/Fit/Max function relationships
+
+- ✅ Analysis Methods
+  - Standard Fits (Gaussian, Lorentz, Voigt)
+  - Fit-Free Analysis (Stiffness, Derivative, Moments)
+  - Oscillation Analysis (Phase evolution)
+  - 2D Fitting (Gaussian 2D)
+
+- ✅ Helper Functions
+  - Parameter estimation
+  - FWHM calculation
+  - Numerical maximization
 
 ---
 
