@@ -36,7 +36,7 @@ These methods use `scipy.optimize.curve_fit` to minimize the least-squares error
 #### **Gaussian Fit** (`'gaussian'`)
 Models the peak as a Gaussian distribution.
 
-$ G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right) $
+$G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right)$
 *   **Parameters**:
     *   `Gaussian amplitude` ($A$): Peak height.
     *   `Gaussian center` ($x_0$): Peak position.
