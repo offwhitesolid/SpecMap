@@ -1772,13 +1772,55 @@ def fitdecaytospec(start, end, WL, PLB, maxfev=10000, guess=None):
         # Actually, for "Max Decay Slope", a large negative number is the "Max Decay".
         # Let's return the signed value s_min.
         
-        return E_max, I_max, float(s_min), slope_energy, None
+        # --- Left Flank (Rise) ---
+        # Check if there are points to the left
+        if k_max < 2:
+            s_max = 0.0
+            rise_slope_energy = E_max
+        else:
+            x_left = x[:k_max+1] # Include peak for continuity
+            y_left = y[:k_max+1]
+            
+            dy_left = np.diff(y_left)
+            dx_left = np.diff(x_left)
+            
+            with np.errstate(divide='ignore', invalid='ignore'):
+                slopes_left = dy_left / dx_left
+                
+            valid_mask_left = np.isfinite(slopes_left)
+            slopes_left = slopes_left[valid_mask_left]
+            
+            if len(slopes_left) == 0:
+                s_max = 0.0
+                rise_slope_energy = E_max
+            else:
+                # Robustness: Ignore first few points?
+                if len(slopes_left) > 5:
+                    slopes_left_robust = slopes_left[2:] # Ignore first 2 points
+                else:
+                    slopes_left_robust = slopes_left
+                
+                if len(slopes_left_robust) == 0:
+                    slopes_left_robust = slopes_left
+
+                # We want max positive slope.
+                # Robustness: 95th percentile
+                if len(slopes_left_robust) >= 10:
+                    s_max = np.percentile(slopes_left_robust, 95)
+                else:
+                    s_max = np.max(slopes_left_robust)
+                    
+                # Find energy
+                idx_max = np.argmin(np.abs(slopes_left - s_max))
+                rise_slope_energy = float(x_left[idx_max])
+
+        return E_max, I_max, float(s_min), slope_energy, float(s_max), rise_slope_energy, None
         
     except Exception as e:
         print(f"Decay analysis failed: {e}")
-        return 0.0, 0.0, 0.0, 0.0, None
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
 
-def decay_window(x, E_max, I_max, s_min, slope_energy):
+def decay_window(x, E_max, I_max, s_min, slope_energy, s_max, rise_slope_energy):
     """
     Visualization for Decay Slope.
     Draws a tangent line at the point of steepest descent.
@@ -1805,6 +1847,81 @@ def getmaxdecay(xmin, xmax, E_max, I_max, *args):
     return E_max, I_max
 
 def getdecayfwhm(params):
+    return 0.0
+
+# ============================================================================
+# Binning Decay Analysis
+# ============================================================================
+
+def fitbinningtospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Bin spectrum to 11 points (10 intervals) and calculate intensity changes.
+    Returns Start Intensity and 10 differences (slopes).
+    User requested 10 parameters, so we use 11 points to get 10 intervals.
+    """
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    if len(x) < 2:
+        return tuple([0.0]*11) + (None,)
+        
+    try:
+        # Resample to 11 points
+        x_bins = np.linspace(x[0], x[-1], 11)
+        y_bins = np.interp(x_bins, x, y)
+        
+        # Calculate differences (Counts)
+        diffs = np.diff(y_bins)
+        
+        # Return Start Intensity + 10 diffs
+        params = [float(y_bins[0])] + [float(d) for d in diffs]
+        return tuple(params) + (None,)
+    except Exception as e:
+        print(f"Binning analysis failed: {e}")
+        return tuple([0.0]*11) + (None,)
+
+def binning_window(x, start_int, *diffs):
+    """
+    Reconstruct binned spectrum.
+    """
+    x = np.array(x)
+    if len(x) == 0: return x
+    
+    # Reconstruct y_bins points
+    y_points = [start_int]
+    current_val = start_int
+    for d in diffs:
+        current_val += d
+        y_points.append(current_val)
+        
+    y_points = np.array(y_points)
+    
+    # x coordinates for these points
+    x_bins = np.linspace(x[0], x[-1], 11)
+    
+    # Interpolate to original x
+    y_recon = np.interp(x, x_bins, y_points)
+    
+    return y_recon
+
+def getmaxbinning(xmin, xmax, start_int, *diffs):
+    # Reconstruct to find max
+    y_points = [start_int]
+    current_val = start_int
+    for d in diffs:
+        current_val += d
+        y_points.append(current_val)
+    
+    max_idx = np.argmax(y_points)
+    max_val = y_points[max_idx]
+    
+    # x position
+    x_bins = np.linspace(xmin, xmax, 11)
+    max_x = x_bins[max_idx]
+    
+    return max_x, max_val
+
+def getbinningfwhm(params):
     return 0.0
 
 # ============================================================================
@@ -1882,11 +1999,22 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                decay_window,
                fitdecaytospec,
                getmaxdecay,
-               'Max Decay Slope',
-               4,
-               ['Peak Energy', 'Peak Intensity', 'Max Decay Slope', 'Slope Energy'],
-               ['eV', 'Counts', 'Counts/eV', 'eV'],
+               'Max Decay/Rise Slope',
+               6,
+               ['Peak Energy', 'Peak Intensity', 'Max Decay Slope', 'Decay Slope Energy', 'Max Rise Slope', 'Rise Slope Energy'],
+               ['eV', 'Counts', 'Counts/eV', 'eV', 'Counts/eV', 'eV'],
                getdecayfwhm,
+               0
+           ],
+           'binning': [
+               binning_window,
+               fitbinningtospec,
+               getmaxbinning,
+               'Binning Decay (10 bins)',
+               11,
+               ['Start Intensity'] + [f'Bin Diff {i+1}' for i in range(10)],
+               ['Counts'] + ['Counts']*10,
+               getbinningfwhm,
                0
            ]
            }
@@ -1904,7 +2032,8 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'derivative': fitkeys['derivative'][6][:] + unitstoaddfit,
             'moments': fitkeys['moments'][6][:] + unitstoaddfit,
             'com': fitkeys['com'][6][:] + unitstoaddfit,
-            'decay': fitkeys['decay'][6][:] + unitstoaddfit
+            'decay': fitkeys['decay'][6][:] + unitstoaddfit,
+            'binning': fitkeys['binning'][6][:] + unitstoaddfit
             }
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
