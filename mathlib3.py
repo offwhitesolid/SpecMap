@@ -612,10 +612,27 @@ def find_max_of_fit(fitfunc, tol=1e-6, maxiter=10000, xmin=500, xmax=600):
 
 # calculate the r_squared between fit and data
 # r_squared = 1 - (ss_res / ss_tot) 
-def calc_r_squared(fit, data): # args: data, y_fit(data)
-    ss_res = np.sum((data - fit)**2)
-    ss_tot = np.sum((data - np.mean(data))**2)
-    r_squared = 1 - (ss_res / ss_tot)
+def calc_r_squared(fit, data): # args: data(observations), y_fit(model)
+    # Note: lib9.py passes (observations, model) as (fit, data)
+    # So 'fit' argument contains observations, 'data' argument contains model
+    
+    # Convert to numpy arrays to handle lists and ensure correct math
+    obs = np.array(fit)
+    model = np.array(data)
+    
+    # Calculate sums of squares
+    # ss_res = sum((y_obs - y_model)^2)
+    ss_res = np.sum((obs - model)**2)
+    
+    # ss_tot = sum((y_obs - mean(y_obs))^2)
+    # We must calculate variance on OBSERVATIONS, not model
+    ss_tot = np.sum((obs - np.mean(obs))**2)
+    
+    if ss_tot == 0:
+        r_squared = 0.0
+    else:
+        r_squared = 1 - (ss_res / ss_tot)
+        
     return r_squared, ss_res, ss_tot
 # ss_res is the sum of the squared residuals
 # ss_tot is the total sum of squares
@@ -905,6 +922,329 @@ fitparamunits array contains the following:
 
 '''
 
+# ============================================================================
+# Stiffness Analysis Functions
+# ============================================================================
+# These functions analyze peak shape through flank slopes and top curvature
+# without assuming specific line shapes (Voigt, Gaussian, etc.)
+
+def find_baseline_region(intensity, noise_threshold=0.1):
+    """
+    Find baseline regions at start and end of spectrum.
+    Returns indices where intensity is below noise_threshold * max(intensity).
+    
+    Parameters:
+    -----------
+    intensity : array
+        Intensity values
+    noise_threshold : float
+        Fraction of max intensity to consider as baseline (default 0.1)
+    
+    Returns:
+    --------
+    left_base_idx : int
+        Index of left baseline point
+    right_base_idx : int
+        Index of right baseline point
+    """
+    max_intensity = np.max(intensity)
+    threshold = noise_threshold * max_intensity
+    
+    # Find left baseline (first point where intensity rises above threshold)
+    left_base_idx = 0
+    for i in range(len(intensity)):
+        if intensity[i] > threshold:
+            left_base_idx = max(0, i - 1)
+            break
+    
+    # Find right baseline (last point where intensity drops below threshold)
+    right_base_idx = len(intensity) - 1
+    for i in range(len(intensity) - 1, -1, -1):
+        if intensity[i] > threshold:
+            right_base_idx = min(len(intensity) - 1, i + 1)
+            break
+    
+    return left_base_idx, right_base_idx
+
+def calculate_flank_slopes(energy, intensity, peak_fraction=0.5, smooth=False):
+    """
+    Calculate left and right flank slopes using linear regression.
+    
+    Parameters:
+    -----------
+    energy : array
+        Energy values (x-axis)
+    intensity : array
+        Intensity values (y-axis)
+    peak_fraction : float
+        Fraction of peak height to use for flank definition (default 0.5 = 50%)
+    smooth : bool
+        Apply smoothing before calculation (default False)
+    
+    Returns:
+    --------
+    a_L : float
+        Left flank slope (counts/eV)
+    a_R : float
+        Right flank slope (counts/eV)
+    E_left_base : float
+        Left baseline energy
+    E_right_base : float
+        Right baseline energy
+    """
+    # Smooth if requested
+    if smooth and len(intensity) > 5:
+        from scipy.ndimage import gaussian_filter1d
+        intensity = gaussian_filter1d(intensity, sigma=1.0)
+    
+    # Find peak position
+    peak_idx = np.argmax(intensity)
+    peak_intensity = intensity[peak_idx]
+    
+    # Find baseline points
+    left_base_idx, right_base_idx = find_baseline_region(intensity, noise_threshold=0.1)
+    
+    # Define flank regions (from baseline to peak_fraction of peak height)
+    flank_threshold = peak_fraction * peak_intensity
+    
+    # Left flank: from left baseline to where intensity reaches flank_threshold
+    left_flank_end = peak_idx
+    for i in range(left_base_idx, peak_idx):
+        if intensity[i] >= flank_threshold:
+            left_flank_end = i
+            break
+    
+    # Right flank: from peak to where intensity drops below flank_threshold
+    right_flank_start = peak_idx
+    for i in range(peak_idx, right_base_idx):
+        if intensity[i] <= flank_threshold:
+            right_flank_start = i
+            break
+    
+    # Linear fit for left flank
+    if left_flank_end > left_base_idx:
+        x_left = energy[left_base_idx:left_flank_end+1]
+        y_left = intensity[left_base_idx:left_flank_end+1]
+        if len(x_left) > 1:
+            poly_coeffs = np.polyfit(x_left, y_left, 1)
+            a_L = float(poly_coeffs[0])
+        else:
+            a_L = 0.0
+    else:
+        a_L = 0.0
+    
+    # Linear fit for right flank
+    if right_flank_start < right_base_idx:
+        x_right = energy[right_flank_start:right_base_idx+1]
+        y_right = intensity[right_flank_start:right_base_idx+1]
+        if len(x_right) > 1:
+            poly_coeffs = np.polyfit(x_right, y_right, 1)
+            a_R = float(poly_coeffs[0])
+        else:
+            a_R = 0.0
+    else:
+        a_R = 0.0
+    
+    E_left_base = float(energy[left_base_idx])
+    E_right_base = float(energy[right_base_idx])
+    
+    return a_L, a_R, E_left_base, E_right_base
+
+def calculate_peak_curvature(energy, intensity, window_fraction=0.1):
+    """
+    Calculate peak-top curvature using quadratic fit.
+    
+    Parameters:
+    -----------
+    energy : array
+        Energy values (x-axis)
+    intensity : array
+        Intensity values (y-axis)
+    window_fraction : float
+        Fraction of energy range to use for peak-top fit (default 0.1 = 10%)
+    
+    Returns:
+    --------
+    curvature : float
+        Second derivative coefficient c_2 from quadratic fit (counts/eV²)
+    E_max : float
+        Energy at peak maximum
+    I_max : float
+        Intensity at peak maximum
+    """
+    # Find peak position
+    peak_idx = np.argmax(intensity)
+    E_max = float(energy[peak_idx])
+    I_max = float(intensity[peak_idx])
+    
+    # Define window around peak
+    energy_range = float(energy[-1] - energy[0])
+    window_size = window_fraction * energy_range
+    
+    # Find indices within window
+    window_mask = np.abs(energy - E_max) <= window_size / 2
+    x_window = energy[window_mask]
+    y_window = intensity[window_mask]
+    
+    # Quadratic fit: I(E) = c_0 + c_1*(E - E_max) + c_2*(E - E_max)²
+    if len(x_window) >= 3:
+        # Shift to center at E_max for better numerical stability
+        x_shifted = x_window - E_max
+        coeffs = np.polyfit(x_shifted, y_window, 2)
+        curvature = float(coeffs[0])  # c_2 coefficient (second derivative / 2)
+    else:
+        curvature = 0.0
+    
+    return curvature, E_max, I_max
+
+def calculate_asymmetry(a_L, a_R):
+    """
+    Calculate asymmetry metric from flank slopes.
+    
+    Parameters:
+    -----------
+    a_L : float
+        Left flank slope (positive for rising edge)
+    a_R : float
+        Right flank slope (negative for falling edge)
+    
+    Returns:
+    --------
+    S_asym : float
+        Asymmetry metric: (|a_R| - a_L) / (|a_R| + a_L)
+        Range: -1 to +1
+        0 = symmetric
+        > 0 = steeper right side
+        < 0 = steeper left side
+    """
+    abs_aR = float(np.abs(a_R))
+    abs_aL = float(np.abs(a_L))
+    denominator = abs_aR + abs_aL
+    
+    if denominator > 0:
+        S_asym = float((abs_aR - abs_aL) / denominator)
+    else:
+        S_asym = 0.0
+    
+    return S_asym
+
+def fitstiffnesstospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Perform stiffness analysis on spectrum.
+    
+    Parameters:
+    -----------
+    start : int
+        Start index in arrays
+    end : int
+        End index in arrays
+    WL : array
+        Energy/wavelength array
+    PLB : array
+        Intensity array
+    maxfev : int
+        Not used (for compatibility with other fit functions)
+    guess : array or None
+        Not used (for compatibility with other fit functions)
+    
+    Returns:
+    --------
+    E_max : float
+        Energy at peak maximum (eV)
+    I_max : float
+        Intensity at peak maximum (counts)
+    a_L : float
+        Left flank slope (counts/eV)
+    a_R : float
+        Right flank slope (counts/eV)
+    S_asym : float
+        Asymmetry metric (dimensionless)
+    curvature : float
+        Peak-top curvature (counts/eV²)
+    pcov : None
+        Placeholder for covariance matrix (not applicable here)
+    """
+    # Extract spectrum region - convert to numpy arrays explicitly
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    # Handle edge cases
+    if len(x) < 3 or np.max(y) <= 0:
+        # Return zeros if spectrum is too short or empty
+        return float(0.0), float(0.0), float(0.0), float(0.0), float(0.0), float(0.0), None
+    
+    # Find peak position first
+    peak_idx = np.argmax(y)
+    E_max = float(x[peak_idx])
+    I_max = float(y[peak_idx])
+    
+    # Calculate flank slopes
+    try:
+        a_L, a_R, _, _ = calculate_flank_slopes(x, y, peak_fraction=0.5, smooth=False)
+        a_L = float(a_L)
+        a_R = float(a_R)
+    except:
+        a_L = float(0.0)
+        a_R = float(0.0)
+    
+    # Calculate peak curvature
+    try:
+        curvature, _, _ = calculate_peak_curvature(x, y, window_fraction=0.1)
+        curvature = float(curvature)
+    except:
+        curvature = float(0.0)
+    
+    # Calculate asymmetry
+    try:
+        S_asym = calculate_asymmetry(a_L, a_R)
+        S_asym = float(S_asym)
+    except:
+        S_asym = float(0.0)
+    
+    return E_max, I_max, a_L, a_R, S_asym, curvature, None
+
+def stiffness_window(x, E_max, I_max, a_L, a_R, S_asym, curvature):
+    """
+    Dummy window function for stiffness analysis.
+    Returns zeros as stiffness analysis is not a parametric fit.
+    """
+    return np.zeros_like(x)
+
+def getstiffnessfwhm(params):
+    """
+    Dummy FWHM function for stiffness analysis.
+    Returns 0.0 as FWHM is not directly calculated.
+    """
+    return 0.0
+
+def getmaxstiffness(xmin, xmax, E_max, I_max, a_L, a_R, S_asym, curvature):
+    """
+    Get maximum position from stiffness analysis parameters.
+    
+    Parameters:
+    -----------
+    xmin, xmax : float
+        Energy range (not used, for compatibility)
+    E_max : float
+        Energy at peak maximum
+    I_max : float
+        Intensity at peak maximum
+    a_L, a_R, S_asym, curvature : float
+        Other stiffness parameters (not used here)
+    
+    Returns:
+    --------
+    E_max : float
+        Energy at peak maximum
+    I_max : float
+        Intensity at peak maximum
+    """
+    return E_max, I_max
+
+# ============================================================================
+# End of Stiffness Analysis Functions
+# ============================================================================
+
 fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit', 3, ['Lorentzian amplitude', 'Lorentzian center', 'Lorentzian width'], ['Counts', 'nm', 'nm'], getlorentzfwhm, 0],
            'gaussian':[gaussianwind, fitgaussiantospec, getmaxgaussian, 'Gaussian fit', 3, ['Gaussian amplitude', 'Gaussian center', 'Gaussian width'], ['Counts', 'nm', 'nm'], getgaussianfwhm, 0],
            'voigt':[voigtwind, fitvoigttospec, getmaxvoigt, 'Voigt fit', 4, ['Voigt amplitude', 'Voigt center', 'Voigt width', 'Voigt gamma'], ['Counts', 'nm', 'nm', 'nm'], getvoigtfwhm, 0], 
@@ -927,6 +1267,17 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                 'eV^-2', 'eV^-1', 'eV', 'eV'],
                None, # No FWHM function
                0 # fit state: 0= not fitted, 1=fitted, 2=failed
+           ],
+           'stiffness': [
+               stiffness_window,  # Window function (returns zeros)
+               fitstiffnesstospec,  # Analysis function
+               getmaxstiffness,  # Get peak position
+               'Stiffness Analysis',  # Label for GUI
+               6,  # Number of output parameters
+               ['Peak Energy', 'Peak Intensity', 'Left Stiffness', 'Right Stiffness', 'Asymmetry', 'Curvature'],
+               ['eV', 'Counts', 'Counts/eV', 'Counts/eV', '', 'Counts/eV²'],
+               getstiffnessfwhm,  # FWHM function (returns 0.0)
+               0  # fit state: 0= not fitted, 1=fitted, 2=failed
            ]
            }
 
@@ -938,7 +1289,8 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'double lorentz': fitkeys['double lorentz'][6][:] + unitstoaddfit,
             'double gaussian': fitkeys['double gaussian'][6][:] + unitstoaddfit,
             'double voigt': fitkeys['double voigt'][6][:] + unitstoaddfit, 
-            'oscillations': fitkeys['oscillations'][6][:]+ unitstoaddfit
+            'oscillations': fitkeys['oscillations'][6][:]+ unitstoaddfit,
+            'stiffness': fitkeys['stiffness'][6][:] + unitstoaddfit
             }
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
