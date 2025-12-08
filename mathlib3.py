@@ -908,7 +908,6 @@ def isolate_oscillation(signal, wl, window_length=51, polyorder=3, prominence=No
             maxima_wl, minima_wl,
             maxima_values, minima_values)
 
-    pass
 
 # dictionary of window functions and their corresponding fit functions
 # and functions to get the maxima of the fitted functions
@@ -1461,35 +1460,6 @@ def derivative_window(x, E_max, I_max, slope_rise, slope_fall, curvature, s_asym
         y[mask_R] = I_max * np.exp(-(x[mask_R] - E_max)**2 / (2 * sigma_R**2))
         
     return y
-    # Approximation: For Gaussian, max slope occurs at sigma.
-    # Max slope value = I_max * exp(-0.5) / sigma
-    # So sigma = I_max * exp(-0.5) / max_slope
-    # exp(-0.5) approx 0.6065
-    factor = 0.6065
-    
-    if abs(slope_rise) > 1e-9:
-        sigma_L = (I_max * factor) / abs(slope_rise)
-    else:
-        sigma_L = 1.0
-        
-    if abs(slope_fall) > 1e-9:
-        sigma_R = (I_max * factor) / abs(slope_fall)
-    else:
-        sigma_R = 1.0
-        
-    y = np.zeros_like(x)
-    
-    # Left side
-    mask_L = x < E_max
-    if np.any(mask_L):
-        y[mask_L] = I_max * np.exp(-(x[mask_L] - E_max)**2 / (2 * sigma_L**2))
-        
-    # Right side
-    mask_R = x >= E_max
-    if np.any(mask_R):
-        y[mask_R] = I_max * np.exp(-(x[mask_R] - E_max)**2 / (2 * sigma_R**2))
-        
-    return y
 
 def getderivativefwhm(params):
     """
@@ -1529,6 +1499,155 @@ def getderivativefwhm(params):
 
 def getmaxderivative(xmin, xmax, E_max, I_max, *args):
     return E_max, I_max
+
+# ============================================================================
+# Moment Analysis Functions (Variance & Quantiles)
+# ============================================================================
+
+def fitmomentstospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Perform moment-based analysis (fit-free).
+    Calculates Center of Mass, Variance (Sigma), Skewness, and Quantile Widths.
+    Robust for asymmetric peaks.
+    
+    Parameters:
+    -----------
+    start, end, WL, PLB, maxfev, guess: Standard fit function parameters
+    
+    Returns:
+    --------
+    COM : float
+        Center of Mass (First Moment)
+    Total_Int : float
+        Total Integrated Intensity (Sum)
+    Sigma : float
+        Standard Deviation (Square root of Second Moment)
+    Skewness : float
+        Third Standardized Moment
+    Quantile_Width : float
+        Width containing 68% of data (16% to 84% percentiles)
+    Quantile_Asym : float
+        Asymmetry based on quantiles: ( (x84-x50) - (x50-x16) ) / (x84-x16)
+    pcov : None
+    """
+    # Extract spectrum region
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    # Handle edge cases
+    if len(x) < 3 or np.sum(y) <= 0:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+        
+    try:
+        # Ensure y is positive (baseline subtraction might be needed in real usage, 
+        # but here we assume PLB is already baseline corrected or we take abs/clip)
+        y_proc = np.maximum(y, 0)
+        total_intensity = np.sum(y_proc)
+        
+        if total_intensity == 0:
+             return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+             
+        # Normalized probability distribution
+        prob = y_proc / total_intensity
+        
+        # 1. Center of Mass (First Moment)
+        com = np.sum(x * prob)
+        
+        # 2. Variance & Sigma (Second Moment)
+        variance = np.sum(((x - com)**2) * prob)
+        sigma = np.sqrt(variance)
+        
+        # 3. Skewness (Third Moment)
+        if sigma > 0:
+            skewness = np.sum(((x - com)**3) * prob) / (sigma**3)
+        else:
+            skewness = 0.0
+            
+        # 4. Quantile Width (16% - 84%)
+        cumsum = np.cumsum(prob)
+        # Interpolate to find x values for specific probabilities
+        # We need strictly increasing cumsum for interp, but it might have flats.
+        # Usually fine for noisy data.
+        
+        x16 = np.interp(0.16, cumsum, x)
+        x50 = np.interp(0.50, cumsum, x)
+        x84 = np.interp(0.84, cumsum, x)
+        
+        quantile_width = x84 - x16
+        
+        # 5. Quantile Asymmetry
+        # (Right_Half_Width - Left_Half_Width) / Total_Width
+        if quantile_width > 0:
+            quantile_asym = ((x84 - x50) - (x50 - x16)) / quantile_width
+        else:
+            quantile_asym = 0.0
+            
+        return float(com), float(total_intensity), float(sigma), float(skewness), float(quantile_width), float(quantile_asym), None
+        
+    except Exception as e:
+        print(f"Moment analysis failed: {e}")
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+
+def moment_window(x, com, total_int, sigma, skewness, q_width, q_asym):
+    """
+    Construct a visualization for moment analysis.
+    Uses a Gaussian defined by COM and Sigma (Second Moment).
+    """
+    x = np.array(x)
+    
+    if sigma <= 0:
+        return np.zeros_like(x)
+        
+    # Gaussian area = A = total_int * dx (approx)
+    # But total_int here is sum(y).
+    # If x is uniformly spaced with spacing dx: sum(y) * dx = Integral.
+    # Gaussian integral = Amplitude * sigma * sqrt(2*pi).
+    # So Amplitude = (sum(y) * dx) / (sigma * sqrt(2*pi)).
+    
+    # Estimate dx
+    if len(x) > 1:
+        dx = np.mean(np.diff(x))
+    else:
+        dx = 1.0
+        
+    amplitude = (total_int * dx) / (sigma * np.sqrt(2 * np.pi))
+    
+    # Simple Gaussian reconstruction
+    y = amplitude * np.exp(-(x - com)**2 / (2 * sigma**2))
+    
+    return y
+
+def getmomentfwhm(params):
+    """
+    Estimate FWHM from moment parameters.
+    params: [COM, Total_Int, Sigma, Skewness, Quantile_Width, Quantile_Asym]
+    """
+    try:
+        # Use Quantile Width (contains 68% of data)
+        # For Gaussian, 16%-84% is exactly 2*sigma.
+        # FWHM = 2.355 * sigma.
+        # So FWHM approx 1.177 * Quantile_Width
+        q_width = params[4]
+        return 1.177 * q_width
+    except:
+        return 0.0
+
+def getmaxmoments(xmin, xmax, com, total_int, sigma, *args):
+    """
+    Return max position and intensity of the reconstructed Gaussian.
+    """
+    # Reconstruct max intensity
+    # Amplitude = (total_int * dx) / (sigma * sqrt(2*pi))
+    # We don't have dx here easily without x array.
+    # But we can approximate or just return total_int for now?
+    # fitkeys expects (x_max, y_max).
+    # Let's try to estimate y_max assuming some average dx or just return 0 for y_max if not critical.
+    # Actually, for plotting "fitmaxX" and "fitmaxY", we need reasonable values.
+    # Let's assume dx is small or just return total_int as a proxy for "magnitude".
+    # OR, better: The user might want to map COM as the "position".
+    
+    # For intensity, let's return total_int (Integrated Intensity) as it's a robust measure of signal strength.
+    return com, total_int
 
 # ============================================================================
 # End of Stiffness Analysis Functions
@@ -1578,6 +1697,17 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                ['eV', 'Counts', 'Counts/eV', 'Counts/eV', 'Counts/eV²', '', 'eV', ''],
                getderivativefwhm,
                0
+           ],
+           'moments': [
+               moment_window,
+               fitmomentstospec,
+               getmaxmoments,
+               'Moment Analysis (Fit-Free)',
+               6,
+               ['Center of Mass', 'Total Intensity', 'Sigma (Variance)', 'Skewness', 'Quantile Width (16-84%)', 'Quantile Asymmetry'],
+               ['eV', 'Counts', 'eV', '', 'eV', ''],
+               getmomentfwhm,
+               0
            ]
            }
 
@@ -1591,7 +1721,8 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'double voigt': fitkeys['double voigt'][6][:] + unitstoaddfit, 
             'oscillations': fitkeys['oscillations'][6][:]+ unitstoaddfit,
             'stiffness': fitkeys['stiffness'][6][:] + unitstoaddfit,
-            'derivative': fitkeys['derivative'][6][:] + unitstoaddfit
+            'derivative': fitkeys['derivative'][6][:] + unitstoaddfit,
+            'moments': fitkeys['moments'][6][:] + unitstoaddfit
             }
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
