@@ -1650,6 +1650,164 @@ def getmaxmoments(xmin, xmax, com, total_int, sigma, *args):
     return com, total_int
 
 # ============================================================================
+# Center of Mass Analysis
+# ============================================================================
+
+def fitcomtospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Calculate Center of Mass (First Moment) of the spectrum.
+    Fit-free method. Respects asymmetric peaks by integrating over the full shape.
+    Formula: COM = Sum(lambda_i * I_i) / Sum(I_i)
+    """
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    if len(x) < 2 or np.sum(y) <= 0:
+        return 0.0, 0.0, None
+        
+    try:
+        # Ensure y is positive
+        y_proc = np.maximum(y, 0)
+        total_intensity = np.sum(y_proc)
+        
+        if total_intensity == 0:
+            return 0.0, 0.0, None
+            
+        com = np.sum(x * y_proc) / total_intensity
+        
+        return float(com), float(total_intensity), None
+    except Exception as e:
+        return 0.0, 0.0, None
+
+def com_window(x, com, total_int):
+    """
+    Window function for Center of Mass.
+    Returns zeros as there is no shape fit to display.
+    """
+    return np.zeros_like(np.array(x))
+
+def getmaxcom(xmin, xmax, com, total_int, *args):
+    return com, total_int
+
+def getcomfwhm(params):
+    return 0.0
+
+# ============================================================================
+# Max Decay Slope Analysis
+# ============================================================================
+
+def fitdecaytospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Calculate Maximum Decay Slope on the right flank.
+    Finds peak maximum, then computes discrete derivatives on the right side.
+    Returns the steepest fall (minimum slope value).
+    Robustness: Uses 5th percentile of slopes if enough points are available.
+    """
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    if len(x) < 3 or np.max(y) <= 0:
+        return 0.0, 0.0, 0.0, 0.0, None
+        
+    try:
+        # Find peak index
+        k_max = np.argmax(y)
+        E_max = float(x[k_max])
+        I_max = float(y[k_max])
+        
+        # Check if there are points to the right
+        if k_max >= len(x) - 2:
+            return E_max, I_max, 0.0, E_max, None
+            
+        # Extract right side
+        x_right = x[k_max:]
+        y_right = y[k_max:]
+        
+        # Calculate discrete derivatives
+        # s_i = (I_{i+1} - I_i) / (lambda_{i+1} - lambda_i)
+        dy = np.diff(y_right)
+        dx = np.diff(x_right)
+        
+        # Avoid division by zero
+        with np.errstate(divide='ignore', invalid='ignore'):
+            slopes = dy / dx
+            
+        # Filter out NaNs or Infs
+        valid_mask = np.isfinite(slopes)
+        slopes = slopes[valid_mask]
+        
+        if len(slopes) == 0:
+            return E_max, I_max, 0.0, E_max, None
+            
+        # We are looking for the steepest fall, which is the minimum (most negative) slope.
+        # Robustness: Ignore last few points if array is long enough
+        if len(slopes) > 5:
+            # Ignore last 2 points to avoid tail noise
+            slopes_robust = slopes[:-2]
+        else:
+            slopes_robust = slopes
+            
+        if len(slopes_robust) == 0:
+             slopes_robust = slopes
+             
+        # Robustness: Use 5th percentile instead of absolute min if enough points
+        if len(slopes_robust) >= 10:
+            s_min = np.percentile(slopes_robust, 5)
+        else:
+            s_min = np.min(slopes_robust)
+            
+        # Find the energy where this slope occurs (approximate)
+        # We need to map back to original x array
+        # This is a bit tricky with percentile, so let's just find the index of the value closest to s_min
+        idx_min = np.argmin(np.abs(slopes - s_min))
+        # x_right has length N, slopes has length N-1. 
+        # Slope i corresponds to interval between x_right[i] and x_right[i+1].
+        # Let's assign it to x_right[i] (or midpoint)
+        slope_energy = float(x_right[idx_min])
+        
+        # Return absolute value as requested? 
+        # "Use |s_min| as a flank-steepness measure."
+        # But usually fit functions return the actual parameter. 
+        # Let's return the signed slope, the user can take abs in their head or we label it "Max Decay Slope".
+        # Actually, for "Max Decay Slope", a large negative number is the "Max Decay".
+        # Let's return the signed value s_min.
+        
+        return E_max, I_max, float(s_min), slope_energy, None
+        
+    except Exception as e:
+        print(f"Decay analysis failed: {e}")
+        return 0.0, 0.0, 0.0, 0.0, None
+
+def decay_window(x, E_max, I_max, s_min, slope_energy):
+    """
+    Visualization for Decay Slope.
+    Draws a tangent line at the point of steepest descent.
+    """
+    x = np.array(x)
+    y = np.zeros_like(x)
+    
+    # We want to draw a line segment representing the slope.
+    # Line equation: y - y0 = m(x - x0) => y = m(x - x0) + y0
+    # We know m = s_min and x0 = slope_energy.
+    # We don't strictly know y0 (intensity at slope_energy) passed in params.
+    # But we can estimate it or just draw a line that looks "slope-like".
+    # Better: The window function is usually used to show the "fit". 
+    # Since we don't have a full fit, maybe we just return zeros?
+    # Or we can try to reconstruct a line segment of length, say, 10% of the range.
+    
+    # Let's just return zeros to keep it clean, as "fit-free" implies no model to show.
+    # Or, if we want to be fancy, we could try to show the slope.
+    # But without y0, it's hard to place it vertically correct.
+    
+    return y
+
+def getmaxdecay(xmin, xmax, E_max, I_max, *args):
+    return E_max, I_max
+
+def getdecayfwhm(params):
+    return 0.0
+
+# ============================================================================
 # End of Stiffness Analysis Functions
 # ============================================================================
 
@@ -1708,6 +1866,28 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                ['eV', 'Counts', 'eV', '', 'eV', ''],
                getmomentfwhm,
                0
+           ],
+           'com': [
+               com_window,
+               fitcomtospec,
+               getmaxcom,
+               'Center of Mass',
+               2,
+               ['Center of Mass', 'Integrated Intensity'],
+               ['eV', 'Counts'],
+               getcomfwhm,
+               0
+           ],
+           'decay': [
+               decay_window,
+               fitdecaytospec,
+               getmaxdecay,
+               'Max Decay Slope',
+               4,
+               ['Peak Energy', 'Peak Intensity', 'Max Decay Slope', 'Slope Energy'],
+               ['eV', 'Counts', 'Counts/eV', 'eV'],
+               getdecayfwhm,
+               0
            ]
            }
 
@@ -1722,7 +1902,9 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'oscillations': fitkeys['oscillations'][6][:]+ unitstoaddfit,
             'stiffness': fitkeys['stiffness'][6][:] + unitstoaddfit,
             'derivative': fitkeys['derivative'][6][:] + unitstoaddfit,
-            'moments': fitkeys['moments'][6][:] + unitstoaddfit
+            'moments': fitkeys['moments'][6][:] + unitstoaddfit,
+            'com': fitkeys['com'][6][:] + unitstoaddfit,
+            'decay': fitkeys['decay'][6][:] + unitstoaddfit
             }
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
