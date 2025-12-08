@@ -34,7 +34,8 @@ Each analysis method in `mathlib3.py` processes the input spectral arrays `X` (E
 These methods use `scipy.optimize.curve_fit` to minimize the least-squares error between the data and a model function.
 
 #### **Gaussian Fit** (`'gaussian'`)
-Models the peak as a Gaussian distribution: $G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right)$
+Models the peak as a Gaussian distribution: 
+$G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right)$
 
 *   **Parameters**:
     *   `Gaussian amplitude` ($A$): Peak height.
@@ -43,7 +44,7 @@ Models the peak as a Gaussian distribution: $G(x) = A \cdot \exp\left(-\frac{(x 
 *   **FWHM**: $2\sqrt{2\ln 2} \cdot w \approx 2.355 \cdot w$
 
 #### **Lorentzian Fit** (`'lorentz'`)
-Models the peak as a Lorentzian (Cauchy) distribution.$L(x) = \frac{A}{1 + \left(\frac{x - x_0}{w}\right)^2}$
+Models the peak as a Lorentzian (Cauchy) distribution. $L(x) = \frac{A}{1 + \left(\frac{x - x_0}{w}\right)^2}$
 
 *   **Parameters**:
     *   `Lorentzian amplitude` ($A$): Peak height.
@@ -111,7 +112,6 @@ Treats the normalized spectrum $P(x) = \frac{I(x)}{\sum I(x)}$ as a probability 
 
     $\gamma = \frac{\sum (x_i - \mu)^3 \cdot P(x_i)}{\sigma^3}$
 4.  **Quantile Width**: Width containing 68% of total intensity.
-
     $W_{68} = x_{84\%} - x_{16\%}$
     Where $x_{p\%}$ is the energy where the cumulative sum reaches $p\%$.
 
