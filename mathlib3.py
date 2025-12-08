@@ -1205,17 +1205,70 @@ def fitstiffnesstospec(start, end, WL, PLB, maxfev=10000, guess=None):
 
 def stiffness_window(x, E_max, I_max, a_L, a_R, S_asym, curvature):
     """
-    Dummy window function for stiffness analysis.
-    Returns zeros as stiffness analysis is not a parametric fit.
+    Construct a split Gaussian peak from stiffness parameters for visualization.
+    Widths are estimated from flank slopes to provide a visual check of the analysis.
     """
-    return np.zeros_like(x)
+    # Ensure x is a numpy array for element-wise operations
+    x = np.array(x)
+    
+    # Factor relating max slope to width for Gaussian: max_slope = I_max / (sigma * sqrt(e))
+    # sigma = I_max / (max_slope * sqrt(e))
+    # sqrt(e) approx 1.6487
+    factor = 1.6487
+    
+    # Estimate widths from slopes (handle potential zeros)
+    if abs(a_L) > 1e-9:
+        sigma_L = I_max / (abs(a_L) * factor)
+    else:
+        sigma_L = 1.0 # Fallback
+        
+    if abs(a_R) > 1e-9:
+        sigma_R = I_max / (abs(a_R) * factor)
+    else:
+        sigma_R = 1.0 # Fallback
+    
+    # Construct split Gaussian
+    y = np.zeros_like(x)
+    
+    # Left side (x < E_max)
+    mask_L = x < E_max
+    if np.any(mask_L):
+        y[mask_L] = I_max * np.exp(-(x[mask_L] - E_max)**2 / (2 * sigma_L**2))
+    
+    # Right side (x >= E_max)
+    mask_R = x >= E_max
+    if np.any(mask_R):
+        y[mask_R] = I_max * np.exp(-(x[mask_R] - E_max)**2 / (2 * sigma_R**2))
+        
+    return y
 
 def getstiffnessfwhm(params):
     """
-    Dummy FWHM function for stiffness analysis.
-    Returns 0.0 as FWHM is not directly calculated.
+    Estimate FWHM from stiffness parameters (using split Gaussian approximation).
+    params: [E_max, I_max, a_L, a_R, S_asym, curvature]
     """
-    return 0.0
+    try:
+        I_max = params[1]
+        a_L = params[2]
+        a_R = params[3]
+        
+        factor = 1.6487 # sqrt(e)
+        
+        if abs(a_L) > 1e-9:
+            sigma_L = I_max / (abs(a_L) * factor)
+        else:
+            sigma_L = 0.0
+            
+        if abs(a_R) > 1e-9:
+            sigma_R = I_max / (abs(a_R) * factor)
+        else:
+            sigma_R = 0.0
+            
+        # FWHM approx 2.355 * sigma (average sigma)
+        fwhm = 2.355 * (sigma_L + sigma_R) / 2
+        return fwhm
+    except:
+        return 0.0
 
 def getmaxstiffness(xmin, xmax, E_max, I_max, a_L, a_R, S_asym, curvature):
     """
@@ -1239,6 +1292,169 @@ def getmaxstiffness(xmin, xmax, E_max, I_max, a_L, a_R, S_asym, curvature):
     I_max : float
         Intensity at peak maximum
     """
+    return E_max, I_max
+
+# ============================================================================
+# Derivative Analysis Functions (Savitzky-Golay)
+# ============================================================================
+
+def fitderivativestospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Perform derivative-based analysis using Savitzky-Golay filter.
+    Calculates max slope (1st derivative) and peak curvature (2nd derivative).
+    
+    Parameters:
+    -----------
+    start, end, WL, PLB, maxfev, guess: Standard fit function parameters
+    
+    Returns:
+    --------
+    E_max : float
+        Energy at peak maximum
+    I_max : float
+        Intensity at peak maximum
+    Max_Slope_Rise : float
+        Maximum positive slope (rising edge)
+    Max_Slope_Fall : float
+        Maximum negative slope (falling edge)
+    Curvature_Top : float
+        Second derivative at peak maximum (curvature)
+    S_asym_deriv : float
+        Asymmetry based on max slopes: (|Fall| - Rise) / (|Fall| + Rise)
+    pcov : None
+    """
+    # Extract spectrum region
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    # Handle edge cases
+    if len(x) < 5 or np.max(y) <= 0:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+        
+    # Parameters for Savitzky-Golay
+    # Window length must be odd and <= len(x)
+    window_length = min(11, len(x))
+    if window_length % 2 == 0:
+        window_length -= 1
+    if window_length < 5:
+        window_length = len(x) if len(x) % 2 != 0 else len(x) - 1
+        
+    polyorder = 3
+    
+    try:
+        # Calculate derivatives
+        # delta x is needed for correct scaling of derivatives
+        dx = np.mean(np.diff(x))
+        
+        # 0th derivative (smoothed intensity)
+        y_smooth = savgol_filter(y, window_length, polyorder, deriv=0)
+        
+        # 1st derivative (slope)
+        d1 = savgol_filter(y, window_length, polyorder, deriv=1, delta=dx)
+        
+        # 2nd derivative (curvature)
+        d2 = savgol_filter(y, window_length, polyorder, deriv=2, delta=dx)
+        
+        # Find peak position from smoothed data
+        peak_idx = np.argmax(y_smooth)
+        E_max = float(x[peak_idx])
+        I_max = float(y_smooth[peak_idx])
+        
+        # Max slope on rising edge (before peak)
+        if peak_idx > 0:
+            max_slope_rise = float(np.max(d1[:peak_idx]))
+        else:
+            max_slope_rise = 0.0
+            
+        # Max slope on falling edge (after peak) - should be negative
+        if peak_idx < len(d1) - 1:
+            max_slope_fall = float(np.min(d1[peak_idx:]))
+        else:
+            max_slope_fall = 0.0
+            
+        # Curvature at peak (2nd derivative at peak index)
+        curvature_top = float(d2[peak_idx])
+        
+        # Asymmetry metric based on max slopes
+        abs_fall = abs(max_slope_fall)
+        abs_rise = abs(max_slope_rise)
+        denom = abs_fall + abs_rise
+        
+        if denom > 0:
+            s_asym = float((abs_fall - abs_rise) / denom)
+        else:
+            s_asym = 0.0
+            
+        return E_max, I_max, max_slope_rise, max_slope_fall, curvature_top, s_asym, None
+        
+    except Exception as e:
+        print(f"Derivative analysis failed: {e}")
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+
+def derivative_window(x, E_max, I_max, slope_rise, slope_fall, curvature, s_asym):
+    """
+    Construct a visualization for derivative analysis.
+    Uses a split Gaussian approximated from the max slopes.
+    """
+    x = np.array(x)
+    
+    # Approximation: For Gaussian, max slope occurs at sigma.
+    # Max slope value = I_max * exp(-0.5) / sigma
+    # So sigma = I_max * exp(-0.5) / max_slope
+    # exp(-0.5) approx 0.6065
+    factor = 0.6065
+    
+    if abs(slope_rise) > 1e-9:
+        sigma_L = (I_max * factor) / abs(slope_rise)
+    else:
+        sigma_L = 1.0
+        
+    if abs(slope_fall) > 1e-9:
+        sigma_R = (I_max * factor) / abs(slope_fall)
+    else:
+        sigma_R = 1.0
+        
+    y = np.zeros_like(x)
+    
+    # Left side
+    mask_L = x < E_max
+    if np.any(mask_L):
+        y[mask_L] = I_max * np.exp(-(x[mask_L] - E_max)**2 / (2 * sigma_L**2))
+        
+    # Right side
+    mask_R = x >= E_max
+    if np.any(mask_R):
+        y[mask_R] = I_max * np.exp(-(x[mask_R] - E_max)**2 / (2 * sigma_R**2))
+        
+    return y
+
+def getderivativefwhm(params):
+    """
+    Estimate FWHM from derivative parameters.
+    params: [E_max, I_max, slope_rise, slope_fall, curvature, s_asym]
+    """
+    try:
+        I_max = params[1]
+        slope_rise = params[2]
+        slope_fall = params[3]
+        
+        factor = 0.6065 # exp(-0.5)
+        
+        if abs(slope_rise) > 1e-9:
+            sigma_L = (I_max * factor) / abs(slope_rise)
+        else:
+            sigma_L = 0.0
+            
+        if abs(slope_fall) > 1e-9:
+            sigma_R = (I_max * factor) / abs(slope_fall)
+        else:
+            sigma_R = 0.0
+            
+        return 2.355 * (sigma_L + sigma_R) / 2
+    except:
+        return 0.0
+
+def getmaxderivative(xmin, xmax, E_max, I_max, *args):
     return E_max, I_max
 
 # ============================================================================
@@ -1278,6 +1494,17 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                ['eV', 'Counts', 'Counts/eV', 'Counts/eV', '', 'Counts/eV²'],
                getstiffnessfwhm,  # FWHM function (returns 0.0)
                0  # fit state: 0= not fitted, 1=fitted, 2=failed
+           ],
+           'derivative': [
+               derivative_window,
+               fitderivativestospec,
+               getmaxderivative,
+               'Derivative Analysis (SG)',
+               6,
+               ['Peak Energy', 'Peak Intensity', 'Max Rise Slope', 'Max Fall Slope', 'Peak Curvature', 'Slope Asymmetry'],
+               ['eV', 'Counts', 'Counts/eV', 'Counts/eV', 'Counts/eV²', ''],
+               getderivativefwhm,
+               0
            ]
            }
 
@@ -1290,7 +1517,8 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'double gaussian': fitkeys['double gaussian'][6][:] + unitstoaddfit,
             'double voigt': fitkeys['double voigt'][6][:] + unitstoaddfit, 
             'oscillations': fitkeys['oscillations'][6][:]+ unitstoaddfit,
-            'stiffness': fitkeys['stiffness'][6][:] + unitstoaddfit
+            'stiffness': fitkeys['stiffness'][6][:] + unitstoaddfit,
+            'derivative': fitkeys['derivative'][6][:] + unitstoaddfit
             }
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
