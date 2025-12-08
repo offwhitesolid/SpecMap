@@ -1302,6 +1302,7 @@ def fitderivativestospec(start, end, WL, PLB, maxfev=10000, guess=None):
     """
     Perform derivative-based analysis using Savitzky-Golay filter.
     Calculates max slope (1st derivative) and peak curvature (2nd derivative).
+    Extended to include inflection point width and asymmetry.
     
     Parameters:
     -----------
@@ -1321,6 +1322,10 @@ def fitderivativestospec(start, end, WL, PLB, maxfev=10000, guess=None):
         Second derivative at peak maximum (curvature)
     S_asym_deriv : float
         Asymmetry based on max slopes: (|Fall| - Rise) / (|Fall| + Rise)
+    Inflection_Width : float
+        Distance between max slope positions (approx width)
+    Inflection_Asym : float
+        Asymmetry based on inflection point positions
     pcov : None
     """
     # Extract spectrum region
@@ -1329,7 +1334,7 @@ def fitderivativestospec(start, end, WL, PLB, maxfev=10000, guess=None):
     
     # Handle edge cases
     if len(x) < 5 or np.max(y) <= 0:
-        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
         
     # Parameters for Savitzky-Golay
     # Window length must be odd and <= len(x)
@@ -1362,15 +1367,23 @@ def fitderivativestospec(start, end, WL, PLB, maxfev=10000, guess=None):
         
         # Max slope on rising edge (before peak)
         if peak_idx > 0:
-            max_slope_rise = float(np.max(d1[:peak_idx]))
+            idx_rise = np.argmax(d1[:peak_idx])
+            max_slope_rise = float(d1[idx_rise])
+            E_rise = float(x[idx_rise])
         else:
             max_slope_rise = 0.0
+            E_rise = E_max
             
         # Max slope on falling edge (after peak) - should be negative
         if peak_idx < len(d1) - 1:
-            max_slope_fall = float(np.min(d1[peak_idx:]))
+            # search in [peak_idx:]
+            idx_fall_local = np.argmin(d1[peak_idx:])
+            idx_fall = peak_idx + idx_fall_local
+            max_slope_fall = float(d1[idx_fall])
+            E_fall = float(x[idx_fall])
         else:
             max_slope_fall = 0.0
+            E_fall = E_max
             
         # Curvature at peak (2nd derivative at peak index)
         curvature_top = float(d2[peak_idx])
@@ -1385,19 +1398,69 @@ def fitderivativestospec(start, end, WL, PLB, maxfev=10000, guess=None):
         else:
             s_asym = 0.0
             
-        return E_max, I_max, max_slope_rise, max_slope_fall, curvature_top, s_asym, None
+        # Inflection Width and Asymmetry
+        inflection_width = float(E_fall - E_rise)
+        
+        width_L = E_max - E_rise
+        width_R = E_fall - E_max
+        
+        if inflection_width > 1e-9:
+            inflection_asym = float((width_R - width_L) / inflection_width)
+        else:
+            inflection_asym = 0.0
+            
+        return E_max, I_max, max_slope_rise, max_slope_fall, curvature_top, s_asym, inflection_width, inflection_asym, None
         
     except Exception as e:
         print(f"Derivative analysis failed: {e}")
-        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
 
-def derivative_window(x, E_max, I_max, slope_rise, slope_fall, curvature, s_asym):
+def derivative_window(x, E_max, I_max, slope_rise, slope_fall, curvature, s_asym, infl_width, infl_asym):
     """
     Construct a visualization for derivative analysis.
-    Uses a split Gaussian approximated from the max slopes.
+    Uses a split Gaussian approximated from the inflection point positions.
+    This provides a better reconstruction for asymmetric peaks than slope magnitude alone.
     """
     x = np.array(x)
     
+    # If inflection width is available, use it to determine sigmas
+    if infl_width > 1e-9:
+        # W_L = W/2 * (1 - A)
+        # W_R = W/2 * (1 + A)
+        # For Gaussian, inflection point is at sigma. So sigma_L = W_L, sigma_R = W_R
+        sigma_L = (infl_width / 2.0) * (1.0 - infl_asym)
+        sigma_R = (infl_width / 2.0) * (1.0 + infl_asym)
+        
+        # Safety check
+        if sigma_L <= 0: sigma_L = 1.0
+        if sigma_R <= 0: sigma_R = 1.0
+        
+    else:
+        # Fallback to slope magnitude method
+        factor = 0.6065
+        if abs(slope_rise) > 1e-9:
+            sigma_L = (I_max * factor) / abs(slope_rise)
+        else:
+            sigma_L = 1.0
+            
+        if abs(slope_fall) > 1e-9:
+            sigma_R = (I_max * factor) / abs(slope_fall)
+        else:
+            sigma_R = 1.0
+        
+    y = np.zeros_like(x)
+    
+    # Left side
+    mask_L = x < E_max
+    if np.any(mask_L):
+        y[mask_L] = I_max * np.exp(-(x[mask_L] - E_max)**2 / (2 * sigma_L**2))
+        
+    # Right side
+    mask_R = x >= E_max
+    if np.any(mask_R):
+        y[mask_R] = I_max * np.exp(-(x[mask_R] - E_max)**2 / (2 * sigma_R**2))
+        
+    return y
     # Approximation: For Gaussian, max slope occurs at sigma.
     # Max slope value = I_max * exp(-0.5) / sigma
     # So sigma = I_max * exp(-0.5) / max_slope
@@ -1431,9 +1494,19 @@ def derivative_window(x, E_max, I_max, slope_rise, slope_fall, curvature, s_asym
 def getderivativefwhm(params):
     """
     Estimate FWHM from derivative parameters.
-    params: [E_max, I_max, slope_rise, slope_fall, curvature, s_asym]
+    params: [E_max, I_max, slope_rise, slope_fall, curvature, s_asym, infl_width, infl_asym]
     """
     try:
+        # If inflection width is available (index 6), use it
+        if len(params) > 6:
+            infl_width = params[6]
+            if infl_width > 1e-9:
+                # For Gaussian, inflection points are at +/- sigma
+                # Distance is 2*sigma
+                # FWHM = 2.355 * sigma = 1.177 * (2*sigma) = 1.177 * infl_width
+                return 1.177 * infl_width
+        
+        # Fallback to slope method
         I_max = params[1]
         slope_rise = params[2]
         slope_fall = params[3]
@@ -1500,9 +1573,9 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                fitderivativestospec,
                getmaxderivative,
                'Derivative Analysis (SG)',
-               6,
-               ['Peak Energy', 'Peak Intensity', 'Max Rise Slope', 'Max Fall Slope', 'Peak Curvature', 'Slope Asymmetry'],
-               ['eV', 'Counts', 'Counts/eV', 'Counts/eV', 'Counts/eV²', ''],
+               8,
+               ['Peak Energy', 'Peak Intensity', 'Max Rise Slope', 'Max Fall Slope', 'Peak Curvature', 'Slope Asymmetry', 'Inflection Width', 'Inflection Asymmetry'],
+               ['eV', 'Counts', 'Counts/eV', 'Counts/eV', 'Counts/eV²', '', 'eV', ''],
                getderivativefwhm,
                0
            ]
