@@ -112,8 +112,8 @@ Treats the normalized spectrum $P(x) = \frac{I(x)}{\sum I(x)}$ as a probability 
 
     $\gamma = \frac{\sum (x_i - \mu)^3 \cdot P(x_i)}{\sigma^3}$
 4.  **Quantile Width**: Width containing 68% of total intensity.
-    $W_{68} = x_{84\%} - x_{16\%}$
-    Where $x_{p\%}$ is the energy where the cumulative sum reaches $p\%$.
+    $W_{68} = x_{84\\%} - x_{16\\%}$
+    Where $x_{p\\%}$ is the energy where the cumulative sum reaches $p\\%$.
 
 #### **Center of Mass** (`'com'`)
 Calculates the intensity-weighted average position.
