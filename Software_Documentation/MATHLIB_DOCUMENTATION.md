@@ -31,7 +31,7 @@ These methods utilize non-linear least squares minimization to fit a model $M(x,
 
 #### **Gaussian Fit** (`fitkeys['gaussian']`)
 *   **Window Function (Index 0)**:
-    $$ G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right) $$
+    $G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right)$
 *   **Parameter Vector $\mathbf{p}$ (Indices 4, 5, 6)**:
     1.  `Gaussian amplitude` ($A$) [Counts]: Peak height.
     2.  `Gaussian center` ($x_0$) [nm/eV]: Peak position.
@@ -41,7 +41,7 @@ These methods utilize non-linear least squares minimization to fit a model $M(x,
 
 #### **Lorentzian Fit** (`fitkeys['lorentz']`)
 *   **Window Function (Index 0)**:
-    $$ L(x) = \frac{A}{1 + \left(\frac{x - x_0}{w}\right)^2} $$
+    $L(x) = \frac{A}{1 + \left(\frac{x - x_0}{w}\right)^2}$
 *   **Parameter Vector $\mathbf{p}$ (Indices 4, 5, 6)**:
     1.  `Lorentzian amplitude` ($A$) [Counts]
     2.  `Lorentzian center` ($x_0$) [nm/eV]
