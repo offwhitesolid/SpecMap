@@ -35,6 +35,7 @@ These methods use `scipy.optimize.curve_fit` to minimize the least-squares error
 
 #### **Gaussian Fit** (`'gaussian'`)
 Models the peak as a Gaussian distribution: 
+
 $G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right)$
 
 *   **Parameters**:
@@ -44,7 +45,9 @@ $G(x) = A \cdot \exp\left(-\frac{(x - x_0)^2}{2w^2}\right)$
 *   **FWHM**: $2\sqrt{2\ln 2} \cdot w \approx 2.355 \cdot w$
 
 #### **Lorentzian Fit** (`'lorentz'`)
-Models the peak as a Lorentzian (Cauchy) distribution. $L(x) = \frac{A}{1 + \left(\frac{x - x_0}{w}\right)^2}$
+Models the peak as a Lorentzian (Cauchy) distribution. 
+
+$L(x) = \frac{A}{1 + \left(\frac{x - x_0}{w}\right)^2}$
 
 *   **Parameters**:
     *   `Lorentzian amplitude` ($A$): Peak height.
@@ -88,7 +91,8 @@ Analyzes the steepness of the peak flanks.
 
     $S_{asym} = \frac{|a_R| - a_L}{|a_R| + a_L}$
 3.  **Curvature**: Fits a quadratic $I(E) = c_0 + c_1(E-E_{max}) + c_2(E-E_{max})^2$ to the peak top (top 10%).
-    *   `Curvature` = $c_2$ (Second derivative proxy).
+    *   `Curvature` = $c_2$ (Second derivative proxy): sharper peaks have larger negative values.
+    Noted as fit-free since it does not involve iterative fitting.
 
 #### **Derivative Analysis** (`'derivative'`)
 Uses a Savitzky-Golay filter to compute smooth derivatives.
@@ -113,7 +117,7 @@ Treats the normalized spectrum $P(x) = \frac{I(x)}{\sum I(x)}$ as a probability 
     $\gamma = \frac{\sum (x_i - \mu)^3 \cdot P(x_i)}{\sigma^3}$
 4.  **Quantile Width**: Width containing 68% of total intensity.
     $W_{68} = x_{84\\%} - x_{16\\%}$
-    Where $x_{p\\%}$ is the energy where the cumulative sum reaches $p\\%$.
+    Where $x_{p\\%}$ is where the cumulative sum reaches $p\\%$.
 
 #### **Center of Mass** (`'com'`)
 Calculates the intensity-weighted average position.
@@ -175,3 +179,12 @@ fit_func = lib.fitkeys[method_key][1]
 # Perform the fit
 # params = fit_func(start_index, end_index, wavelength_array, intensity_array)
 ```
+
+## References
+    A. Savitzky, M. J. E. Golay, Smoothing and Differentiation of Data by
+    Simplified Least Squares Procedures. Analytical Chemistry, 1964, 36 (8),
+    pp 1627-1639, DOI: [10.1021/ac60214a047](https://doi.org/10.1021/ac60214a047).
+
+    Jianwen Luo, Kui Ying, and Jing Bai. 2005. Savitzky-Golay smoothing and
+    differentiation filter for even number data. Signal Process.
+    85, 7 (July 2005), 1429-1434. DOI: [j.sigpro.2005.02.002](https://doi.org/10.1016/j.sigpro.2005.02.002).
