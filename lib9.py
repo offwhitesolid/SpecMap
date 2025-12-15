@@ -2180,11 +2180,10 @@ class XYMap:
     
     def on_close(self):
         plt.close('all')
-        # tkinter destroy
-        try:
-            self.cmapframe.destroy()
-        except:
-            pass
+        # Note: Frame destruction is handled by FileProcessorApp (the frame owner)
+        # XYMap only cleans up resources it creates (matplotlib windows, data arrays, file handles)
+        # Removing frame destruction fixes "main thread is not in main loop" error on repeated loads
+        
         # explicitly clean up spectra to release file handles
         if hasattr(self, 'specs'):
             for spec in self.specs:
