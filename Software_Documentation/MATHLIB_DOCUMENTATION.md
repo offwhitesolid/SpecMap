@@ -82,6 +82,14 @@ Analyzes peak shape via flank slopes and top curvature.
 *   **Algorithm (Index 1)**:
     1.  **Slopes**: Linear regression on left/right flanks (baseline to 50% max).
     2.  **Curvature**: Quadratic fit to top 10% of peak.
+    
+    Let $(x_i, y_i)$ be samples on each flank. The slope is obtained by ordinary least squares:
+    
+    $a = \frac{\sum_i (x_i - \bar{x})(y_i - \bar{y})}{\sum_i (x_i - \bar{x})^2}$
+    
+    applied separately to the left flank ($a_L$) and right flank ($a_R$) segments. Peak-top curvature is obtained by a quadratic fit around $E_{max}$:
+    
+    $y(x) = c_0 + c_1\,(x - E_{max}) + c_2\,(x - E_{max})^2, \quad \text{with curvature } c_2.$
 *   **Parameter Vector $\mathbf{p}$ (Indices 4, 5, 6)**:
     1.  `Peak Energy` ($E_{max}$) [eV]
     2.  `Peak Intensity` ($I_{max}$) [Counts]
@@ -96,6 +104,12 @@ Uses Savitzky-Golay filtering to analyze derivatives.
 *   **Algorithm (Index 1)**:
     1.  Computes $1^{st}$ ($d1$) and $2^{nd}$ ($d2$) derivatives.
     2.  Finds extrema in $d1$ (max rise/fall slopes).
+    
+    With sampling step $\Delta x$, the Savitzky–Golay derivatives are:
+    
+    $d1(x_k) = \mathrm{SG}^{(1)}[y]\,(x_k;\,\text{window},\,\text{order},\,\Delta x), \quad d2(x_k) = \mathrm{SG}^{(2)}[y]\,(x_k;\,\text{window},\,\text{order},\,\Delta x).$
+    
+    The indices of the maxima/minima of $d1$ on the left/right of the peak define the inflection positions $E_{\mathrm{rise}}$ and $E_{\mathrm{fall}}$ and thus the width $W_{\mathrm{inf}} = E_{\mathrm{fall}} - E_{\mathrm{rise}}$.
 *   **Parameter Vector $\mathbf{p}$ (Indices 4, 5, 6)**:
     1.  `Peak Energy` [eV]
     2.  `Peak Intensity` [Counts]
@@ -110,6 +124,17 @@ Uses Savitzky-Golay filtering to analyze derivatives.
 #### **Moment Analysis** (`fitkeys['moments']`)
 Treats the spectrum as a probability distribution $P(x)$.
 *   **Algorithm (Index 1)**: Calculates statistical moments.
+    
+    Let $I(x)$ be the intensity and $P(x_i) = I(x_i)/\sum_j I(x_j)$ the normalized weights.
+    
+    - Center of mass:
+    $\mu = \sum_i x_i\,P(x_i).$
+    - Variance and sigma:
+    $\sigma = \sqrt{\sum_i (x_i - \mu)^2\,P(x_i)}.$
+    - Skewness (standardized third moment):
+    $\gamma = \frac{\sum_i (x_i - \mu)^3\,P(x_i)}{\sigma^3}.$
+    - Quantiles via cumulative sum $C(x_i) = \sum_{j\le i} P(x_j)$ and linear interpolation, with
+    $W_{68} = x_{84\%} - x_{16\%}, \quad \mathrm{Asym} = \frac{(x_{84\%} - x_{50\%}) - (x_{50\%} - x_{16\%})}{x_{84\%} - x_{16\%}}.$
 *   **Parameter Vector $\mathbf{p}$ (Indices 4, 5, 6)**:
     1.  `Center of Mass` ($\mu$) [eV]: $\sum x_i P_i$
     2.  `Total Intensity` [Counts]: $\sum I_i$
@@ -121,6 +146,8 @@ Treats the spectrum as a probability distribution $P(x)$.
 
 #### **Center of Mass** (`fitkeys['com']`)
 *   **Algorithm (Index 1)**: Weighted average position.
+    
+    $\lambda_{\mathrm{COM}} = \frac{\sum_i \lambda_i\,I_i}{\sum_i I_i}, \quad I_{\mathrm{tot}} = \sum_i I_i.$
 *   **Parameter Vector $\mathbf{p}$**:
     1.  `Center of Mass` [eV]
     2.  `Integrated Intensity` [Counts]
@@ -128,6 +155,10 @@ Treats the spectrum as a probability distribution $P(x)$.
 
 #### **Decay/Rise Slope** (`fitkeys['decay']`)
 *   **Algorithm (Index 1)**: Discrete derivatives on flanks. Uses percentiles (5th/95th) for robustness.
+    
+    For discrete samples on each flank, define
+    $s_i = \frac{I_{i+1} - I_i}{x_{i+1} - x_i}.$
+    On the right flank, use $\min$ or the 5th percentile of $\{s_i\}$ as robust decay. On the left flank, use $\max$ or the 95th percentile as robust rise. The associated energy for a slope $s_i$ is taken at $x_i$ (or the interval midpoint).
 *   **Parameter Vector $\mathbf{p}$**:
     1.  `Peak Energy` [eV]
     2.  `Peak Intensity` [Counts]
@@ -139,6 +170,10 @@ Treats the spectrum as a probability distribution $P(x)$.
 
 #### **Binning Decay** (`fitkeys['binning']`)
 *   **Algorithm (Index 1)**: Resamples spectrum to 11 equidistant points and calculates differences.
+    
+    With equidistant bin positions $x^{(b)}_j$ and interpolated intensities $I^{(b)}_j$, define
+    $\Delta I_j = I^{(b)}_{j+1} - I^{(b)}_{j}, \quad j=0,\dots,9,$
+    returning $I^{(b)}_0$ and the 10 differences $\Delta I_j$.
 *   **Parameter Vector $\mathbf{p}$**:
     1.  `Start Intensity` [Counts]
     2.  `Bin Diff 1`...`Bin Diff 10` [Counts]: Change in intensity between bins.
@@ -188,6 +223,11 @@ fit_func = lib.fitkeys[method_key][1]
 ```
 
 ## References
+
+    # stiffness method references
+    
+
+
     A. Savitzky, M. J. E. Golay, Smoothing and Differentiation of Data by
     Simplified Least Squares Procedures. Analytical Chemistry, 1964, 36 (8),
     pp 1627-1639, DOI: [10.1021/ac60214a047](https://doi.org/10.1021/ac60214a047).
