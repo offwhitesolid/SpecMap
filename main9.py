@@ -25,6 +25,8 @@ class FileProcessorApp:
         self.multiple_BG = tk.IntVar()
         self.linearBG = tk.IntVar()
         self.removecosmicsBool = tk.IntVar()
+        # Track threads with stop events for proper cleanup
+        self.managed_threads = []
         self.createmenue()
         self.windownotebook(deflib.Notebooks)
         # init XYMap GUI components
@@ -499,10 +501,20 @@ class FileProcessorApp:
     def spec_loadfiles(self):
         # close all open matplotlib windows        # close all running threads
         plt.close('all')
+        
+        # Stop managed threads safely
+        self._stop_managed_threads()
+        
+        # Fallback: try to stop any remaining threads with stop_event
         for thread in thr.enumerate():
-            if thread.name != 'MainThread':
-                if hasattr(thread, 'stop_event'):
-                    thread.stop_event.set()
+            if thread.name != 'MainThread' and thread.is_alive():
+                # Use getattr with default instead of hasattr to avoid exception suppression
+                stop_event = getattr(thread, 'stop_event', None)
+                if stop_event is not None:
+                    try:
+                        stop_event.set()
+                    except Exception as e:
+                        print(f"Warning: Could not stop thread {thread.name}: {e}")
 		
         # kill any existing Nanomap object
         try:
@@ -573,6 +585,30 @@ class FileProcessorApp:
 
     def filter_substring(self, a, b):
         return [element for element in a if b in element]
+    
+    def _stop_managed_threads(self):
+        """
+        Safely stop all managed threads by setting their stop_event.
+        Removes dead threads from the list.
+        """
+        threads_to_remove = []
+        
+        for thread in self.managed_threads:
+            if thread.is_alive():
+                stop_event = getattr(thread, 'stop_event', None)
+                if stop_event is not None:
+                    try:
+                        stop_event.set()
+                        # Optionally wait for thread to finish (with timeout)
+                        thread.join(timeout=0.5)
+                    except Exception as e:
+                        print(f"Warning: Error stopping thread {thread.name}: {e}")
+            else:
+                threads_to_remove.append(thread)
+        
+        # Clean up dead threads from the list
+        for thread in threads_to_remove:
+            self.managed_threads.remove(thread)
     
     def cl_loadfiles(self):
         file = self.cl_file_entry.get()

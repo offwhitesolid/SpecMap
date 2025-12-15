@@ -612,10 +612,27 @@ def find_max_of_fit(fitfunc, tol=1e-6, maxiter=10000, xmin=500, xmax=600):
 
 # calculate the r_squared between fit and data
 # r_squared = 1 - (ss_res / ss_tot) 
-def calc_r_squared(fit, data): # args: data, y_fit(data)
-    ss_res = np.sum((data - fit)**2)
-    ss_tot = np.sum((data - np.mean(data))**2)
-    r_squared = 1 - (ss_res / ss_tot)
+def calc_r_squared(fit, data): # args: data(observations), y_fit(model)
+    # Note: lib9.py passes (observations, model) as (fit, data)
+    # So 'fit' argument contains observations, 'data' argument contains model
+    
+    # Convert to numpy arrays to handle lists and ensure correct math
+    obs = np.array(fit)
+    model = np.array(data)
+    
+    # Calculate sums of squares
+    # ss_res = sum((y_obs - y_model)^2)
+    ss_res = np.sum((obs - model)**2)
+    
+    # ss_tot = sum((y_obs - mean(y_obs))^2)
+    # We must calculate variance on OBSERVATIONS, not model
+    ss_tot = np.sum((obs - np.mean(obs))**2)
+    
+    if ss_tot == 0:
+        r_squared = 0.0
+    else:
+        r_squared = 1 - (ss_res / ss_tot)
+        
     return r_squared, ss_res, ss_tot
 # ss_res is the sum of the squared residuals
 # ss_tot is the total sum of squares
@@ -891,7 +908,6 @@ def isolate_oscillation(signal, wl, window_length=51, polyorder=3, prominence=No
             maxima_wl, minima_wl,
             maxima_values, minima_values)
 
-    pass
 
 # dictionary of window functions and their corresponding fit functions
 # and functions to get the maxima of the fitted functions
@@ -903,8 +919,1015 @@ def isolate_oscillation(signal, wl, window_length=51, polyorder=3, prominence=No
 Note about the fit
 fitparamunits array contains the following:
 
-
 '''
+
+# ============================================================================
+# Stiffness Analysis Functions
+# ============================================================================
+# These functions analyze peak shape through flank slopes and top curvature
+# without assuming specific line shapes (Voigt, Gaussian, etc.)
+
+def find_baseline_region(intensity, noise_threshold=0.1):
+    """
+    Find baseline regions at start and end of spectrum.
+    Returns indices where intensity is below noise_threshold * max(intensity).
+    
+    Parameters:
+    -----------
+    intensity : array
+        Intensity values
+    noise_threshold : float
+        Fraction of max intensity to consider as baseline (default 0.1)
+    
+    Returns:
+    --------
+    left_base_idx : int
+        Index of left baseline point
+    right_base_idx : int
+        Index of right baseline point
+    """
+    max_intensity = np.max(intensity)
+    threshold = noise_threshold * max_intensity
+    
+    # Find left baseline (first point where intensity rises above threshold)
+    left_base_idx = 0
+    for i in range(len(intensity)):
+        if intensity[i] > threshold:
+            left_base_idx = max(0, i - 1)
+            break
+    
+    # Find right baseline (last point where intensity drops below threshold)
+    right_base_idx = len(intensity) - 1
+    for i in range(len(intensity) - 1, -1, -1):
+        if intensity[i] > threshold:
+            right_base_idx = min(len(intensity) - 1, i + 1)
+            break
+    
+    return left_base_idx, right_base_idx
+
+def calculate_flank_slopes(energy, intensity, peak_fraction=0.5, smooth=False):
+    """
+    Calculate left and right flank slopes using linear regression.
+    
+    Parameters:
+    -----------
+    energy : array
+        Energy values (x-axis)
+    intensity : array
+        Intensity values (y-axis)
+    peak_fraction : float
+        Fraction of peak height to use for flank definition (default 0.5 = 50%)
+    smooth : bool
+        Apply smoothing before calculation (default False)
+    
+    Returns:
+    --------
+    a_L : float
+        Left flank slope (counts/eV)
+    a_R : float
+        Right flank slope (counts/eV)
+    E_left_base : float
+        Left baseline energy
+    E_right_base : float
+        Right baseline energy
+    """
+    # Smooth if requested
+    if smooth and len(intensity) > 5:
+        from scipy.ndimage import gaussian_filter1d
+        intensity = gaussian_filter1d(intensity, sigma=1.0)
+    
+    # Find peak position
+    peak_idx = np.argmax(intensity)
+    peak_intensity = intensity[peak_idx]
+    
+    # Find baseline points
+    left_base_idx, right_base_idx = find_baseline_region(intensity, noise_threshold=0.1)
+    
+    # Define flank regions (from baseline to peak_fraction of peak height)
+    flank_threshold = peak_fraction * peak_intensity
+    
+    # Left flank: from left baseline to where intensity reaches flank_threshold
+    left_flank_end = peak_idx
+    for i in range(left_base_idx, peak_idx):
+        if intensity[i] >= flank_threshold:
+            left_flank_end = i
+            break
+    
+    # Right flank: from peak to where intensity drops below flank_threshold
+    right_flank_start = peak_idx
+    for i in range(peak_idx, right_base_idx):
+        if intensity[i] <= flank_threshold:
+            right_flank_start = i
+            break
+    
+    # Linear fit for left flank
+    if left_flank_end > left_base_idx:
+        x_left = energy[left_base_idx:left_flank_end+1]
+        y_left = intensity[left_base_idx:left_flank_end+1]
+        if len(x_left) > 1:
+            poly_coeffs = np.polyfit(x_left, y_left, 1)
+            a_L = float(poly_coeffs[0])
+        else:
+            a_L = 0.0
+    else:
+        a_L = 0.0
+    
+    # Linear fit for right flank
+    if right_flank_start < right_base_idx:
+        x_right = energy[right_flank_start:right_base_idx+1]
+        y_right = intensity[right_flank_start:right_base_idx+1]
+        if len(x_right) > 1:
+            poly_coeffs = np.polyfit(x_right, y_right, 1)
+            a_R = float(poly_coeffs[0])
+        else:
+            a_R = 0.0
+    else:
+        a_R = 0.0
+    
+    E_left_base = float(energy[left_base_idx])
+    E_right_base = float(energy[right_base_idx])
+    
+    return a_L, a_R, E_left_base, E_right_base
+
+def calculate_peak_curvature(energy, intensity, window_fraction=0.1):
+    """
+    Calculate peak-top curvature using quadratic fit.
+    
+    Parameters:
+    -----------
+    energy : array
+        Energy values (x-axis)
+    intensity : array
+        Intensity values (y-axis)
+    window_fraction : float
+        Fraction of energy range to use for peak-top fit (default 0.1 = 10%)
+    
+    Returns:
+    --------
+    curvature : float
+        Second derivative coefficient c_2 from quadratic fit (counts/eV²)
+    E_max : float
+        Energy at peak maximum
+    I_max : float
+        Intensity at peak maximum
+    """
+    # Find peak position
+    peak_idx = np.argmax(intensity)
+    E_max = float(energy[peak_idx])
+    I_max = float(intensity[peak_idx])
+    
+    # Define window around peak
+    energy_range = float(energy[-1] - energy[0])
+    window_size = window_fraction * energy_range
+    
+    # Find indices within window
+    window_mask = np.abs(energy - E_max) <= window_size / 2
+    x_window = energy[window_mask]
+    y_window = intensity[window_mask]
+    
+    # Quadratic fit: I(E) = c_0 + c_1*(E - E_max) + c_2*(E - E_max)²
+    if len(x_window) >= 3:
+        # Shift to center at E_max for better numerical stability
+        x_shifted = x_window - E_max
+        coeffs = np.polyfit(x_shifted, y_window, 2)
+        curvature = float(coeffs[0])  # c_2 coefficient (second derivative / 2)
+    else:
+        curvature = 0.0
+    
+    return curvature, E_max, I_max
+
+def calculate_asymmetry(a_L, a_R):
+    """
+    Calculate asymmetry metric from flank slopes.
+    
+    Parameters:
+    -----------
+    a_L : float
+        Left flank slope (positive for rising edge)
+    a_R : float
+        Right flank slope (negative for falling edge)
+    
+    Returns:
+    --------
+    S_asym : float
+        Asymmetry metric: (|a_R| - a_L) / (|a_R| + a_L)
+        Range: -1 to +1
+        0 = symmetric
+        > 0 = steeper right side
+        < 0 = steeper left side
+    """
+    abs_aR = float(np.abs(a_R))
+    abs_aL = float(np.abs(a_L))
+    denominator = abs_aR + abs_aL
+    
+    if denominator > 0:
+        S_asym = float((abs_aR - abs_aL) / denominator)
+    else:
+        S_asym = 0.0
+    
+    return S_asym
+
+def fitstiffnesstospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Perform stiffness analysis on spectrum.
+    
+    Parameters:
+    -----------
+    start : int
+        Start index in arrays
+    end : int
+        End index in arrays
+    WL : array
+        Energy/wavelength array
+    PLB : array
+        Intensity array
+    maxfev : int
+        Not used (for compatibility with other fit functions)
+    guess : array or None
+        Not used (for compatibility with other fit functions)
+    
+    Returns:
+    --------
+    E_max : float
+        Energy at peak maximum (eV)
+    I_max : float
+        Intensity at peak maximum (counts)
+    a_L : float
+        Left flank slope (counts/eV)
+    a_R : float
+        Right flank slope (counts/eV)
+    S_asym : float
+        Asymmetry metric (dimensionless)
+    curvature : float
+        Peak-top curvature (counts/eV²)
+    pcov : None
+        Placeholder for covariance matrix (not applicable here)
+    """
+    # Extract spectrum region - convert to numpy arrays explicitly
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    # Handle edge cases
+    if len(x) < 3 or np.max(y) <= 0:
+        # Return zeros if spectrum is too short or empty
+        return float(0.0), float(0.0), float(0.0), float(0.0), float(0.0), float(0.0), None
+    
+    # Find peak position first
+    peak_idx = np.argmax(y)
+    E_max = float(x[peak_idx])
+    I_max = float(y[peak_idx])
+    
+    # Calculate flank slopes
+    try:
+        a_L, a_R, _, _ = calculate_flank_slopes(x, y, peak_fraction=0.5, smooth=False)
+        a_L = float(a_L)
+        a_R = float(a_R)
+    except:
+        a_L = float(0.0)
+        a_R = float(0.0)
+    
+    # Calculate peak curvature
+    try:
+        curvature, _, _ = calculate_peak_curvature(x, y, window_fraction=0.1)
+        curvature = float(curvature)
+    except:
+        curvature = float(0.0)
+    
+    # Calculate asymmetry
+    try:
+        S_asym = calculate_asymmetry(a_L, a_R)
+        S_asym = float(S_asym)
+    except:
+        S_asym = float(0.0)
+    
+    return E_max, I_max, a_L, a_R, S_asym, curvature, None
+
+def stiffness_window(x, E_max, I_max, a_L, a_R, S_asym, curvature):
+    """
+    Construct a split Gaussian peak from stiffness parameters for visualization.
+    Widths are estimated from flank slopes to provide a visual check of the analysis.
+    """
+    # Ensure x is a numpy array for element-wise operations
+    x = np.array(x)
+    
+    # Factor relating max slope to width for Gaussian: max_slope = I_max / (sigma * sqrt(e))
+    # sigma = I_max / (max_slope * sqrt(e))
+    # sqrt(e) approx 1.6487
+    factor = 1.6487
+    
+    # Estimate widths from slopes (handle potential zeros)
+    if abs(a_L) > 1e-9:
+        sigma_L = I_max / (abs(a_L) * factor)
+    else:
+        sigma_L = 1.0 # Fallback
+        
+    if abs(a_R) > 1e-9:
+        sigma_R = I_max / (abs(a_R) * factor)
+    else:
+        sigma_R = 1.0 # Fallback
+    
+    # Construct split Gaussian
+    y = np.zeros_like(x)
+    
+    # Left side (x < E_max)
+    mask_L = x < E_max
+    if np.any(mask_L):
+        y[mask_L] = I_max * np.exp(-(x[mask_L] - E_max)**2 / (2 * sigma_L**2))
+    
+    # Right side (x >= E_max)
+    mask_R = x >= E_max
+    if np.any(mask_R):
+        y[mask_R] = I_max * np.exp(-(x[mask_R] - E_max)**2 / (2 * sigma_R**2))
+        
+    return y
+
+def getstiffnessfwhm(params):
+    """
+    Estimate FWHM from stiffness parameters (using split Gaussian approximation).
+    params: [E_max, I_max, a_L, a_R, S_asym, curvature]
+    """
+    try:
+        I_max = params[1]
+        a_L = params[2]
+        a_R = params[3]
+        
+        factor = 1.6487 # sqrt(e)
+        
+        if abs(a_L) > 1e-9:
+            sigma_L = I_max / (abs(a_L) * factor)
+        else:
+            sigma_L = 0.0
+            
+        if abs(a_R) > 1e-9:
+            sigma_R = I_max / (abs(a_R) * factor)
+        else:
+            sigma_R = 0.0
+            
+        # FWHM approx 2.355 * sigma (average sigma)
+        fwhm = 2.355 * (sigma_L + sigma_R) / 2
+        return fwhm
+    except:
+        return 0.0
+
+def getmaxstiffness(xmin, xmax, E_max, I_max, a_L, a_R, S_asym, curvature):
+    """
+    Get maximum position from stiffness analysis parameters.
+    
+    Parameters:
+    -----------
+    xmin, xmax : float
+        Energy range (not used, for compatibility)
+    E_max : float
+        Energy at peak maximum
+    I_max : float
+        Intensity at peak maximum
+    a_L, a_R, S_asym, curvature : float
+        Other stiffness parameters (not used here)
+    
+    Returns:
+    --------
+    E_max : float
+        Energy at peak maximum
+    I_max : float
+        Intensity at peak maximum
+    """
+    return E_max, I_max
+
+# ============================================================================
+# Derivative Analysis Functions (Savitzky-Golay)
+# ============================================================================
+
+def fitderivativestospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Perform derivative-based analysis using Savitzky-Golay filter.
+    Calculates max slope (1st derivative) and peak curvature (2nd derivative).
+    Extended to include inflection point width and asymmetry.
+    
+    Parameters:
+    -----------
+    start, end, WL, PLB, maxfev, guess: Standard fit function parameters
+    
+    Returns:
+    --------
+    E_max : float
+        Energy at peak maximum
+    I_max : float
+        Intensity at peak maximum
+    Max_Slope_Rise : float
+        Maximum positive slope (rising edge)
+    Max_Slope_Fall : float
+        Maximum negative slope (falling edge)
+    Curvature_Top : float
+        Second derivative at peak maximum (curvature)
+    S_asym_deriv : float
+        Asymmetry based on max slopes: (|Fall| - Rise) / (|Fall| + Rise)
+    Inflection_Width : float
+        Distance between max slope positions (approx width)
+    Inflection_Asym : float
+        Asymmetry based on inflection point positions
+    pcov : None
+    """
+    # Extract spectrum region
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    # Handle edge cases
+    if len(x) < 5 or np.max(y) <= 0:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+        
+    # Parameters for Savitzky-Golay
+    # Window length must be odd and <= len(x)
+    window_length = min(11, len(x))
+    if window_length % 2 == 0:
+        window_length -= 1
+    if window_length < 5:
+        window_length = len(x) if len(x) % 2 != 0 else len(x) - 1
+        
+    polyorder = 3
+    
+    try:
+        # Calculate derivatives
+        # delta x is needed for correct scaling of derivatives
+        dx = np.mean(np.diff(x))
+        
+        # 0th derivative (smoothed intensity)
+        y_smooth = savgol_filter(y, window_length, polyorder, deriv=0)
+        
+        # 1st derivative (slope)
+        d1 = savgol_filter(y, window_length, polyorder, deriv=1, delta=dx)
+        
+        # 2nd derivative (curvature)
+        d2 = savgol_filter(y, window_length, polyorder, deriv=2, delta=dx)
+        
+        # Find peak position from smoothed data
+        peak_idx = np.argmax(y_smooth)
+        E_max = float(x[peak_idx])
+        I_max = float(y_smooth[peak_idx])
+        
+        # Max slope on rising edge (before peak)
+        if peak_idx > 0:
+            idx_rise = np.argmax(d1[:peak_idx])
+            max_slope_rise = float(d1[idx_rise])
+            E_rise = float(x[idx_rise])
+        else:
+            max_slope_rise = 0.0
+            E_rise = E_max
+            
+        # Max slope on falling edge (after peak) - should be negative
+        if peak_idx < len(d1) - 1:
+            # search in [peak_idx:]
+            idx_fall_local = np.argmin(d1[peak_idx:])
+            idx_fall = peak_idx + idx_fall_local
+            max_slope_fall = float(d1[idx_fall])
+            E_fall = float(x[idx_fall])
+        else:
+            max_slope_fall = 0.0
+            E_fall = E_max
+            
+        # Curvature at peak (2nd derivative at peak index)
+        curvature_top = float(d2[peak_idx])
+        
+        # Asymmetry metric based on max slopes
+        abs_fall = abs(max_slope_fall)
+        abs_rise = abs(max_slope_rise)
+        denom = abs_fall + abs_rise
+        
+        if denom > 0:
+            s_asym = float((abs_fall - abs_rise) / denom)
+        else:
+            s_asym = 0.0
+            
+        # Inflection Width and Asymmetry
+        inflection_width = float(E_fall - E_rise)
+        
+        width_L = E_max - E_rise
+        width_R = E_fall - E_max
+        
+        if inflection_width > 1e-9:
+            inflection_asym = float((width_R - width_L) / inflection_width)
+        else:
+            inflection_asym = 0.0
+            
+        return E_max, I_max, max_slope_rise, max_slope_fall, curvature_top, s_asym, inflection_width, inflection_asym, None
+        
+    except Exception as e:
+        print(f"Derivative analysis failed: {e}")
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+
+def derivative_window(x, E_max, I_max, slope_rise, slope_fall, curvature, s_asym, infl_width, infl_asym):
+    """
+    Construct a visualization for derivative analysis.
+    Uses a split Gaussian approximated from the inflection point positions.
+    This provides a better reconstruction for asymmetric peaks than slope magnitude alone.
+    """
+    x = np.array(x)
+    
+    # If inflection width is available, use it to determine sigmas
+    if infl_width > 1e-9:
+        # W_L = W/2 * (1 - A)
+        # W_R = W/2 * (1 + A)
+        # For Gaussian, inflection point is at sigma. So sigma_L = W_L, sigma_R = W_R
+        sigma_L = (infl_width / 2.0) * (1.0 - infl_asym)
+        sigma_R = (infl_width / 2.0) * (1.0 + infl_asym)
+        
+        # Safety check
+        if sigma_L <= 0: sigma_L = 1.0
+        if sigma_R <= 0: sigma_R = 1.0
+        
+    else:
+        # Fallback to slope magnitude method
+        factor = 0.6065
+        if abs(slope_rise) > 1e-9:
+            sigma_L = (I_max * factor) / abs(slope_rise)
+        else:
+            sigma_L = 1.0
+            
+        if abs(slope_fall) > 1e-9:
+            sigma_R = (I_max * factor) / abs(slope_fall)
+        else:
+            sigma_R = 1.0
+        
+    y = np.zeros_like(x)
+    
+    # Left side
+    mask_L = x < E_max
+    if np.any(mask_L):
+        y[mask_L] = I_max * np.exp(-(x[mask_L] - E_max)**2 / (2 * sigma_L**2))
+        
+    # Right side
+    mask_R = x >= E_max
+    if np.any(mask_R):
+        y[mask_R] = I_max * np.exp(-(x[mask_R] - E_max)**2 / (2 * sigma_R**2))
+        
+    return y
+
+def getderivativefwhm(params):
+    """
+    Estimate FWHM from derivative parameters.
+    params: [E_max, I_max, slope_rise, slope_fall, curvature, s_asym, infl_width, infl_asym]
+    """
+    try:
+        # If inflection width is available (index 6), use it
+        if len(params) > 6:
+            infl_width = params[6]
+            if infl_width > 1e-9:
+                # For Gaussian, inflection points are at +/- sigma
+                # Distance is 2*sigma
+                # FWHM = 2.355 * sigma = 1.177 * (2*sigma) = 1.177 * infl_width
+                return 1.177 * infl_width
+        
+        # Fallback to slope method
+        I_max = params[1]
+        slope_rise = params[2]
+        slope_fall = params[3]
+        
+        factor = 0.6065 # exp(-0.5)
+        
+        if abs(slope_rise) > 1e-9:
+            sigma_L = (I_max * factor) / abs(slope_rise)
+        else:
+            sigma_L = 0.0
+            
+        if abs(slope_fall) > 1e-9:
+            sigma_R = (I_max * factor) / abs(slope_fall)
+        else:
+            sigma_R = 0.0
+            
+        return 2.355 * (sigma_L + sigma_R) / 2
+    except:
+        return 0.0
+
+def getmaxderivative(xmin, xmax, E_max, I_max, *args):
+    return E_max, I_max
+
+# ============================================================================
+# Moment Analysis Functions (Variance & Quantiles)
+# ============================================================================
+
+def fitmomentstospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Perform moment-based analysis (fit-free).
+    Calculates Center of Mass, Variance (Sigma), Skewness, and Quantile Widths.
+    Robust for asymmetric peaks.
+    
+    Parameters:
+    -----------
+    start, end, WL, PLB, maxfev, guess: Standard fit function parameters
+    
+    Returns:
+    --------
+    COM : float
+        Center of Mass (First Moment)
+    Total_Int : float
+        Total Integrated Intensity (Sum)
+    Sigma : float
+        Standard Deviation (Square root of Second Moment)
+    Skewness : float
+        Third Standardized Moment
+    Quantile_Width : float
+        Width containing 68% of data (16% to 84% percentiles)
+    Quantile_Asym : float
+        Asymmetry based on quantiles: ( (x84-x50) - (x50-x16) ) / (x84-x16)
+    pcov : None
+    """
+    # Extract spectrum region
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    # Handle edge cases
+    if len(x) < 3 or np.sum(y) <= 0:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+        
+    try:
+        # Ensure y is positive (baseline subtraction might be needed in real usage, 
+        # but here we assume PLB is already baseline corrected or we take abs/clip)
+        y_proc = np.maximum(y, 0)
+        total_intensity = np.sum(y_proc)
+        
+        if total_intensity == 0:
+             return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+             
+        # Normalized probability distribution
+        prob = y_proc / total_intensity
+        
+        # 1. Center of Mass (First Moment)
+        com = np.sum(x * prob)
+        
+        # 2. Variance & Sigma (Second Moment)
+        variance = np.sum(((x - com)**2) * prob)
+        sigma = np.sqrt(variance)
+        
+        # 3. Skewness (Third Moment)
+        if sigma > 0:
+            skewness = np.sum(((x - com)**3) * prob) / (sigma**3)
+        else:
+            skewness = 0.0
+            
+        # 4. Quantile Width (16% - 84%)
+        cumsum = np.cumsum(prob)
+        # Interpolate to find x values for specific probabilities
+        # We need strictly increasing cumsum for interp, but it might have flats.
+        # Usually fine for noisy data.
+        
+        x16 = np.interp(0.16, cumsum, x)
+        x50 = np.interp(0.50, cumsum, x)
+        x84 = np.interp(0.84, cumsum, x)
+        
+        quantile_width = x84 - x16
+        
+        # 5. Quantile Asymmetry
+        # (Right_Half_Width - Left_Half_Width) / Total_Width
+        if quantile_width > 0:
+            quantile_asym = ((x84 - x50) - (x50 - x16)) / quantile_width
+        else:
+            quantile_asym = 0.0
+            
+        return float(com), float(total_intensity), float(sigma), float(skewness), float(quantile_width), float(quantile_asym), None
+        
+    except Exception as e:
+        print(f"Moment analysis failed: {e}")
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+
+def moment_window(x, com, total_int, sigma, skewness, q_width, q_asym):
+    """
+    Construct a visualization for moment analysis.
+    Uses a Gaussian defined by COM and Sigma (Second Moment).
+    """
+    x = np.array(x)
+    
+    if sigma <= 0:
+        return np.zeros_like(x)
+        
+    # Gaussian area = A = total_int * dx (approx)
+    # But total_int here is sum(y).
+    # If x is uniformly spaced with spacing dx: sum(y) * dx = Integral.
+    # Gaussian integral = Amplitude * sigma * sqrt(2*pi).
+    # So Amplitude = (sum(y) * dx) / (sigma * sqrt(2*pi)).
+    
+    # Estimate dx
+    if len(x) > 1:
+        dx = np.mean(np.diff(x))
+    else:
+        dx = 1.0
+        
+    amplitude = (total_int * dx) / (sigma * np.sqrt(2 * np.pi))
+    
+    # Simple Gaussian reconstruction
+    y = amplitude * np.exp(-(x - com)**2 / (2 * sigma**2))
+    
+    return y
+
+def getmomentfwhm(params):
+    """
+    Estimate FWHM from moment parameters.
+    params: [COM, Total_Int, Sigma, Skewness, Quantile_Width, Quantile_Asym]
+    """
+    try:
+        # Use Quantile Width (contains 68% of data)
+        # For Gaussian, 16%-84% is exactly 2*sigma.
+        # FWHM = 2.355 * sigma.
+        # So FWHM approx 1.177 * Quantile_Width
+        q_width = params[4]
+        return 1.177 * q_width
+    except:
+        return 0.0
+
+def getmaxmoments(xmin, xmax, com, total_int, sigma, *args):
+    """
+    Return max position and intensity of the reconstructed Gaussian.
+    """
+    # Reconstruct max intensity
+    # Amplitude = (total_int * dx) / (sigma * sqrt(2*pi))
+    # We don't have dx here easily without x array.
+    # But we can approximate or just return total_int for now?
+    # fitkeys expects (x_max, y_max).
+    # Let's try to estimate y_max assuming some average dx or just return 0 for y_max if not critical.
+    # Actually, for plotting "fitmaxX" and "fitmaxY", we need reasonable values.
+    # Let's assume dx is small or just return total_int as a proxy for "magnitude".
+    # OR, better: The user might want to map COM as the "position".
+    
+    # For intensity, let's return total_int (Integrated Intensity) as it's a robust measure of signal strength.
+    return com, total_int
+
+# ============================================================================
+# Center of Mass Analysis
+# ============================================================================
+
+def fitcomtospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Calculate Center of Mass (First Moment) of the spectrum.
+    Fit-free method. Respects asymmetric peaks by integrating over the full shape.
+    Formula: COM = Sum(lambda_i * I_i) / Sum(I_i)
+    """
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    if len(x) < 2 or np.sum(y) <= 0:
+        return 0.0, 0.0, None
+        
+    try:
+        # Ensure y is positive
+        y_proc = np.maximum(y, 0)
+        total_intensity = np.sum(y_proc)
+        
+        if total_intensity == 0:
+            return 0.0, 0.0, None
+            
+        com = np.sum(x * y_proc) / total_intensity
+        
+        return float(com), float(total_intensity), None
+    except Exception as e:
+        return 0.0, 0.0, None
+
+def com_window(x, com, total_int):
+    """
+    Window function for Center of Mass.
+    Returns zeros as there is no shape fit to display.
+    """
+    return np.zeros_like(np.array(x))
+
+def getmaxcom(xmin, xmax, com, total_int, *args):
+    return com, total_int
+
+def getcomfwhm(params):
+    return 0.0
+
+# ============================================================================
+# Max Decay Slope Analysis
+# ============================================================================
+
+def fitdecaytospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Calculate Maximum Decay Slope on the right flank.
+    Finds peak maximum, then computes discrete derivatives on the right side.
+    Returns the steepest fall (minimum slope value).
+    Robustness: Uses 5th percentile of slopes if enough points are available.
+    """
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    if len(x) < 3 or np.max(y) <= 0:
+        return 0.0, 0.0, 0.0, 0.0, None
+        
+    try:
+        # Find peak index
+        k_max = np.argmax(y)
+        E_max = float(x[k_max])
+        I_max = float(y[k_max])
+        
+        # Check if there are points to the right
+        if k_max >= len(x) - 2:
+            return E_max, I_max, 0.0, E_max, None
+            
+        # Extract right side
+        x_right = x[k_max:]
+        y_right = y[k_max:]
+        
+        # Calculate discrete derivatives
+        # s_i = (I_{i+1} - I_i) / (lambda_{i+1} - lambda_i)
+        dy = np.diff(y_right)
+        dx = np.diff(x_right)
+        
+        # Avoid division by zero
+        with np.errstate(divide='ignore', invalid='ignore'):
+            slopes = dy / dx
+            
+        # Filter out NaNs or Infs
+        valid_mask = np.isfinite(slopes)
+        slopes = slopes[valid_mask]
+        
+        if len(slopes) == 0:
+            return E_max, I_max, 0.0, E_max, None
+            
+        # We are looking for the steepest fall, which is the minimum (most negative) slope.
+        # Robustness: Ignore last few points if array is long enough
+        if len(slopes) > 5:
+            # Ignore last 2 points to avoid tail noise
+            slopes_robust = slopes[:-2]
+        else:
+            slopes_robust = slopes
+            
+        if len(slopes_robust) == 0:
+             slopes_robust = slopes
+             
+        # Robustness: Use 5th percentile instead of absolute min if enough points
+        if len(slopes_robust) >= 10:
+            s_min = np.percentile(slopes_robust, 5)
+        else:
+            s_min = np.min(slopes_robust)
+            
+        # Find the energy where this slope occurs (approximate)
+        # We need to map back to original x array
+        # This is a bit tricky with percentile, so let's just find the index of the value closest to s_min
+        idx_min = np.argmin(np.abs(slopes - s_min))
+        # x_right has length N, slopes has length N-1. 
+        # Slope i corresponds to interval between x_right[i] and x_right[i+1].
+        # Let's assign it to x_right[i] (or midpoint)
+        slope_energy = float(x_right[idx_min])
+        
+        # Return absolute value as requested? 
+        # "Use |s_min| as a flank-steepness measure."
+        # But usually fit functions return the actual parameter. 
+        # Let's return the signed slope, the user can take abs in their head or we label it "Max Decay Slope".
+        # Actually, for "Max Decay Slope", a large negative number is the "Max Decay".
+        # Let's return the signed value s_min.
+        
+        # --- Left Flank (Rise) ---
+        # Check if there are points to the left
+        if k_max < 2:
+            s_max = 0.0
+            rise_slope_energy = E_max
+        else:
+            x_left = x[:k_max+1] # Include peak for continuity
+            y_left = y[:k_max+1]
+            
+            dy_left = np.diff(y_left)
+            dx_left = np.diff(x_left)
+            
+            with np.errstate(divide='ignore', invalid='ignore'):
+                slopes_left = dy_left / dx_left
+                
+            valid_mask_left = np.isfinite(slopes_left)
+            slopes_left = slopes_left[valid_mask_left]
+            
+            if len(slopes_left) == 0:
+                s_max = 0.0
+                rise_slope_energy = E_max
+            else:
+                # Robustness: Ignore first few points?
+                if len(slopes_left) > 5:
+                    slopes_left_robust = slopes_left[2:] # Ignore first 2 points
+                else:
+                    slopes_left_robust = slopes_left
+                
+                if len(slopes_left_robust) == 0:
+                    slopes_left_robust = slopes_left
+
+                # We want max positive slope.
+                # Robustness: 95th percentile
+                if len(slopes_left_robust) >= 10:
+                    s_max = np.percentile(slopes_left_robust, 95)
+                else:
+                    s_max = np.max(slopes_left_robust)
+                    
+                # Find energy
+                idx_max = np.argmin(np.abs(slopes_left - s_max))
+                rise_slope_energy = float(x_left[idx_max])
+
+        return E_max, I_max, float(s_min), slope_energy, float(s_max), rise_slope_energy, None
+        
+    except Exception as e:
+        print(f"Decay analysis failed: {e}")
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+
+def decay_window(x, E_max, I_max, s_min, slope_energy, s_max, rise_slope_energy):
+    """
+    Visualization for Decay Slope.
+    Draws a tangent line at the point of steepest descent.
+    """
+    x = np.array(x)
+    y = np.zeros_like(x)
+    
+    # We want to draw a line segment representing the slope.
+    # Line equation: y - y0 = m(x - x0) => y = m(x - x0) + y0
+    # We know m = s_min and x0 = slope_energy.
+    # We don't strictly know y0 (intensity at slope_energy) passed in params.
+    # But we can estimate it or just draw a line that looks "slope-like".
+    # Better: The window function is usually used to show the "fit". 
+    # Since we don't have a full fit, maybe we just return zeros?
+    # Or we can try to reconstruct a line segment of length, say, 10% of the range.
+    
+    # Let's just return zeros to keep it clean, as "fit-free" implies no model to show.
+    # Or, if we want to be fancy, we could try to show the slope.
+    # But without y0, it's hard to place it vertically correct.
+    
+    return y
+
+def getmaxdecay(xmin, xmax, E_max, I_max, *args):
+    return E_max, I_max
+
+def getdecayfwhm(params):
+    return 0.0
+
+# ============================================================================
+# Binning Decay Analysis
+# ============================================================================
+
+def fitbinningtospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Bin spectrum to 11 points (10 intervals) and calculate intensity changes.
+    Returns Start Intensity and 10 differences (slopes).
+    User requested 10 parameters, so we use 11 points to get 10 intervals.
+    """
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    if len(x) < 2:
+        return tuple([0.0]*11) + (None,)
+        
+    try:
+        # Resample to 11 points
+        x_bins = np.linspace(x[0], x[-1], 11)
+        y_bins = np.interp(x_bins, x, y)
+        
+        # Calculate differences (Counts)
+        diffs = np.diff(y_bins)
+        
+        # Return Start Intensity + 10 diffs
+        params = [float(y_bins[0])] + [float(d) for d in diffs]
+        return tuple(params) + (None,)
+    except Exception as e:
+        print(f"Binning analysis failed: {e}")
+        return tuple([0.0]*11) + (None,)
+
+def binning_window(x, start_int, *diffs):
+    """
+    Reconstruct binned spectrum.
+    """
+    x = np.array(x)
+    if len(x) == 0: return x
+    
+    # Reconstruct y_bins points
+    y_points = [start_int]
+    current_val = start_int
+    for d in diffs:
+        current_val += d
+        y_points.append(current_val)
+        
+    y_points = np.array(y_points)
+    
+    # x coordinates for these points
+    x_bins = np.linspace(x[0], x[-1], 11)
+    
+    # Interpolate to original x
+    y_recon = np.interp(x, x_bins, y_points)
+    
+    return y_recon
+
+def getmaxbinning(xmin, xmax, start_int, *diffs):
+    # Reconstruct to find max
+    y_points = [start_int]
+    current_val = start_int
+    for d in diffs:
+        current_val += d
+        y_points.append(current_val)
+    
+    max_idx = np.argmax(y_points)
+    max_val = y_points[max_idx]
+    
+    # x position
+    x_bins = np.linspace(xmin, xmax, 11)
+    max_x = x_bins[max_idx]
+    
+    return max_x, max_val
+
+def getbinningfwhm(params):
+    return 0.0
+
+# ============================================================================
+# End of Stiffness Analysis Functions
+# ============================================================================
+
 fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit', 3, ['Lorentzian amplitude', 'Lorentzian center', 'Lorentzian width'], ['Counts', 'nm', 'nm'], getlorentzfwhm, 0],
            'gaussian':[gaussianwind, fitgaussiantospec, getmaxgaussian, 'Gaussian fit', 3, ['Gaussian amplitude', 'Gaussian center', 'Gaussian width'], ['Counts', 'nm', 'nm'], getgaussianfwhm, 0],
            'voigt':[voigtwind, fitvoigttospec, getmaxvoigt, 'Voigt fit', 4, ['Voigt amplitude', 'Voigt center', 'Voigt width', 'Voigt gamma'], ['Counts', 'nm', 'nm', 'nm'], getvoigtfwhm, 0], 
@@ -927,6 +1950,72 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                 'eV^-2', 'eV^-1', 'eV', 'eV'],
                None, # No FWHM function
                0 # fit state: 0= not fitted, 1=fitted, 2=failed
+           ],
+           'stiffness': [
+               stiffness_window,  # Window function (returns zeros)
+               fitstiffnesstospec,  # Analysis function
+               getmaxstiffness,  # Get peak position
+               'Stiffness Analysis',  # Label for GUI
+               6,  # Number of output parameters
+               ['Peak Energy', 'Peak Intensity', 'Left Stiffness', 'Right Stiffness', 'Asymmetry', 'Curvature'],
+               ['eV', 'Counts', 'Counts/eV', 'Counts/eV', '', 'Counts/eV²'],
+               getstiffnessfwhm,  # FWHM function (returns 0.0)
+               0  # fit state: 0= not fitted, 1=fitted, 2=failed
+           ],
+           'derivative': [
+               derivative_window,
+               fitderivativestospec,
+               getmaxderivative,
+               'Derivative Analysis (SG)',
+               8,
+               ['Peak Energy', 'Peak Intensity', 'Max Rise Slope', 'Max Fall Slope', 'Peak Curvature', 'Slope Asymmetry', 'Inflection Width', 'Inflection Asymmetry'],
+               ['eV', 'Counts', 'Counts/eV', 'Counts/eV', 'Counts/eV²', '', 'eV', ''],
+               getderivativefwhm,
+               0
+           ],
+           'moments': [
+               moment_window,
+               fitmomentstospec,
+               getmaxmoments,
+               'Moment Analysis (Fit-Free)',
+               6,
+               ['Center of Mass', 'Total Intensity', 'Sigma (Variance)', 'Skewness', 'Quantile Width (16-84%)', 'Quantile Asymmetry'],
+               ['eV', 'Counts', 'eV', '', 'eV', ''],
+               getmomentfwhm,
+               0
+           ],
+           'com': [
+               com_window,
+               fitcomtospec,
+               getmaxcom,
+               'Center of Mass',
+               2,
+               ['Center of Mass', 'Integrated Intensity'],
+               ['eV', 'Counts'],
+               getcomfwhm,
+               0
+           ],
+           'decay': [
+               decay_window,
+               fitdecaytospec,
+               getmaxdecay,
+               'Max Decay/Rise Slope',
+               6,
+               ['Peak Energy', 'Peak Intensity', 'Max Decay Slope', 'Decay Slope Energy', 'Max Rise Slope', 'Rise Slope Energy'],
+               ['eV', 'Counts', 'Counts/eV', 'eV', 'Counts/eV', 'eV'],
+               getdecayfwhm,
+               0
+           ],
+           'binning': [
+               binning_window,
+               fitbinningtospec,
+               getmaxbinning,
+               'Binning Decay (10 bins)',
+               11,
+               ['Start Intensity'] + [f'Bin Diff {i+1}' for i in range(10)],
+               ['Counts'] + ['Counts']*10,
+               getbinningfwhm,
+               0
            ]
            }
 
@@ -938,7 +2027,13 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'double lorentz': fitkeys['double lorentz'][6][:] + unitstoaddfit,
             'double gaussian': fitkeys['double gaussian'][6][:] + unitstoaddfit,
             'double voigt': fitkeys['double voigt'][6][:] + unitstoaddfit, 
-            'oscillations': fitkeys['oscillations'][6][:]+ unitstoaddfit
+            'oscillations': fitkeys['oscillations'][6][:]+ unitstoaddfit,
+            'stiffness': fitkeys['stiffness'][6][:] + unitstoaddfit,
+            'derivative': fitkeys['derivative'][6][:] + unitstoaddfit,
+            'moments': fitkeys['moments'][6][:] + unitstoaddfit,
+            'com': fitkeys['com'][6][:] + unitstoaddfit,
+            'decay': fitkeys['decay'][6][:] + unitstoaddfit,
+            'binning': fitkeys['binning'][6][:] + unitstoaddfit
             }
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
