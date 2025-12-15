@@ -51,7 +51,7 @@ These methods utilize non-linear least squares minimization to fit a model $M(x,
 
 #### **Voigt Fit** (`fitkeys['voigt']`)
 *   **Window Function (Index 0)**: Pseudo-Voigt profile (linear combination).
-    $$ V(x) = A \cdot [\eta \cdot L(x) + (1 - \eta) \cdot G(x)] $$
+    $V(x) = A \cdot [\eta \cdot L(x) + (1 - \eta) \cdot G(x)]$
 *   **Parameter Vector $\mathbf{p}$ (Indices 4, 5, 6)**:
     1.  `Voigt amplitude` ($A$) [Counts]
     2.  `Voigt center` ($x_0$) [nm/eV]
@@ -62,14 +62,14 @@ These methods utilize non-linear least squares minimization to fit a model $M(x,
 
 #### **Linear Fit** (`fitkeys['linear']`)
 *   **Window Function (Index 0)**:
-    $$ y = a \cdot x + b $$
+    $y = a \cdot x + b$
 *   **Parameter Vector $\mathbf{p}$ (Indices 4, 5, 6)**:
     1.  `Linear slope` ($a$) [nm/Counts]
     2.  `Linear offset` ($b$) [Counts]
 
 #### **Double Variants** (`'double gaussian'`, `'double lorentz'`, `'double voigt'`)
 *   **Window Function (Index 0)**: Superposition of two independent profiles.
-    $$ F_{double}(x) = F_1(x) + F_2(x) $$
+    $F_{double}(x) = F_1(x) + F_2(x)$
 *   **Parameter Vector $\mathbf{p}$**: Concatenation of parameters for Peak 1 and Peak 2.
 
 ---
