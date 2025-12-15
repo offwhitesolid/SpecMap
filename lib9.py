@@ -2180,11 +2180,8 @@ class XYMap:
     
     def on_close(self):
         plt.close('all')
-        # tkinter destroy
-        try:
-            self.cmapframe.destroy()
-        except:
-            pass
+        # Note: Frame destruction handled by owner (FileProcessorApp). XYMap only cleans up self-created resources.
+        
         # explicitly clean up spectra to release file handles
         if hasattr(self, 'specs'):
             for spec in self.specs:
