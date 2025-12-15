@@ -7,6 +7,9 @@ from scipy.signal import find_peaks
 from scipy.signal import savgol_filter
 from matplotlib.ticker import MaxNLocator
 import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter1d
+from scipy.signal import hilbert
+
 
 # window functions
 
@@ -724,7 +727,6 @@ def extract_phase_evolution(oscillations, wl, maxima_indices, minima_indices):
     - mean_period: Mean oscillation period
     - period_std: Standard deviation of period (measure of chirp)
     """
-    from scipy.signal import hilbert
     
     # Method 1: Calculate instantaneous frequency from peak spacing
     # Combine maxima and minima for better frequency estimation
@@ -993,7 +995,6 @@ def calculate_flank_slopes(energy, intensity, peak_fraction=0.5, smooth=False):
     """
     # Smooth if requested
     if smooth and len(intensity) > 5:
-        from scipy.ndimage import gaussian_filter1d
         intensity = gaussian_filter1d(intensity, sigma=1.0)
     
     # Find peak position
