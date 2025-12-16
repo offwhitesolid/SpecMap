@@ -203,7 +203,7 @@ The **second derivative** $\frac{d^2I}{d\lambda^2}$ measures the **curvature** o
 **Function Logic:**
 1. Extract spectrum region `x = WL[start:end]`, `y = PLB[start:end]`
 2. Calculate first derivative using finite differences:
-   $$\frac{dI}{d\lambda}\bigg|_i = \frac{I_{i+1} - I_i}{\lambda_{i+1} - \lambda_i}$$
+   $\frac{dI}{d\lambda}\bigg|_i = \frac{I_{i+1} - I_i}{\lambda_{i+1} - \lambda_i}$
 3. Find max positive derivative and its energy position
 4. Find max negative derivative (min value) and its energy position
 5. Calculate derivative range: $\Delta D = D_{\text{max}} - D_{\text{min}}$
@@ -242,7 +242,7 @@ Rationale: Zero-crossing is the best peak position estimate from first derivativ
 1. Extract spectrum region
 2. Calculate first derivative (as in Step 1)
 3. Calculate second derivative from first derivative:
-   $$\frac{d^2I}{d\lambda^2}\bigg|_i = \frac{D_{i+1} - D_i}{\lambda_{i+1} - \lambda_i}$$
+   $\frac{d^2I}{d\lambda^2}\bigg|_i = \frac{D_{i+1} - D_i}{\lambda_{i+1} - \lambda_i}$
    where $D_i$ is the first derivative at point $i$
 4. Find max negative curvature (min value of second derivative) → peak sharpness
 5. Find energy at max negative curvature → peak center
@@ -361,63 +361,43 @@ fitunits = {
 
 **Discrete Derivative:**
 
-$$
-\frac{dI}{d\lambda}\bigg|_i = \frac{I_{i+1} - I_i}{\lambda_{i+1} - \lambda_i}
-$$
+$\frac{dI}{d\lambda}\bigg|_i = \frac{I_{i+1} - I_i}{\lambda_{i+1} - \lambda_i}$
 
 **Parameters:**
 
 1. **Max Positive Derivative:**
-   $$
-   D_{\text{max}}^+ = \max_i \left( \frac{dI}{d\lambda}\bigg|_i \right) \quad \text{where} \quad \frac{dI}{d\lambda}\bigg|_i > 0
-   $$
+   $   D_{\text{max}}^+ = \max_i \left( \frac{dI}{d\lambda}\bigg|_i \right) \quad \text{where} \quad \frac{dI}{d\lambda}\bigg|_i > 0$
 
 2. **Max Negative Derivative:**
-   $$
-   D_{\text{min}}^- = \min_i \left( \frac{dI}{d\lambda}\bigg|_i \right) \quad \text{where} \quad \frac{dI}{d\lambda}\bigg|_i < 0
-   $$
+   $D_{\text{min}}^- = \min_i \left( \frac{dI}{d\lambda}\bigg|_i \right) \quad \text{where} \quad \frac{dI}{d\lambda}\bigg|_i < 0$
 
 3. **Derivative Range:**
-   $$
-   \Delta D = D_{\text{max}}^+ - D_{\text{min}}^-
-   $$
+   $\Delta D = D_{\text{max}}^+ - D_{\text{min}}^-$
 
 4. **Zero-Crossing (Peak Position):**
-   $$
-   E_0: \quad \frac{dI}{d\lambda}\bigg|_{E_0} = 0 \quad \text{(interpolated between sign changes)}
-   $$
+   $E_0: \quad \frac{dI}{d\lambda}\bigg|_{E_0} = 0 \quad \text{(interpolated between sign changes)}$
 
 ### 4.2 Second Derivative (Finite Differences)
 
 **Discrete Second Derivative:**
 
-$$
-\frac{d^2I}{d\lambda^2}\bigg|_i = \frac{D_{i+1} - D_i}{\lambda_{i+1} - \lambda_i}
-$$
+$\frac{d^2I}{d\lambda^2}\bigg|_i = \frac{D_{i+1} - D_i}{\lambda_{i+1} - \lambda_i}$
 
 where $D_i = \frac{dI}{d\lambda}\bigg|_i$ is the first derivative.
 
 **Parameters:**
 
 1. **Max Negative Curvature (Peak Sharpness):**
-   $$
-   C_{\text{min}}^- = \min_i \left( \frac{d^2I}{d\lambda^2}\bigg|_i \right)
-   $$
+   $C_{\text{min}}^- = \min_i \left( \frac{d^2I}{d\lambda^2}\bigg|_i \right)$
 
 2. **Curvature Range:**
-   $$
-   \Delta C = \max_i \left( \frac{d^2I}{d\lambda^2}\bigg|_i \right) - \min_i \left( \frac{d^2I}{d\lambda^2}\bigg|_i \right)
-   $$
+   $\Delta C = \max_i \left( \frac{d^2I}{d\lambda^2}\bigg|_i \right) - \min_i \left( \frac{d^2I}{d\lambda^2}\bigg|_i \right)$
 
 3. **Inflection Points (Zero-Crossings of Second Derivative):**
-   $$
-   E_{\text{infl}}^{L,R}: \quad \frac{d^2I}{d\lambda^2}\bigg|_{E_{\text{infl}}} = 0
-   $$
+   $E_{\text{infl}}^{L,R}: \quad \frac{d^2I}{d\lambda^2}\bigg|_{E_{\text{infl}}} = 0$
 
 4. **Inflection Width:**
-   $$
-   W_{\text{infl}} = E_{\text{infl}}^R - E_{\text{infl}}^L
-   $$
+   $W_{\text{infl}} = E_{\text{infl}}^R - E_{\text{infl}}^L$
 
 ---
 
@@ -558,22 +538,3 @@ When these methods are applied pixel-by-pixel across a hyperspectral image:
 - **Curvature Range Map:** Spectral complexity (multi-peak vs. single-peak)
 
 These maps provide complementary information to existing intensity-based and fit-based contrast mechanisms, enabling more sophisticated material identification and spatial analysis.
-
----
-
-## 10. Next Steps for Implementation
-
-1. **Implement First Derivative Functions** (Section 3.1)
-2. **Test First Derivative on Sample Spectra** (Gaussian, Lorentzian, noisy data)
-3. **Implement Second Derivative Functions** (Section 3.2)
-4. **Test Second Derivative on Sample Spectra**
-5. **Add Both Entries to fitkeys** (Section 3.3)
-6. **Update fitunits Dictionary** (Section 4)
-7. **Create Test Script** (`test_derivative_methods.py`)
-8. **Validate Against Existing Methods** (Compare to Savitzky-Golay derivative)
-9. **Document in MATHLIB_DOCUMENTATION.md** (Add sections 3.2.X for new methods)
-10. **Test in Hyperspectral Imaging Context** (Apply to real HSI data in `main9.py`)
-
----
-
-**End of Implementation Plan**
