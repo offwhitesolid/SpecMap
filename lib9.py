@@ -2180,8 +2180,11 @@ class XYMap:
     
     def on_close(self):
         plt.close('all')
-        # Note: Frame destruction handled by owner (FileProcessorApp). XYMap only cleans up self-created resources.
-        
+        # tkinter destroy
+        try:
+            self.cmapframe.destroy()
+        except:
+            pass
         # explicitly clean up spectra to release file handles
         if hasattr(self, 'specs'):
             for spec in self.specs:
@@ -2544,4 +2547,5 @@ def load_spectrum(fname, instance, lock):
     if specobj.dataokay:
         with lock:
             instance.specs.append(specobj)
+
 
