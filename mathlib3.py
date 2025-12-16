@@ -1926,7 +1926,371 @@ def getbinningfwhm(params):
     return 0.0
 
 # ============================================================================
-# End of Stiffness Analysis Functions
+# First Derivative Analysis (Finite Differences)
+# ============================================================================
+
+def fitderivative1tospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Calculate First Derivative using finite differences.
+    Extracts edge sharpness and peak position from derivative features.
+    
+    Parameters:
+    -----------
+    start, end, WL, PLB, maxfev, guess: Standard fit function parameters
+    
+    Returns:
+    --------
+    max_pos_deriv : float
+        Maximum positive derivative (steepest rise)
+    energy_max_pos : float
+        Energy where max positive derivative occurs
+    max_neg_deriv : float
+        Maximum negative derivative (steepest fall)
+    energy_max_neg : float
+        Energy where max negative derivative occurs
+    deriv_range : float
+        Total derivative span (max - min)
+    zero_cross_energy : float
+        Energy where derivative crosses zero (peak position estimate)
+    pcov : None
+    """
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    # Handle edge cases
+    if len(x) < 3 or np.max(y) <= 0:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+    
+    try:
+        # Calculate first derivative using finite differences
+        dy = np.diff(y)
+        dx = np.diff(x)
+        
+        # Avoid division by zero
+        with np.errstate(divide='ignore', invalid='ignore'):
+            deriv = dy / dx
+        
+        # Filter out NaNs and Infs
+        valid_mask = np.isfinite(deriv)
+        deriv_valid = deriv[valid_mask]
+        
+        if len(deriv_valid) < 2:
+            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+        
+        # x coordinates for derivatives (midpoints)
+        x_deriv = (x[:-1] + x[1:]) / 2
+        x_deriv_valid = x_deriv[valid_mask]
+        
+        # Trim edges to avoid boundary effects
+        if len(deriv_valid) > 4:
+            trim_start = 1
+            trim_end = -1
+            deriv_trimmed = deriv_valid[trim_start:trim_end]
+            x_deriv_trimmed = x_deriv_valid[trim_start:trim_end]
+        else:
+            deriv_trimmed = deriv_valid
+            x_deriv_trimmed = x_deriv_valid
+        
+        if len(deriv_trimmed) == 0:
+            deriv_trimmed = deriv_valid
+            x_deriv_trimmed = x_deriv_valid
+        
+        # Find max positive derivative (95th percentile for robustness)
+        pos_derivs = deriv_trimmed[deriv_trimmed > 0]
+        if len(pos_derivs) >= 10:
+            max_pos_deriv = float(np.percentile(pos_derivs, 95))
+        elif len(pos_derivs) > 0:
+            max_pos_deriv = float(np.max(pos_derivs))
+        else:
+            max_pos_deriv = 0.0
+        
+        # Find energy at max positive derivative
+        if max_pos_deriv > 0:
+            idx_max_pos = np.argmin(np.abs(deriv_trimmed - max_pos_deriv))
+            energy_max_pos = float(x_deriv_trimmed[idx_max_pos])
+        else:
+            energy_max_pos = float(x[0])
+        
+        # Find max negative derivative (5th percentile for robustness)
+        neg_derivs = deriv_trimmed[deriv_trimmed < 0]
+        if len(neg_derivs) >= 10:
+            max_neg_deriv = float(np.percentile(neg_derivs, 5))
+        elif len(neg_derivs) > 0:
+            max_neg_deriv = float(np.min(neg_derivs))
+        else:
+            max_neg_deriv = 0.0
+        
+        # Find energy at max negative derivative
+        if max_neg_deriv < 0:
+            idx_max_neg = np.argmin(np.abs(deriv_trimmed - max_neg_deriv))
+            energy_max_neg = float(x_deriv_trimmed[idx_max_neg])
+        else:
+            energy_max_neg = float(x[-1])
+        
+        # Calculate derivative range
+        deriv_range = float(max_pos_deriv - max_neg_deriv)
+        
+        # Find zero-crossing (peak position)
+        # Look for sign changes in derivative
+        sign_changes = np.where(np.diff(np.sign(deriv_valid)))[0]
+        
+        if len(sign_changes) > 0:
+            # Find peak in original spectrum
+            peak_idx = np.argmax(y)
+            peak_energy = float(x[peak_idx])
+            
+            # Find zero-crossing closest to peak
+            zero_crossings = []
+            for idx in sign_changes:
+                # Interpolate to find exact zero-crossing
+                if idx < len(deriv_valid) - 1:
+                    x1, x2 = x_deriv_valid[idx], x_deriv_valid[idx + 1]
+                    d1, d2 = deriv_valid[idx], deriv_valid[idx + 1]
+                    
+                    if d2 != d1:
+                        # Linear interpolation
+                        zero_x = x1 - d1 * (x2 - x1) / (d2 - d1)
+                        zero_crossings.append(zero_x)
+            
+            if len(zero_crossings) > 0:
+                # Choose zero-crossing closest to peak
+                zero_crossings = np.array(zero_crossings)
+                closest_idx = np.argmin(np.abs(zero_crossings - peak_energy))
+                zero_cross_energy = float(zero_crossings[closest_idx])
+            else:
+                zero_cross_energy = peak_energy
+        else:
+            # No zero-crossing found, use peak position
+            zero_cross_energy = float(x[np.argmax(y)])
+        
+        return max_pos_deriv, energy_max_pos, max_neg_deriv, energy_max_neg, deriv_range, zero_cross_energy, None
+        
+    except Exception as e:
+        print(f"First derivative analysis failed: {e}")
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+
+def derivative1_window(x, max_pos_deriv, energy_max_pos, max_neg_deriv, energy_max_neg, deriv_range, zero_cross_energy):
+    """
+    Window function for first derivative visualization.
+    Returns zeros (fit-free method, no reconstruction).
+    """
+    return np.zeros_like(np.array(x))
+
+def getmaxderivative1(xmin, xmax, max_pos_deriv, energy_max_pos, max_neg_deriv, energy_max_neg, deriv_range, zero_cross_energy):
+    """
+    Return peak position and max derivative magnitude.
+    """
+    return zero_cross_energy, max_pos_deriv
+
+def getderivative1fwhm(params):
+    """
+    No FWHM estimate from first derivative alone.
+    """
+    return 0.0
+
+# ============================================================================
+# Second Derivative Analysis (Finite Differences)
+# ============================================================================
+
+def fitderivative2tospec(start, end, WL, PLB, maxfev=10000, guess=None):
+    """
+    Calculate Second Derivative (curvature) using finite differences.
+    Extracts peak sharpness, inflection points, and effective peak width.
+    
+    Parameters:
+    -----------
+    start, end, WL, PLB, maxfev, guess: Standard fit function parameters
+    
+    Returns:
+    --------
+    max_neg_curv : float
+        Maximum negative curvature (peak sharpness)
+    energy_max_neg_curv : float
+        Energy where max negative curvature occurs (peak center)
+    max_pos_curv : float
+        Maximum positive curvature (valley/shoulder sharpness)
+    curv_range : float
+        Total curvature span
+    left_infl_energy : float
+        Left inflection point energy
+    right_infl_energy : float
+        Right inflection point energy
+    infl_width : float
+        Distance between inflection points
+    pcov : None
+    """
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    # Handle edge cases
+    if len(x) < 4 or np.max(y) <= 0:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+    
+    try:
+        # Calculate first derivative
+        dy = np.diff(y)
+        dx = np.diff(x)
+        
+        with np.errstate(divide='ignore', invalid='ignore'):
+            deriv1 = dy / dx
+        
+        # Filter first derivative
+        valid_mask1 = np.isfinite(deriv1)
+        deriv1_valid = deriv1[valid_mask1]
+        x_deriv1 = (x[:-1] + x[1:]) / 2
+        x_deriv1_valid = x_deriv1[valid_mask1]
+        
+        if len(deriv1_valid) < 3:
+            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+        
+        # Calculate second derivative from first derivative
+        dy2 = np.diff(deriv1_valid)
+        dx2 = np.diff(x_deriv1_valid)
+        
+        with np.errstate(divide='ignore', invalid='ignore'):
+            deriv2 = dy2 / dx2
+        
+        # Filter second derivative
+        valid_mask2 = np.isfinite(deriv2)
+        deriv2_valid = deriv2[valid_mask2]
+        x_deriv2 = (x_deriv1_valid[:-1] + x_deriv1_valid[1:]) / 2
+        x_deriv2_valid = x_deriv2[valid_mask2]
+        
+        if len(deriv2_valid) < 2:
+            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+        
+        # Trim edges
+        if len(deriv2_valid) > 4:
+            trim_start = 1
+            trim_end = -1
+            deriv2_trimmed = deriv2_valid[trim_start:trim_end]
+            x_deriv2_trimmed = x_deriv2_valid[trim_start:trim_end]
+        else:
+            deriv2_trimmed = deriv2_valid
+            x_deriv2_trimmed = x_deriv2_valid
+        
+        if len(deriv2_trimmed) == 0:
+            deriv2_trimmed = deriv2_valid
+            x_deriv2_trimmed = x_deriv2_valid
+        
+        # Find max negative curvature (5th percentile for robustness)
+        neg_curvs = deriv2_trimmed[deriv2_trimmed < 0]
+        if len(neg_curvs) >= 10:
+            max_neg_curv = float(np.percentile(neg_curvs, 5))
+        elif len(neg_curvs) > 0:
+            max_neg_curv = float(np.min(neg_curvs))
+        else:
+            max_neg_curv = 0.0
+        
+        # Find energy at max negative curvature
+        if max_neg_curv < 0:
+            idx_max_neg_curv = np.argmin(np.abs(deriv2_trimmed - max_neg_curv))
+            energy_max_neg_curv = float(x_deriv2_trimmed[idx_max_neg_curv])
+        else:
+            # Fallback to peak position
+            energy_max_neg_curv = float(x[np.argmax(y)])
+        
+        # Find max positive curvature (95th percentile)
+        pos_curvs = deriv2_trimmed[deriv2_trimmed > 0]
+        if len(pos_curvs) >= 10:
+            max_pos_curv = float(np.percentile(pos_curvs, 95))
+        elif len(pos_curvs) > 0:
+            max_pos_curv = float(np.max(pos_curvs))
+        else:
+            max_pos_curv = 0.0
+        
+        # Calculate curvature range
+        curv_range = float(max_pos_curv - max_neg_curv)
+        
+        # Find inflection points (zero-crossings of second derivative)
+        sign_changes = np.where(np.diff(np.sign(deriv2_valid)))[0]
+        
+        inflection_points = []
+        for idx in sign_changes:
+            if idx < len(deriv2_valid) - 1:
+                x1, x2 = x_deriv2_valid[idx], x_deriv2_valid[idx + 1]
+                d1, d2 = deriv2_valid[idx], deriv2_valid[idx + 1]
+                
+                if d2 != d1:
+                    # Linear interpolation
+                    infl_x = x1 - d1 * (x2 - x1) / (d2 - d1)
+                    inflection_points.append(infl_x)
+        
+        # Identify left and right inflections relative to peak
+        peak_energy = float(x[np.argmax(y)])
+        
+        if len(inflection_points) >= 2:
+            inflection_points = np.array(inflection_points)
+            inflection_points_sorted = np.sort(inflection_points)
+            
+            # Find inflections closest to peak on left and right
+            left_infls = inflection_points_sorted[inflection_points_sorted < peak_energy]
+            right_infls = inflection_points_sorted[inflection_points_sorted > peak_energy]
+            
+            if len(left_infls) > 0:
+                left_infl_energy = float(left_infls[-1])  # Closest to peak on left
+            else:
+                # Fallback: 10% of range to the left
+                left_infl_energy = float(peak_energy - 0.1 * (x[-1] - x[0]))
+            
+            if len(right_infls) > 0:
+                right_infl_energy = float(right_infls[0])  # Closest to peak on right
+            else:
+                # Fallback: 10% of range to the right
+                right_infl_energy = float(peak_energy + 0.1 * (x[-1] - x[0]))
+        
+        elif len(inflection_points) == 1:
+            # Only one inflection found
+            infl = inflection_points[0]
+            if infl < peak_energy:
+                left_infl_energy = float(infl)
+                right_infl_energy = float(peak_energy + 0.1 * (x[-1] - x[0]))
+            else:
+                left_infl_energy = float(peak_energy - 0.1 * (x[-1] - x[0]))
+                right_infl_energy = float(infl)
+        
+        else:
+            # No inflections found, use defaults
+            left_infl_energy = float(peak_energy - 0.1 * (x[-1] - x[0]))
+            right_infl_energy = float(peak_energy + 0.1 * (x[-1] - x[0]))
+        
+        # Calculate inflection width
+        infl_width = float(right_infl_energy - left_infl_energy)
+        
+        return max_neg_curv, energy_max_neg_curv, max_pos_curv, curv_range, left_infl_energy, right_infl_energy, infl_width, None
+        
+    except Exception as e:
+        print(f"Second derivative analysis failed: {e}")
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None
+
+def derivative2_window(x, max_neg_curv, energy_max_neg_curv, max_pos_curv, curv_range, left_infl_energy, right_infl_energy, infl_width):
+    """
+    Window function for second derivative visualization.
+    Returns zeros (fit-free method, no reconstruction).
+    """
+    return np.zeros_like(np.array(x))
+
+def getmaxderivative2(xmin, xmax, max_neg_curv, energy_max_neg_curv, max_pos_curv, curv_range, left_infl_energy, right_infl_energy, infl_width):
+    """
+    Return peak position (from curvature) and magnitude.
+    """
+    # Return energy at max negative curvature as peak position
+    # Magnitude is just the curvature value (negative)
+    return energy_max_neg_curv, abs(max_neg_curv)
+
+def getderivative2fwhm(params):
+    """
+    Return inflection width as FWHM estimate.
+    params: [max_neg_curv, energy_max_neg_curv, max_pos_curv, curv_range, 
+             left_infl_energy, right_infl_energy, infl_width]
+    """
+    try:
+        return params[6]  # inflection width
+    except:
+        return 0.0
+
+# ============================================================================
+# End of Derivative Analysis Functions
 # ============================================================================
 
 fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit', 3, ['Lorentzian amplitude', 'Lorentzian center', 'Lorentzian width'], ['Counts', 'nm', 'nm'], getlorentzfwhm, 0],
@@ -2017,6 +2381,30 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                ['Counts'] + ['Counts']*10,
                getbinningfwhm,
                0
+           ],
+           'derivative1': [
+               derivative1_window,
+               fitderivative1tospec,
+               getmaxderivative1,
+               'First Derivative (FD)',
+               6,
+               ['Max Positive Derivative', 'Energy at Max Pos. Deriv.', 'Max Negative Derivative', 
+                'Energy at Max Neg. Deriv.', 'Derivative Range', 'Zero-Crossing Energy'],
+               ['Counts/eV', 'eV', 'Counts/eV', 'eV', 'Counts/eV', 'eV'],
+               getderivative1fwhm,
+               0
+           ],
+           'derivative2': [
+               derivative2_window,
+               fitderivative2tospec,
+               getmaxderivative2,
+               'Second Derivative (FD)',
+               7,
+               ['Max Negative Curvature', 'Energy at Max Neg. Curv.', 'Max Positive Curvature', 
+                'Curvature Range', 'Left Inflection Energy', 'Right Inflection Energy', 'Inflection Width'],
+               ['Counts/eV²', 'eV', 'Counts/eV²', 'Counts/eV²', 'eV', 'eV', 'eV'],
+               getderivative2fwhm,
+               0
            ]
            }
 
@@ -2034,7 +2422,9 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'moments': fitkeys['moments'][6][:] + unitstoaddfit,
             'com': fitkeys['com'][6][:] + unitstoaddfit,
             'decay': fitkeys['decay'][6][:] + unitstoaddfit,
-            'binning': fitkeys['binning'][6][:] + unitstoaddfit
+            'binning': fitkeys['binning'][6][:] + unitstoaddfit,
+            'derivative1': fitkeys['derivative1'][6][:] + unitstoaddfit,
+            'derivative2': fitkeys['derivative2'][6][:] + unitstoaddfit
             }
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
