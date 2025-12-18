@@ -60,6 +60,8 @@ class SpectrumData:
         self.roistore = {}
         self.PL = []
         self.PLB = [] # PL-BG
+        self.Specdiff1 = [] # first derivative dPLB/dWL
+        self.Specdiff2 = [] # second derivative d2PLB/dWL2
         self._read_file()
 
         # init fit data
@@ -209,8 +211,8 @@ class XYMap:
         self.allfpnamesinone = matl.getlistofallFitparaminone()
         self.speckeys = {'Wavelength axis': 'WL', 'Background (BG)': 'BG',
                          'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB', # PLB is BG corrected (=PL-BG)
-                         'first derivative': 'PLBd1', # first derivative of PLB: d(PLB)/dWL
-                         'second derivative': 'PLBd2' # second derivative of PLB: d2(PLB)/dWL2
+                         'first derivative': 'Specdiff1', # first derivative of PLB: d(PLB)/dWL
+                         'second derivative': 'Specdiff2' # second derivative of PLB: d2(PLB)/dWL2
                          } 
         self.windowfunctions = list(matl.fitkeys.keys())                    # Window Functions from matl.fitkeys
         
@@ -263,6 +265,7 @@ class XYMap:
         self.wlend = self.defentries['highest_wavelength']                  # highest wavelength
         
         self.autogenmatrix()                                                # generate emty grid and fill Data obj into Matrix
+        self.calculate_derivatives()                                        # calculate derivatives if requested
         
         # Initialize pixel data
         if len(self.specs) > 0:
@@ -1966,6 +1969,81 @@ class XYMap:
                 if self.remcosmicfunc in deflib.correlationcosmicfuncts:
                     self.remcosmicfunc = deflib.correlationcosmicfuncts[self.remcosmicfunc](self.SpecDataMatrix, self.cosmicthreshold, self.cosmicpixels)
                 else: 
+                    pass
+
+    def calculate_derivatives(self):
+        """
+        Calculate first and second derivatives for all SpectrumData objects in SpecDataMatrix.
+        Uses sliding window polynomial fitting (Savitzky-Golay style).
+        """
+        # Check if derivative calculation is requested
+        # derivative_polynomarray: [first_derivative_bool, second_derivative_bool, polynomial_order, N_fitpoints]
+        if not self.derivative_polynomarray or len(self.derivative_polynomarray) < 4:
+            return
+
+        calc_d1 = self.derivative_polynomarray[0].get()
+        calc_d2 = self.derivative_polynomarray[1].get()
+        
+        if not (calc_d1 or calc_d2):
+            return
+
+        try:
+            poly_order = int(self.derivative_polynomarray[2].get())
+            N_fitpoints = int(self.derivative_polynomarray[3].get())
+        except (ValueError, TypeError):
+            print("Invalid polynomial order or fit points for derivative calculation.")
+            return
+
+        if N_fitpoints % 2 == 0:
+            N_fitpoints += 1 # Ensure odd window size
+
+        print(f"Calculating derivatives: d1={calc_d1}, d2={calc_d2}, order={poly_order}, window={N_fitpoints}")
+
+        # Iterate over all spectra
+        for spec in self.specs:
+            if spec is None:
+                continue
+                
+            # Ensure we have data
+            if not spec.PLB or not spec.WL or len(spec.PLB) != len(spec.WL):
+                continue
+
+            wl = np.array(spec.WL)
+            plb = np.array(spec.PLB)
+            
+            # Initialize derivative arrays with zeros
+            if calc_d1:
+                spec.Specdiff1 = np.zeros_like(plb)
+            if calc_d2:
+                spec.Specdiff2 = np.zeros_like(plb)
+
+            half_window = N_fitpoints // 2
+            n_points = len(wl)
+
+            # Sliding window loop
+            for i in range(half_window, n_points - half_window):
+                start_idx = i - half_window
+                end_idx = i + half_window + 1
+                
+                # Extract window
+                wl_window = wl[start_idx:end_idx]
+                plb_window = plb[start_idx:end_idx]
+                
+                # Fit polynomial
+                try:
+                    p = np.polyfit(wl_window, plb_window, poly_order)
+                    
+                    if calc_d1:
+                        # First derivative
+                        dp = np.polyder(p)
+                        spec.Specdiff1[i] = np.polyval(dp, wl[i])
+                        
+                    if calc_d2:
+                        # Second derivative
+                        ddp = np.polyder(np.polyder(p))
+                        spec.Specdiff2[i] = np.polyval(ddp, wl[i])
+                        
+                except Exception:
                     pass
     
     def UpdateHSIselect(self):
