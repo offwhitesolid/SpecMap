@@ -31,11 +31,18 @@ The method sets the following attributes on the `Spectra` instance:
 
 ## Example Usage
 ```python
+import PMclasslib1
+
+# Create a Spectra object
+# spec = PMclasslib1.Spectra(...)
+
 # Configuration: Calculate both derivatives, 2nd order poly, 7 point window
 config = [True, True, 2, 7] 
-my_spectrum.calc_derivative(config)
+
+# Calculate derivatives (passing the spectra object as the first argument)
+PMclasslib1.calc_derivative(spec, config)
 
 # Access results
-first_deriv = my_spectrum.Spec_d1
-second_deriv = my_spectrum.Spec_d2
+first_deriv = spec.Spec_d1
+second_deriv = spec.Spec_d2
 ```
