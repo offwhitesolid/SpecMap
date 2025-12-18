@@ -1979,19 +1979,32 @@ class XYMap:
         # Check if derivative calculation is requested
         # derivative_polynomarray: [first_derivative_bool, second_derivative_bool, polynomial_order, N_fitpoints]
         if not self.derivative_polynomarray or len(self.derivative_polynomarray) < 4:
-            return
-
-        calc_d1 = self.derivative_polynomarray[0].get()
-        calc_d2 = self.derivative_polynomarray[1].get()
-        
-        if not (calc_d1 or calc_d2):
+            print("Derivative calculation skipped: Invalid configuration array.")
             return
 
         try:
-            poly_order = int(self.derivative_polynomarray[2].get())
-            N_fitpoints = int(self.derivative_polynomarray[3].get())
-        except (ValueError, TypeError):
-            print("Invalid polynomial order or fit points for derivative calculation.")
+            # Handle both Tkinter variables (with .get()) and direct values
+            d1_val = self.derivative_polynomarray[0]
+            calc_d1 = d1_val.get() if hasattr(d1_val, 'get') else d1_val
+            
+            d2_val = self.derivative_polynomarray[1]
+            calc_d2 = d2_val.get() if hasattr(d2_val, 'get') else d2_val
+        except Exception as e:
+            print(f"Error reading derivative flags: {e}")
+            return
+        
+        if not (calc_d1 or calc_d2):
+            print("Derivative calculation skipped: Neither 1st nor 2nd derivative requested.")
+            return
+
+        try:
+            p_order_val = self.derivative_polynomarray[2]
+            poly_order = int(p_order_val.get()) if hasattr(p_order_val, 'get') else int(p_order_val)
+            
+            n_points_val = self.derivative_polynomarray[3]
+            N_fitpoints = int(n_points_val.get()) if hasattr(n_points_val, 'get') else int(n_points_val)
+        except (ValueError, TypeError) as e:
+            print(f"Invalid polynomial order or fit points for derivative calculation: {e}")
             return
 
         if N_fitpoints % 2 == 0:
@@ -2044,7 +2057,8 @@ class XYMap:
                         ddp = np.polyder(np.polyder(p))
                         spec.Specdiff2[i] = np.polyval(ddp, wl[i])
                         
-                except Exception:
+                except Exception as e:
+                    # print(f"Derivative fit failed at index {i}: {e}")
                     pass
     
     def UpdateHSIselect(self):
