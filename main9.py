@@ -27,6 +27,7 @@ class FileProcessorApp:
         self.removecosmicsBool = tk.IntVar()
         # Track threads with stop events for proper cleanup
         self.managed_threads = []
+        self.derivative_polynomarray = [None, None, None, None]  # Placeholder for derivative settings
         self.createmenue()
         self.windownotebook(deflib.Notebooks)
         # init XYMap GUI components
@@ -77,7 +78,7 @@ class FileProcessorApp:
             [], self.cmapframe, self.specframe, 
             False, False, False, 
             20, 3, list(deflib.cosmicfuncts.keys())[0], 
-            self.defaults
+            self.defaults, self.derivative_polynomarray
         )
         #self.Nanomap.build_gui()  # Build GUI components now
         
@@ -188,6 +189,7 @@ class FileProcessorApp:
         self.powercorrectionBool.set(defaults['power_correction'])
         self.powercorrectioncheck = tk.Checkbutton(self.bgframe, text="Power Correction", variable=self.powercorrectionBool)
         self.powercorrectioncheck.grid(row=2, column=0)
+
         # below the frame add another frame for making multiple HSIs
         # spacings
         self.multiple_HSIs_inp_frame = tk.Frame(self.loadframe)
@@ -235,7 +237,33 @@ class FileProcessorApp:
         self.laserspotsizeentry = tk.Entry(self.cosmicframe, width=10)
         self.laserspotsizeentry.grid(row=3, column=2)
         self.laserspotsizeentry.insert(0, defaults['laser_spotsize_nm'])
-    
+        # input checkbox: calculate derivatives: first and second
+        self.calculate_firstderivativeBool = tk.IntVar()
+        self.calculate_firstderivativeBool.set(defaults['calculate_first_derivative'])
+        self.calculate_firstderivative_check = tk.Checkbutton(self.cosmicframe, text="Calculate First Derivative", variable=self.calculate_firstderivativeBool)
+        self.calculate_firstderivative_check.grid(row=4, column=0)
+        self.calculate_secondderivativeBool = tk.IntVar()
+        self.calculate_secondderivativeBool.set(defaults['calculate_second_derivative'])
+        self.calculate_secondderivative_check = tk.Checkbutton(self.cosmicframe, text="Calculate Second Derivative", variable=self.calculate_secondderivativeBool)
+        self.calculate_secondderivative_check.grid(row=4, column=1)
+        # for derivative: select polynomial order
+        tk.Label(self.cosmicframe, text="Polynom Order Derivative fit:").grid(row=5, column=0)
+        defaultentries = [1, 2, 3, 4, 5]
+        selection = defaults['derivative_polynomial_order'] if defaults['derivative_polynomial_order'] in defaultentries else 2
+        self.derivative_polyorder_entry = ttk.Combobox(self.cosmicframe, values=[1, 2, 3, 4, 5], width=10) # type: ignore
+        self.derivative_polyorder_entry.grid(row=5, column=1)
+        self.derivative_polyorder_entry.insert(0, str(selection))
+        self.derivative_fitpoints_label = tk.Label(self.cosmicframe, text="use n points:")
+        self.derivative_fitpoints_label.grid(row=5, column=2)
+        self.derivative_fitpoints_entry = tk.Entry(self.cosmicframe, width=10)
+        self.derivative_fitpoints_entry.grid(row=5, column=3)
+        if 'derivative_Nfitpoints' in defaults:
+            self.derivative_fitpoints_entry.insert(0, str(defaults['derivative_Nfitpoints']))
+        else:
+            self.derivative_fitpoints_entry.insert(0, str(5))
+        # construct polynomarray: [ first_derivative_bool, second_derivative_bool, polynomial_order ]
+        self.derivative_polynomarray = [ self.calculate_firstderivativeBool, self.calculate_secondderivativeBool, self.derivative_polyorder_entry, self.derivative_fitpoints_entry ]
+
         # Clara load frame (now inside load_content_frame)
         self.claraloadframe = tk.Frame(self.load_content_frame, width=60, height=100, borderwidth=5, relief="ridge")
         self.claraloadframe.grid(row=1, column=0, padx=5, pady=5)
@@ -574,7 +602,7 @@ class FileProcessorApp:
                 files_processed, self.cmapframe, self.specframe, 
                 bool(self.multiple_BG.get()), bool(self.linearBG.get()), bool(self.removecosmicsBool.get()), 
                 self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get(), 
-                self.defaults,
+                self.defaults, self.derivative_polynomarray
                 )
             if self.powercorrectionBool.get() == 1:
                 self.Nanomap.powercorrection()

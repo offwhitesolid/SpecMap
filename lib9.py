@@ -168,7 +168,7 @@ class SpectrumData:
 
 # create XY Map that contains the Pixels 
 class XYMap:
-    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults, skip_gui_build=False):
+    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults, derivative_polynomarray=[None, None, None, None], skip_gui_build=False):
         self.defentries = defentries
         self.remcosmicfunc = cosmicmethod
         self.removecosmics = removecosmics
@@ -189,6 +189,8 @@ class XYMap:
         self.WL_selection.set(self.WL_values[self.WL_values.index(defentries['selected_WL_axis'])]) # set default WL selection
         self.HSI_from_fitparam_useROI = tk.BooleanVar()          # use ROI for fit from fit parameters
         self.HSI_from_fitparam_useROI.set(self.defentries['HSI_from_fitparam_useROI'])
+        # derivative settings: [0] first derivative bool, [1] second derivative bool, [2] polynomial order, [3] N fit points
+        self.derivative_polynomarray = derivative_polynomarray               # derivative settings from main
         
         self.fitkeys = matl.fitkeys
         self.countthreshv = self.defentries['colormap_threshold']
@@ -203,7 +205,10 @@ class XYMap:
         self.allfpnames = matl.getlistofallFitparameters()
         self.allfpnamesinone = matl.getlistofallFitparaminone()
         self.speckeys = {'Wavelength axis': 'WL', 'Background (BG)': 'BG',
-                         'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB'} # WLB is BG corrected (=PL-BG)
+                         'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB', # PLB is BG corrected (=PL-BG)
+                         'first derivative': 'PLBd1', # first derivative of PLB: d(PLB)/dWL
+                         'second derivative': 'PLBd2' # second derivative of PLB: d2(PLB)/dWL2
+                         } 
         self.windowfunctions = list(matl.fitkeys.keys())                    # Window Functions from matl.fitkeys
         
         # Load data if files provided
@@ -803,6 +808,8 @@ class XYMap:
                         PLB[k-int(self.aqpixstart)] += self.SpecDataMatrix[i][j].PLB[k]
         PLB = np.divide(PLB, speccount)
         self.disspecs[self.createdisspecname()] = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
+        # calculate first and second derivative according to self.derivative_array
+        
         # update the selectbox for spectral data
         self.specselect['values'] = list(self.disspecs.keys())
         self.specselect.set(list(self.disspecs.keys())[-1])

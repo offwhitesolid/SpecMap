@@ -1294,6 +1294,10 @@ defaults={
     'cosmic_threshold': 100,
     'cosmic_width': 10,
     'cosmic_method': 'Linear Interpolation',
+    'calculate_first_derivative': True,
+    'calculate_second_derivative': True, 
+    'derivative_polynomial_order': 2,
+    'derivative_Nfitpoints': 5,
     # Clara Image Frame
     'clara_image': 'C:/Users/mol95ww/Desktop/Evaluation/data/2024/qdot_100fach/Laser_in_zpos/145_0.asc',
     'newton_spectrum': 'C:/Users/mol95ww/Desktop/Evaluation/data/2024/Perovskite/N1_Sndoping/Pb-Sn_0_0625/PL_Sn_Image_0_0625_1250g_500lnm_470-1030nm.asc',
@@ -1365,6 +1369,11 @@ defaulttypes = {
     'cosmic_threshold': int,
     'cosmic_width': int,
     'cosmic_method': str,
+    'calculate_first_derivative': bool,
+    'calculate_second_derivative': bool,
+    'derivative_polynomial_order': int,
+    'derivative_Nfitpoints': int,
+    # Clara Image Frame
     'clara_image': str,
     'newton_spectrum': str,
     'tcspc_maindir': str,
