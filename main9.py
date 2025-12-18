@@ -501,8 +501,6 @@ class FileProcessorApp:
                 foldersinmaindir = [f for f in os.listdir(filemaindir) if os.path.isdir(os.path.join(filemaindir, f))]
                 for folder in foldersinmaindir:
                     # debug: print all open files
-                    #print("Open files:", len(os.listdir(f"/proc/{os.getpid()}/fd")))
-                    #
                     fullfolderpath =  os.path.join(filemaindir, folder)
                     self.folder_entry.delete(0, tk.END)
                     self.folder_entry.insert(0, fullfolderpath)
@@ -597,7 +595,6 @@ class FileProcessorApp:
             except:
                 self.cosmicwidth = 3
                 self.cosmicwidthentry.insert(0, '3')
-
             self.Nanomap = lib.XYMap(
                 files_processed, self.cmapframe, self.specframe, 
                 bool(self.multiple_BG.get()), bool(self.linearBG.get()), bool(self.removecosmicsBool.get()), 

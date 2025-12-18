@@ -37,37 +37,6 @@ class Spectra():
         np.savetxt(filename, np.column_stack((self.WL, self.Spec)), delimiter='\t', header=self.header)
 
 # calculate first and/or second derivative using polynomial fitting for a class Spectra object
-def calc_derivative(self, derivative_polynomarray):
-    """
-    Calculate the first and/or second derivative of the spectrum using polynomial fitting.
-
-    Parameters:
-    - derivative_polynomarray (list): [first_derivative_bool, second_derivative_bool, polynomial_order, N_fitpoints]
-    """
-    first_derivative_bool = derivative_polynomarray[0]
-    second_derivative_bool = derivative_polynomarray[1]
-    poly_order = int(derivative_polynomarray[2])
-    N_fitpoints = int(derivative_polynomarray[3])
-
-    if first_derivative_bool:
-        self.Spec_d1 = np.zeros_like(self.Spec)
-        half_window = N_fitpoints // 2
-        for i in range(len(self.WL)):
-            start_idx = max(0, i - half_window)
-            end_idx = min(len(self.WL), i + half_window + 1)
-            p = np.polyfit(self.WL[start_idx:end_idx], self.Spec[start_idx:end_idx], poly_order)
-            dp = np.polyder(p)
-            self.Spec_d1[i] = np.polyval(dp, self.WL[i])
-    
-    if second_derivative_bool:
-        self.Spec_d2 = np.zeros_like(self.Spec)
-        half_window = N_fitpoints // 2
-        for i in range(len(self.WL)):
-            start_idx = max(0, i - half_window)
-            end_idx = min(len(self.WL), i + half_window + 1)
-            p = np.polyfit(self.WL[start_idx:end_idx], self.Spec[start_idx:end_idx], poly_order)
-            ddp = np.polyder(np.polyder(p))
-            self.Spec_d2[i] = np.polyval(ddp, self.WL[i])
             
 def dict_to_string(header_dict, format="json"):
     """

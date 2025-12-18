@@ -59,6 +59,7 @@ class SpectrumData:
         self.data = {}
         self.roistore = {}
         self.PL = []
+        self.PLB = [] # PL-BG
         self._read_file()
 
         # init fit data
@@ -135,6 +136,8 @@ class SpectrumData:
                 self.PLB = deflib.cosmicfuncts[self.removecosmicsmethod](self.PLB, self.cosmicthreshold, self.cosmicpixels)
             except Exception as e:
                 print('Cosmic removal failed. {}'.format(str(e)))
+        
+        # if 
         
         # important: clean up! delete everything that is not needed anymore
         del lines
@@ -808,11 +811,7 @@ class XYMap:
                         PLB[k-int(self.aqpixstart)] += self.SpecDataMatrix[i][j].PLB[k]
         PLB = np.divide(PLB, speccount)
         self.disspecs[self.createdisspecname()] = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
-        # calculate first and second derivative according to self.derivative_array
-        for i in range(len(self.SpecDataMatrix)):
-            for j in range(len(self.SpecDataMatrix[i])):
-                if np.isnan(self.PMdict[self.hsiselected].PixMatrix[i][j]) == False:
-                    self.disspecs[self.createdisspecname()].calc_derivative(self.derivative_array)
+
         # update the selectbox for spectral data
         self.specselect['values'] = list(self.disspecs.keys())
         self.specselect.set(list(self.disspecs.keys())[-1])
@@ -2557,5 +2556,8 @@ def load_spectrum(fname, instance, lock):
     if specobj.dataokay:
         with lock:
             instance.specs.append(specobj)
+
+def loades_spectra_derivatives(SpectrumInstance, lock):
+    SpectrumInstance.calculate_derivatives()
 
 
