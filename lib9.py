@@ -798,7 +798,7 @@ class XYMap:
         WL = self.WL[self.aqpixstart: self.aqpixend]
         PLB = WL.copy()
         speccount = 0
-        print('wlstart, wlend', 'aqpixstart, aqpixend', self.wlstart, self.wlend, self.aqpixstart, self.aqpixend)
+
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 if np.isnan(self.PMdict[self.hsiselected].PixMatrix[i][j]) == False:
@@ -809,7 +809,10 @@ class XYMap:
         PLB = np.divide(PLB, speccount)
         self.disspecs[self.createdisspecname()] = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
         # calculate first and second derivative according to self.derivative_array
-        
+        for i in range(len(self.SpecDataMatrix)):
+            for j in range(len(self.SpecDataMatrix[i])):
+                if np.isnan(self.PMdict[self.hsiselected].PixMatrix[i][j]) == False:
+                    self.disspecs[self.createdisspecname()].calc_derivative(self.derivative_array)
         # update the selectbox for spectral data
         self.specselect['values'] = list(self.disspecs.keys())
         self.specselect.set(list(self.disspecs.keys())[-1])
