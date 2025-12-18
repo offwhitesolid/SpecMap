@@ -2005,7 +2005,8 @@ class XYMap:
                 continue
                 
             # Ensure we have data
-            if not spec.PLB or not spec.WL or len(spec.PLB) != len(spec.WL):
+            # Check for None or empty arrays/lists explicitly to avoid ambiguity with numpy arrays
+            if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
                 continue
 
             wl = np.array(spec.WL)
