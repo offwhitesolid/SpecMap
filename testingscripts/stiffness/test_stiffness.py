@@ -1,6 +1,9 @@
 """
 Test script for stiffness analysis functions in mathlib3.py
 """
+import os
+# change dir two level up to access mathlib3
+os.chdir(os.path.dirname(os.path.abspath(__file__)) + os.sep + '..' + os.sep + '..')
 
 import numpy as np
 import matplotlib.pyplot as plt
