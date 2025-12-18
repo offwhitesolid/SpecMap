@@ -813,7 +813,58 @@ class XYMap:
                         # average HSI to spec for all pixels that are not NaN in the selected HSI
                         PLB[k-int(self.aqpixstart)] += self.SpecDataMatrix[i][j].PLB[k]
         PLB = np.divide(PLB, speccount)
-        self.disspecs[self.createdisspecname()] = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
+        new_spec = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
+        
+        # Calculate derivatives for the averaged spectrum if requested
+        if self.derivative_polynomarray and len(self.derivative_polynomarray) >= 4:
+            try:
+                # Handle both Tkinter variables and direct values
+                d1_val = self.derivative_polynomarray[0]
+                calc_d1 = d1_val.get() if hasattr(d1_val, 'get') else d1_val
+                
+                d2_val = self.derivative_polynomarray[1]
+                calc_d2 = d2_val.get() if hasattr(d2_val, 'get') else d2_val
+                
+                if calc_d1 or calc_d2:
+                    p_order_val = self.derivative_polynomarray[2]
+                    poly_order = int(p_order_val.get()) if hasattr(p_order_val, 'get') else int(p_order_val)
+                    
+                    n_points_val = self.derivative_polynomarray[3]
+                    N_fitpoints = int(n_points_val.get()) if hasattr(n_points_val, 'get') else int(n_points_val)
+                    
+                    if N_fitpoints % 2 == 0:
+                        N_fitpoints += 1
+                        
+                    # Calculate derivatives for the averaged spectrum
+                    if calc_d1:
+                        new_spec.Spec_d1 = np.zeros_like(PLB)
+                    if calc_d2:
+                        new_spec.Spec_d2 = np.zeros_like(PLB)
+                        
+                    half_window = N_fitpoints // 2
+                    n_points = len(WL)
+                    
+                    for i in range(half_window, n_points - half_window):
+                        start_idx = i - half_window
+                        end_idx = i + half_window + 1
+                        
+                        wl_window = WL[start_idx:end_idx]
+                        plb_window = PLB[start_idx:end_idx]
+                        
+                        try:
+                            p = np.polyfit(wl_window, plb_window, poly_order)
+                            if calc_d1:
+                                dp = np.polyder(p)
+                                new_spec.Spec_d1[i] = np.polyval(dp, WL[i])
+                            if calc_d2:
+                                ddp = np.polyder(np.polyder(p))
+                                new_spec.Spec_d2[i] = np.polyval(ddp, WL[i])
+                        except:
+                            pass
+            except Exception as e:
+                print(f"Error calculating derivatives for averaged spectrum: {e}")
+
+        self.disspecs[self.createdisspecname()] = new_spec
 
         # update the selectbox for spectral data
         self.specselect['values'] = list(self.disspecs.keys())
@@ -856,9 +907,55 @@ class XYMap:
         # plot the selected spectral data
         try:
             selspec = self.specselect.get()
-            selspecdataclass = self.disspecs[specname]
-            # plot the selected spectral data
+            selspecdataclass = self.disspecs[selspec] # Use selspec (the name) to get the object
+            
+            # Check if we want to plot derivatives based on selection in selectspecpixbox (or similar)
+            # But wait, plotSpectral is triggered by button b7 in build_roi_frame.
+            # It plots the spectrum selected in self.specselect.
+            
+            # We need to know WHAT to plot (PLB, d1, d2). 
+            # Currently, it seems to default to 'Averaged HSI Spectrum' (PLB).
+            # Let's check if we can use the selection from selectspecpixbox or similar if available,
+            # OR just plot what is available.
+            
+            # For now, let's plot the main spectrum. 
+            # If the user wants derivatives, they might need to select "first derivative" in a dropdown.
+            # However, the user request says: "Plot Spectrum with Selected Data Set second derivative must display the 2nd derivative spectrum"
+            
+            # This implies we should look at self.selectspecpixbox (from build_button_frame) or similar?
+            # No, build_button_frame is for Pixel Spectrum.
+            # build_roi_frame has "Plot Spectrum" button.
+            
+            # Let's look at where "first derivative" / "second derivative" are selected.
+            # They are in self.speckeys, used in self.selectspecpixbox (Pixel Spectrum) and self.selectspecbox (Fit Window).
+            
+            # If the user wants to see the derivative of the AVERAGED spectrum (disspecs),
+            # we need to check if disspecs has those attributes.
+            
+            # Let's try to plot what is requested if possible, or default to Spec.
+            
+            # Actually, the user might be referring to PlotPixelSpectrum (for a single pixel) OR plotSpectral (for averaged).
+            # The request says "Hyperspectra Notebook, where the user cliks on plot spectrum".
+            # This usually refers to the averaged spectrum from ROI.
+            
+            # Let's modify plotSpectral to check if derivatives exist and plot them if they do?
+            # Or better, let's make sure PlotPixelSpectrum works for derivatives (it uses Specdiff1/2).
+            
+            # But wait, the user said "Plot Spectrum with Selected Data Set second derivative".
+            # This likely refers to the "Select Data Set" combobox in the "Pixel Spectrum" area (build_button_frame).
+            # That combobox is self.selectspecpixbox.
+            # The button is "Plot Spectrum" (b1 in build_button_frame), which calls self.PlotPixelSpectrum.
+            
+            # So let's look at PlotPixelSpectrum.
+            
             self.PlotSpectrum(selspecdataclass.Spec, selspecdataclass.WL, 'Averaged HSI Spectrum')
+            
+            # If the averaged spectrum has derivatives, maybe we should plot them too?
+            if hasattr(selspecdataclass, 'Spec_d1') and selspecdataclass.Spec_d1 is not None:
+                 self.PlotSpectrum(selspecdataclass.Spec_d1, selspecdataclass.WL, '1st Derivative')
+            if hasattr(selspecdataclass, 'Spec_d2') and selspecdataclass.Spec_d2 is not None:
+                 self.PlotSpectrum(selspecdataclass.Spec_d2, selspecdataclass.WL, '2nd Derivative')
+
         except Exception as e:
             print('Error plotting spectral data.', e)
     
@@ -1605,6 +1702,16 @@ class XYMap:
                         self.PlotSpectrum(self.SpecDataMatrix[y][x].PL, wl, 'Spectrometer Counts', xunit=self.WLunit)
                     elif self.speckeys[self.selectdataboxVari] == 'PLB': #Spectrum
                         self.PlotSpectrum(self.SpecDataMatrix[y][x].PLB, wl, 'PL Spectrum', xunit=self.WLunit)
+                    elif self.speckeys[self.selectdataboxVari] == 'Specdiff1': # First Derivative
+                        if hasattr(self.SpecDataMatrix[y][x], 'Specdiff1') and self.SpecDataMatrix[y][x].Specdiff1 is not None:
+                             self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff1, wl, '1st Derivative', xunit=self.WLunit)
+                        else:
+                            print("First derivative not available for this pixel.")
+                    elif self.speckeys[self.selectdataboxVari] == 'Specdiff2': # Second Derivative
+                        if hasattr(self.SpecDataMatrix[y][x], 'Specdiff2') and self.SpecDataMatrix[y][x].Specdiff2 is not None:
+                             self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff2, wl, '2nd Derivative', xunit=self.WLunit)
+                        else:
+                            print("Second derivative not available for this pixel.")
                     else:
                         print('No valid Data set selected for the Plot.')
                     print('x-position: {}, y-position: {}'.format(x, y))

@@ -30,6 +30,8 @@ class Spectra():
         self.header = dict_to_string(self.metadata, format="lines")
         # add to header: "wavelength in nm" \t "intensity in counts"
         self.header = self.header + "\nWL / nm\tCounts"
+        self.Spec_d1 = None  # first derivative
+        self.Spec_d2 = None  # second derivative
     
     def save(self, filename):
         np.savetxt(filename, np.column_stack((self.WL, self.Spec)), delimiter='\t', header=self.header)
