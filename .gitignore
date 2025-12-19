@@ -8,3 +8,7 @@ debugger_output/
 __pycache__/*
 defaults.txt
 hsidata/*
+savefiles/
+testingscripts/**/*.png
+testingscripts/**/d1_individual/
+testingscripts/**/d2_individual/
