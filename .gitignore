@@ -7,3 +7,4 @@ oldfiles/
 debugger_output/
 __pycache__/*
 defaults.txt
+hsidata/*
