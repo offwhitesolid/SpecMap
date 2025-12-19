@@ -14,3 +14,5 @@ HSI von Perovskite:
     - HSI: Laserquellen, Weißlicht
 
 - Heterostrukturen
+
+todo for the main core: use derivatives for the integration and all other methods
