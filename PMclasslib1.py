@@ -56,3 +56,53 @@ def dict_to_string(header_dict, format="json"):
         return "\n".join([f"{k}: {v}" for k, v in header_dict.items()])  # Human-readable format
     else:
         raise ValueError("Invalid format. Choose 'json' or 'lines'.")
+
+def calc_derivative(spec_obj, derivative_polynomarray):
+    """
+    Calculates derivatives using sliding window polynomial fit.
+    spec_obj: Spectra object
+    derivative_polynomarray: [calc_d1 (bool), calc_d2 (bool), poly_order (int), window_size (int)]
+    """
+    calc_d1 = derivative_polynomarray[0]
+    calc_d2 = derivative_polynomarray[1]
+    poly_order = derivative_polynomarray[2]
+    window_size = derivative_polynomarray[3]
+    
+    wl = spec_obj.WL
+    y = spec_obj.Spec
+    n_points = len(wl)
+    
+    if calc_d1:
+        spec_obj.Spec_d1 = np.zeros(n_points)
+    if calc_d2:
+        spec_obj.Spec_d2 = np.zeros(n_points)
+        
+    half_window = window_size // 2
+    
+    for i in range(n_points):
+        # Determine window indices
+        start_idx = max(0, i - half_window)
+        end_idx = min(n_points, i + half_window + 1)
+        
+        # If window is too small at edges, we can either skip or use what we have
+        # For consistency with typical implementations, we use what we have if it's enough points for the order
+        if end_idx - start_idx <= poly_order:
+            continue
+            
+        x_window = wl[start_idx:end_idx]
+        y_window = y[start_idx:end_idx]
+        
+        # Fit polynomial
+        try:
+            p = np.polyfit(x_window, y_window, poly_order)
+            
+            # Evaluate derivatives at the center point (wl[i])
+            if calc_d1:
+                dp = np.polyder(p, 1)
+                spec_obj.Spec_d1[i] = np.polyval(dp, wl[i])
+                
+            if calc_d2:
+                ddp = np.polyder(p, 2)
+                spec_obj.Spec_d2[i] = np.polyval(ddp, wl[i])
+        except np.linalg.LinAlgError:
+            pass
