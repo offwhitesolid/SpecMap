@@ -20,6 +20,7 @@ import deflib1 as deflib # type: ignore
 import PMclasslib1 as PMlib # type: ignore
 import os, gc
 import traceback
+import error_handler  # Centralized error handling and logging
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -78,8 +79,29 @@ class SpectrumData:
         self.fitparamunits = matl.buildfitparas()
 
     def _read_file(self):
-        with open(self.filename, 'r') as file:
-            lines = file.readlines()
+        """
+        Read spectrum data from file.
+        
+        Uses centralized error handling via ErrorEngine when available.
+        Maintains dataokay flag to signal file read success/failure.
+        """
+        # Get error engine if available (passed from main application)
+        error_engine = error_handler.get_default_error_engine()
+        
+        try:
+            with open(self.filename, 'r') as file:
+                lines = file.readlines()
+        except Exception as e:
+            # Use ErrorEngine for file open errors
+            error_engine.error(
+                exception=e,
+                context="Opening spectrum file",
+                filename=self.filename,
+                action="file_open"
+            )
+            # Maintain existing dataokay behavior
+            self.dataokay = False
+            return
 
         # Process lines to store variables
         startreaddata = False
@@ -89,7 +111,15 @@ class SpectrumData:
                 if key in SpectDataFloats:
                     try:
                         self.data[key] = float(value)
-                    except:
+                    except Exception as e:
+                        # Use ErrorEngine for parsing errors
+                        error_engine.warning(
+                            message=f"Could not parse float value for key '{key}'",
+                            context="Parsing spectrum metadata",
+                            filename=self.filename,
+                            key=key,
+                            value=value
+                        )
                         self.data[key] = value
                         self.openFstate.append(False)
                 else:
@@ -111,7 +141,13 @@ class SpectrumData:
                         #self.WL.append(float(parts[0]))  WL is only read once by XYMap since each SpectrumData has the same WL-axis
                         self.PL.append(int(parts[2]))
                     except Exception as e:
-                        print("Error", str(e))
+                        # Use ErrorEngine for data parsing errors
+                        error_engine.error(
+                            exception=e,
+                            context="Parsing spectrum data line",
+                            filename=self.filename,
+                            line_content=line.strip()
+                        )
         if self.loadeachbg == True and self.linearbg == True:
             av = np.mean(self.BG)
             for i in range(len(self.BG)):
@@ -120,7 +156,14 @@ class SpectrumData:
         try:
             self.PLB = np.subtract(self.PL, self.BG).tolist() # add PLB = PL-BG
         except Exception as e:
-            print("Error", str(e))
+            # Use ErrorEngine for background subtraction errors
+            error_engine.error(
+                exception=e,
+                context="Background subtraction",
+                filename=self.filename,
+                PL_length=len(self.PL),
+                BG_length=len(self.BG)
+            )
         # write openstate list
         for i in SpectDataFloats:
             if i not in list(self.data.keys()):
@@ -137,7 +180,14 @@ class SpectrumData:
             try:
                 self.PLB = deflib.cosmicfuncts[self.removecosmicsmethod](self.PLB, self.cosmicthreshold, self.cosmicpixels)
             except Exception as e:
-                print('Cosmic removal failed. {}'.format(str(e)))
+                # Use ErrorEngine for cosmic removal errors
+                error_engine.error(
+                    exception=e,
+                    context="Cosmic ray removal",
+                    filename=self.filename,
+                    method=self.removecosmicsmethod,
+                    threshold=self.cosmicthreshold
+                )
         
         # if 
         
