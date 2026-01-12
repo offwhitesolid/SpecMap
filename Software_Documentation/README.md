@@ -2,7 +2,7 @@
 
 **Project:** SpecMap - Hyperspectral Data Analysis Tool  
 **Version:** 1.0  
-**Last Updated:** November 28, 2025
+**Last Updated:** January 12, 2026
 
 ---
 
@@ -58,6 +58,74 @@ This directory contains comprehensive technical documentation for the SpecMap so
 
 ---
 
+### 3. ErrorEngine - Centralized Logging and Error Handling
+
+**Purpose:** Unified error handling and logging system for the SpecMap application
+
+**Implementation:** `error_engine.py` module provides the `ErrorEngine` class
+
+**Key Features:**
+- Centralized error logging with rotating file handlers (5MB per file, 5 backups)
+- Thread-safe logging for concurrent operations
+- Full context tracking (traceback, file paths, user actions)
+- User-friendly error messages via tkinter messagebox
+- Support for decorator, context manager, and direct method call patterns
+- Log files stored in `logs/` directory with format: `[timestamp] [level] [module:function:line] - message`
+
+**Integration Points:**
+- `main9.py`: Application startup, file operations (load/save)
+- `lib9.py`: Spectrum data reading, state persistence, ROI handling
+- All exceptions are logged with full context including:
+  - Exception type and message
+  - Stack trace
+  - Current file/operation being processed
+  - User action that triggered the error
+  - Application state information
+
+**Usage Examples:**
+
+```python
+# Example 1: Using ErrorEngine as a context manager
+with error_engine.context("Loading spectrum file", filename=path):
+    data = load_spectrum(path)
+
+# Example 2: Direct exception handling
+try:
+    result = risky_operation()
+except Exception as e:
+    error_engine.handle_exception(
+        e, 
+        context="User clicked Load button", 
+        severity="ERROR",
+        additional_info={"filename": path}
+    )
+
+# Example 3: Using ErrorEngine decorator
+@error_engine.track_errors(action="File save operation")
+def save_file(self, path):
+    # implementation
+    pass
+
+# Example 4: Simple logging
+error_engine.log_info("HSI data loaded successfully", filename=path)
+error_engine.log_warning("Missing optional metadata", field="magnification")
+```
+
+**Configuration:**
+- Initialized in `main9.py` at application startup
+- Log level: DEBUG (captures all events)
+- Console handler: WARNING and above
+- File handler: All levels
+- Thread-safe for concurrent file loading operations
+
+**Backward Compatibility:**
+- Existing try/except blocks remain functional
+- ErrorEngine complements, not replaces, existing error handling
+- Gracefully handles cases where error engine is not initialized
+- No breaking changes to existing functionality
+
+---
+
 ## Key Concepts
 
 ### Program Structure (main9.py)
@@ -96,9 +164,9 @@ Widget Error
 Parent Frame
     ↓ propagates upward
 Component Class
-    ↓ propagates upward
+    ↓ propagates upward (LOGGED by ErrorEngine)
 FileProcessorApp
-    ↓ propagates upward
+    ↓ propagates upward (LOGGED by ErrorEngine)
 Root Window (handled by pressclose)
 ```
 
@@ -206,14 +274,14 @@ Both documents use ASCII art for visual representation:
 
 ### Error Handling Levels
 
-| Level | Component | Error Detection | Notification | Propagation |
-|-------|-----------|----------------|--------------|-------------|
-| 0 | Root Window | Protocol handler | None | Application exit |
-| 1 | FileProcessorApp | try/except + validation | messagebox | Stops here |
-| 2 | XYMap | try/except + traceback | Console | Return False |
-| 3 | SpectrumData | Flag-based | None | Flag check |
-| 4 | Roihandler | Validation checks | matplotlib | Upward |
-| 5 | Component Classes | try/except | Console/None | Varies |
+| Level | Component | Error Detection | Notification | Logging | Propagation |
+|-------|-----------|----------------|--------------|---------|-------------|
+| 0 | Root Window | Protocol handler | None | ErrorEngine | Application exit |
+| 1 | FileProcessorApp | try/except + validation | messagebox | ErrorEngine | Stops here |
+| 2 | XYMap | try/except + traceback | Console | ErrorEngine | Return False |
+| 3 | SpectrumData | Flag-based + ErrorEngine | None | ErrorEngine | Flag check |
+| 4 | Roihandler | Validation checks | matplotlib | ErrorEngine | Upward |
+| 5 | Component Classes | try/except | Console/None | ErrorEngine (optional) | Varies |
 
 ### Cleanup Sequence
 
@@ -295,6 +363,6 @@ For questions about this documentation:
 
 ---
 
-**Last Updated:** November 28, 2025  
+**Last Updated:** January 12, 2026  
 **Maintainer:** PyProgMo  
-**Documentation Version:** 1.0
+**Documentation Version:** 1.1

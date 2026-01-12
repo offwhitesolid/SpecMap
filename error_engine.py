@@ -31,7 +31,14 @@ import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, Callable
-from tkinter import messagebox
+
+# Make tkinter optional for testing environments
+try:
+    from tkinter import messagebox
+    TKINTER_AVAILABLE = True
+except ImportError:
+    TKINTER_AVAILABLE = False
+    messagebox = None
 
 
 class ErrorEngine:
@@ -132,7 +139,11 @@ class ErrorEngine:
         if show_user_message and self.show_messagebox:
             user_message = self._create_user_message(error_type, error_msg, context)
             try:
-                messagebox.showerror("Error", user_message)
+                if TKINTER_AVAILABLE and messagebox:
+                    messagebox.showerror("Error", user_message)
+                else:
+                    # Fallback to console if tkinter not available
+                    print(f"\n{'='*60}\nERROR: {user_message}\n{'='*60}\n")
             except Exception as e:
                 # If messagebox fails, just log it
                 self.logger.warning(f"Failed to show error messagebox: {e}")
