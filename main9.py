@@ -1127,6 +1127,10 @@ if __name__ == "__main__":
         backup_count=5
     )
     
+    # Set as default error engine for application-wide use
+    # This allows lib9.py and other modules to use the same error handler
+    error_handler._default_error_engine = error_engine
+    
     # Get logger for application-wide use
     logger = error_engine.get_logger()
     logger.info("SpecMap application starting", extra={'context': 'Application Startup'})

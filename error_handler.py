@@ -50,6 +50,14 @@ except ImportError:
             print(f"WARNING [{title}]: {message}")
 
 
+class ContextFilter(logging.Filter):
+    """Filter to ensure context attribute exists in all log records."""
+    def filter(self, record):
+        if not hasattr(record, 'context'):
+            record.context = 'Unknown'
+        return True
+
+
 class ErrorEngine:
     """
     Centralized error handling engine for SpecMap application.
@@ -103,12 +111,6 @@ class ErrorEngine:
                 file_handler.setLevel(logging.DEBUG)
                 
                 # Add filter to ensure context attribute exists
-                class ContextFilter(logging.Filter):
-                    def filter(self, record):
-                        if not hasattr(record, 'context'):
-                            record.context = 'Unknown'
-                        return True
-                
                 file_handler.addFilter(ContextFilter())
                 
                 # Create formatter
@@ -133,6 +135,14 @@ class ErrorEngine:
                 # Create a basic console-only logger as fallback
                 console_handler = logging.StreamHandler()
                 console_handler.setLevel(logging.INFO)
+                console_handler.addFilter(ContextFilter())
+                
+                # Create formatter
+                formatter = logging.Formatter(
+                    '[%(asctime)s] [%(levelname)s] [%(context)s] %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S'
+                )
+                console_handler.setFormatter(formatter)
                 self.logger.addHandler(console_handler)
         
         # Log initialization
@@ -283,8 +293,17 @@ def get_default_error_engine():
     """
     Get or create the default ErrorEngine instance.
     
+    This provides a singleton error engine that can be safely accessed
+    from any thread or context in the application. The error engine
+    should be initialized once in the main application (main9.py) to
+    configure the log file location and rotation settings.
+    
     Returns:
         ErrorEngine: The default error engine instance
+        
+    Note:
+        If called before explicit initialization in main9.py, this will
+        create a default instance with default settings (logs/specmap.log).
     """
     global _default_error_engine
     if _default_error_engine is None:

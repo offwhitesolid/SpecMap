@@ -83,9 +83,11 @@ class SpectrumData:
         Read spectrum data from file.
         
         Uses centralized error handling via ErrorEngine when available.
+        Uses get_default_error_engine() to access shared error handler instance.
         Maintains dataokay flag to signal file read success/failure.
         """
-        # Get error engine if available (passed from main application)
+        # Get default error engine (shared singleton instance)
+        # This is safe to use from any thread/context
         error_engine = error_handler.get_default_error_engine()
         
         try:
