@@ -15,12 +15,12 @@ from scipy.special import wofz
 from tkinter import filedialog as tkfd
 import threading as thre
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import mathlib3 as matl # type: ignore
-import deflib1 as deflib # type: ignore
-import PMclasslib1 as PMlib # type: ignore
+import mathlib3 as matl
+import deflib1 as deflib
+import PMclasslib1 as PMlib
 import os, gc
 import traceback
-import error_engine as ee  # type: ignore
+import error_engine as ee
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -34,6 +34,14 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Short Wavelength (nm)',
                    'Long Wavelength (nm)',
                    'magnification']
+
+# Helper function to safely get error engine instance
+def _get_error_engine_safe():
+    """Get error engine instance if available, otherwise return None."""
+    try:
+        return ee.get_error_engine()
+    except (RuntimeError, AttributeError):
+        return None
 
 # todo: make the load data function in the SpectrumData class more robust for statistical cosmic removal
 
@@ -81,10 +89,7 @@ class SpectrumData:
     def _read_file(self):
         try:
             # Get error engine (may not be initialized yet in some cases)
-            try:
-                error_engine = ee.get_error_engine()
-            except RuntimeError:
-                error_engine = None
+            error_engine = _get_error_engine_safe()
             
             with open(self.filename, 'r') as file:
                 lines = file.readlines()
@@ -1990,10 +1995,7 @@ class XYMap:
     def loadfiles(self):
         try:
             # Get error engine (may not be initialized yet)
-            try:
-                error_engine = ee.get_error_engine()
-            except RuntimeError:
-                error_engine = None
+            error_engine = _get_error_engine_safe()
             
             # read WL axis once for all files (must be same for all datafiles)
             lines = ['0']
@@ -2507,10 +2509,7 @@ class XYMap:
         """
         try:
             # Get error engine (may not be initialized yet)
-            try:
-                error_engine = ee.get_error_engine()
-            except RuntimeError:
-                error_engine = None
+            error_engine = _get_error_engine_safe()
             
             if error_engine:
                 error_engine.log_info("Saving XYMap state", filename=filename)
@@ -2789,10 +2788,7 @@ class Roihandler():
     def construct(self, pixmatrix, roiselgui):
         try:
             # Get error engine (may not be initialized yet)
-            try:
-                error_engine = ee.get_error_engine()
-            except RuntimeError:
-                error_engine = None
+            error_engine = _get_error_engine_safe()
             
             self.pixmatrix = pixmatrix
             self.pixmatrix = np.transpose(self.pixmatrix)

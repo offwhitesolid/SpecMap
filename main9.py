@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 #from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import os, sys, pickle
 from PIL import Image, ImageTk
-import lib9 as lib # type: ignore
+import lib9 as lib
 import numpy as np
 import deflib1 as deflib
 import claralib1 as claralib
@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import HSI_debugger as DBG
 import TCSPClib as tcspclib
 import shutil, gc
-import error_engine as ee  # type: ignore
+import error_engine as ee
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
