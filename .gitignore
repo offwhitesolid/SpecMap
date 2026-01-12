@@ -12,3 +12,4 @@ savefiles/
 testingscripts/**/*.png
 testingscripts/**/d1_individual/
 testingscripts/**/d2_individual/
+logs/

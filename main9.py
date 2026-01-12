@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import HSI_debugger as DBG
 import TCSPClib as tcspclib
 import shutil, gc
+import error_handler  # Centralized error handling and logging
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -1117,6 +1118,23 @@ def pressclose(root, app):
     app.on_closing()
 
 if __name__ == "__main__":
+    # Initialize centralized error handling and logging
+    # This creates a rotating log file at logs/specmap.log (10MB max, 5 backups)
+    # Provides thread-safe logging and user-friendly error messages via tkinter messagebox
+    error_engine = error_handler.ErrorEngine(
+        log_file='logs/specmap.log',
+        max_bytes=10*1024*1024,  # 10MB
+        backup_count=5
+    )
+    
+    # Set as default error engine for application-wide use
+    # This allows lib9.py and other modules to use the same error handler
+    error_handler._default_error_engine = error_engine
+    
+    # Get logger for application-wide use
+    logger = error_engine.get_logger()
+    logger.info("SpecMap application starting", extra={'context': 'Application Startup'})
+    
     # init debugger
     debugger = DBG.main_Debugger()
 
@@ -1129,10 +1147,17 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.geometry('{}x{}'.format(int(defaults['windowsize_X']), int(defaults['windowsize_Y'])))
     frame = tk.Frame(root)
+    
+    # Store error_engine in app for use throughout application
     app = FileProcessorApp(root, defaults)
+    app.error_engine = error_engine  # Make error engine accessible to app
 
     # Set the protocol for closing the window
     root.protocol("WM_DELETE_WINDOW", lambda: pressclose(root, app))
 
+    logger.info("GUI initialized successfully", extra={'context': 'Application Startup'})
+    
     # Run the application
     root.mainloop()
+    
+    logger.info("SpecMap application shutting down", extra={'context': 'Application Shutdown'})
