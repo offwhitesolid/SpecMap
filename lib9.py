@@ -20,6 +20,7 @@ import deflib1 as deflib # type: ignore
 import PMclasslib1 as PMlib # type: ignore
 import os, gc
 import traceback
+import error_engine as ee  # type: ignore
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -78,71 +79,114 @@ class SpectrumData:
         self.fitparamunits = matl.buildfitparas()
 
     def _read_file(self):
-        with open(self.filename, 'r') as file:
-            lines = file.readlines()
-
-        # Process lines to store variables
-        startreaddata = False
-        for line in lines:
-            if ':' in line:
-                key, value = map(str.strip, line.split(':', 1))
-                if key in SpectDataFloats:
-                    try:
-                        self.data[key] = float(value)
-                    except:
-                        self.data[key] = value
-                        self.openFstate.append(False)
-                else:
-                    self.data[key] = value
-            elif '\t' in line:  # Data lines with tabs
-                parts = line.split()
-                if startreaddata == False:
-                    count = 0
-                    # start reading if at least two keys in the line
-                    for i in parts:
-                        if i in self.readinkeys:
-                            count += 1
-                    if count > 1:
-                        startreaddata = True
-                elif startreaddata == True:
-                    try:
-                        if self.loadeachbg == True:
-                            self.BG.append(int(parts[1]))
-                        #self.WL.append(float(parts[0]))  WL is only read once by XYMap since each SpectrumData has the same WL-axis
-                        self.PL.append(int(parts[2]))
-                    except Exception as e:
-                        print("Error", str(e))
-        if self.loadeachbg == True and self.linearbg == True:
-            av = np.mean(self.BG)
-            for i in range(len(self.BG)):
-                self.BG[i] = av
-
         try:
-            self.PLB = np.subtract(self.PL, self.BG).tolist() # add PLB = PL-BG
-        except Exception as e:
-            print("Error", str(e))
-        # write openstate list
-        for i in SpectDataFloats:
-            if i not in list(self.data.keys()):
-                self.openFstate.append(False)
-        if len(self.WL) == 0:
-            self.openDstate.append(None)
-        if len(self.BG) == 0:
-            self.openDstate.append(None)
-        if len(self.PL) == 0:
-            self.openDstate.append(None)
-        self.setOK()
-        # remove cosmic rays todo: add nearest neighbor method
-        if self.removecosmics == True:
+            # Get error engine (may not be initialized yet in some cases)
             try:
-                self.PLB = deflib.cosmicfuncts[self.removecosmicsmethod](self.PLB, self.cosmicthreshold, self.cosmicpixels)
+                error_engine = ee.get_error_engine()
+            except RuntimeError:
+                error_engine = None
+            
+            with open(self.filename, 'r') as file:
+                lines = file.readlines()
+
+            # Process lines to store variables
+            startreaddata = False
+            for line in lines:
+                if ':' in line:
+                    key, value = map(str.strip, line.split(':', 1))
+                    if key in SpectDataFloats:
+                        try:
+                            self.data[key] = float(value)
+                        except:
+                            self.data[key] = value
+                            self.openFstate.append(False)
+                    else:
+                        self.data[key] = value
+                elif '\t' in line:  # Data lines with tabs
+                    parts = line.split()
+                    if startreaddata == False:
+                        count = 0
+                        # start reading if at least two keys in the line
+                        for i in parts:
+                            if i in self.readinkeys:
+                                count += 1
+                        if count > 1:
+                            startreaddata = True
+                    elif startreaddata == True:
+                        try:
+                            if self.loadeachbg == True:
+                                self.BG.append(int(parts[1]))
+                            #self.WL.append(float(parts[0]))  WL is only read once by XYMap since each SpectrumData has the same WL-axis
+                            self.PL.append(int(parts[2]))
+                        except Exception as e:
+                            print("Error", str(e))
+                            if error_engine:
+                                error_engine.log_debug(f"Error parsing line in file: {str(e)}", filename=self.filename)
+            if self.loadeachbg == True and self.linearbg == True:
+                av = np.mean(self.BG)
+                for i in range(len(self.BG)):
+                    self.BG[i] = av
+
+            try:
+                self.PLB = np.subtract(self.PL, self.BG).tolist() # add PLB = PL-BG
             except Exception as e:
-                print('Cosmic removal failed. {}'.format(str(e)))
-        
-        # if 
-        
-        # important: clean up! delete everything that is not needed anymore
-        del lines
+                print("Error", str(e))
+                if error_engine:
+                    error_engine.log_warning(f"Error calculating PLB: {str(e)}", filename=self.filename)
+            # write openstate list
+            for i in SpectDataFloats:
+                if i not in list(self.data.keys()):
+                    self.openFstate.append(False)
+            if len(self.WL) == 0:
+                self.openDstate.append(None)
+            if len(self.BG) == 0:
+                self.openDstate.append(None)
+            if len(self.PL) == 0:
+                self.openDstate.append(None)
+            self.setOK()
+            # remove cosmic rays todo: add nearest neighbor method
+            if self.removecosmics == True:
+                try:
+                    self.PLB = deflib.cosmicfuncts[self.removecosmicsmethod](self.PLB, self.cosmicthreshold, self.cosmicpixels)
+                except Exception as e:
+                    error_msg = 'Cosmic removal failed. {}'.format(str(e))
+                    print(error_msg)
+                    if error_engine:
+                        error_engine.log_warning(error_msg, filename=self.filename, method=self.removecosmicsmethod)
+            
+            # if 
+            
+            # important: clean up! delete everything that is not needed anymore
+            del lines
+            
+        except FileNotFoundError as e:
+            error_msg = f"File not found: {self.filename}"
+            print("Error:", error_msg)
+            try:
+                error_engine = ee.get_error_engine()
+                error_engine.handle_exception(
+                    e,
+                    context="Reading spectrum file",
+                    show_user_message=False,
+                    additional_info={"filename": self.filename}
+                )
+            except:
+                pass
+            raise
+        except Exception as e:
+            error_msg = f"Error reading file {self.filename}: {str(e)}"
+            print("Error:", error_msg)
+            try:
+                error_engine = ee.get_error_engine()
+                error_engine.handle_exception(
+                    e,
+                    context="Reading spectrum file",
+                    show_user_message=False,
+                    additional_info={"filename": self.filename}
+                )
+            except:
+                pass
+            raise
 
     def setOK(self):
         if False in self.openFstate:
@@ -1946,70 +1990,104 @@ class XYMap:
                     PixMatrix[i][j] = np.nan
 
     def loadfiles(self):
-        # read WL axis once for all files (must be same for all datafiles)
-        lines = ['0']
-        gotWL = False
-        gotBG = False
-        i = 0
-        self.WL = []
-        self.BG = []
-        
-        # Check if there are any files to load
-        if len(self.fnames) == 0:
-            print("No files to load. Skipping loadfiles() - will be populated by load_state().")
-            self.WL_eV = []
-            return
-        
-        while gotWL == False or gotBG == False:
+        try:
+            # Get error engine (may not be initialized yet)
             try:
-                with open(self.fnames[i], 'r') as file:
-                    lines = file.readlines()
-            except Exception as e:
-                print('Error While trying to read WL axis. No WL found in {} Files. {}'.format(i, str(e)))
-                break
-            # Process lines to store variables
-            startreaddata = False 
-            for line in lines:
-                if '\t' in line:  # Data lines with tabs
-                    parts = line.split()
-                    if startreaddata == False:
-                        count = 0
-                        # start reading if at least two keys in the line
-                        for j in parts:
-                            if j in self.readinkeys:
-                                count += 1
-                        if count > 0:
-                            startreaddata = True
-                    elif startreaddata == True:
-                        if gotWL == False:
-                            try:
-                                self.WL.append(float(parts[0]))
-                            except Exception as e:
-                                print('Error While trying to read WL axis from {}. {}'.format(self.fnames[i], str(e)))
-                        if gotBG == False or self.loadeachbg == False:
-                            try:
-                                self.BG.append(float(parts[1]))
-                            except Exception as e:
-                                print('Error While trying to read WL axis from {}. {}'.format(self.fnames[i], str(e)))
+                error_engine = ee.get_error_engine()
+            except RuntimeError:
+                error_engine = None
+            
+            # read WL axis once for all files (must be same for all datafiles)
+            lines = ['0']
+            gotWL = False
+            gotBG = False
+            i = 0
+            self.WL = []
+            self.BG = []
+            
+            # Check if there are any files to load
+            if len(self.fnames) == 0:
+                print("No files to load. Skipping loadfiles() - will be populated by load_state().")
+                self.WL_eV = []
+                return
+            
+            if error_engine:
+                error_engine.log_info(f"Loading {len(self.fnames)} spectrum files")
+            
+            while gotWL == False or gotBG == False:
+                try:
+                    with open(self.fnames[i], 'r') as file:
+                        lines = file.readlines()
+                except Exception as e:
+                    error_msg = 'Error While trying to read WL axis. No WL found in {} Files. {}'.format(i, str(e))
+                    print(error_msg)
+                    if error_engine:
+                        error_engine.log_warning(error_msg, file_index=i)
+                    break
+                # Process lines to store variables
+                startreaddata = False 
+                for line in lines:
+                    if '\t' in line:  # Data lines with tabs
+                        parts = line.split()
+                        if startreaddata == False:
+                            count = 0
+                            # start reading if at least two keys in the line
+                            for j in parts:
+                                if j in self.readinkeys:
+                                    count += 1
+                            if count > 0:
+                                startreaddata = True
+                        elif startreaddata == True:
+                            if gotWL == False:
+                                try:
+                                    self.WL.append(float(parts[0]))
+                                except Exception as e:
+                                    error_msg = 'Error While trying to read WL axis from {}. {}'.format(self.fnames[i], str(e))
+                                    print(error_msg)
+                                    if error_engine:
+                                        error_engine.log_debug(error_msg, filename=self.fnames[i])
+                            if gotBG == False or self.loadeachbg == False:
+                                try:
+                                    self.BG.append(float(parts[1]))
+                                except Exception as e:
+                                    error_msg = 'Error While trying to read WL axis from {}. {}'.format(self.fnames[i], str(e))
+                                    print(error_msg)
+                                    if error_engine:
+                                        error_engine.log_debug(error_msg, filename=self.fnames[i])
 
-            i += 1
-            if len(self.WL) > 1:
-                gotWL = True
-            if len(self.BG) > 1:
-                gotBG = True
-        
-        if self.loadeachbg == False:
-            if self.linearbg == True:
-                av = np.mean(self.BG)
-                for i in range(len(self.BG)):
-                    self.BG[i] = av
+                i += 1
+                if len(self.WL) > 1:
+                    gotWL = True
+                if len(self.BG) > 1:
+                    gotBG = True
+            
+            if self.loadeachbg == False:
+                if self.linearbg == True:
+                    av = np.mean(self.BG)
+                    for i in range(len(self.BG)):
+                        self.BG[i] = av
 
-        # convert WL in nm to eV and strore as WL_eV
-        self.WL_eV = deflib.wl_array_to_ev(self.WL[:])
+            # convert WL in nm to eV and strore as WL_eV
+            self.WL_eV = deflib.wl_array_to_ev(self.WL[:])
 
-        # parallel loading of spectra
-        self.parallel_load_spectra()
-        del lines
+            # parallel loading of spectra
+            self.parallel_load_spectra()
+            del lines
+            
+        except Exception as e:
+            error_msg = f"Error in loadfiles: {str(e)}"
+            print("Error:", error_msg)
+            try:
+                error_engine = ee.get_error_engine()
+                error_engine.handle_exception(
+                    e,
+                    context="Loading spectrum files",
+                    show_user_message=False,
+                    additional_info={"num_files": len(self.fnames) if hasattr(self, 'fnames') else 0}
+                )
+            except:
+                pass
+            raise
 
     def parallel_load_spectra(self):
         # before starting threads, clear specs
@@ -2429,84 +2507,122 @@ class XYMap:
         Save the complete state of the XYMap instance to a file.
         This includes all data, processing parameters, and results.
         """
-        # Create a dictionary with all important state
-        state = {
-            # Core data - WL and WL_eV arrays (shared references)
-            'WL': self.WL,
-            'WL_eV': self.WL_eV if hasattr(self, 'WL_eV') else None,
-            'BG': self.BG if hasattr(self, 'BG') else [],
-            'fnames': self.fnames,
-            
-            # Spectral data objects
-            'specs': self.specs,
-            
-            # Matrix data
-            'SpecDataMatrix': self.SpecDataMatrix,
-            
-            # PMdict - contains all HSI images (PixMatrix objects with fit results)
-            'PMdict': self.PMdict,
-            'PMmetadata': self.PMmetadata if hasattr(self, 'PMmetadata') else {},
-            
-            # ROI data - masks and selections
-            'roilist': self.roihandler.roilist if hasattr(self, 'roihandler') else {},
-            
-            # Processing parameters
-            'wlstart': self.wlstart,
-            'wlend': self.wlend,
-            'countthreshv': self.countthreshv,
-            'aqpixstart': self.aqpixstart,
-            'aqpixend': self.aqpixend,
-            
-            # Grid parameters
-            'mxcoords': self.mxcoords if hasattr(self, 'mxcoords') else [],
-            'mycoords': self.mycoords if hasattr(self, 'mycoords') else [],
-            'PixAxX': self.PixAxX if hasattr(self, 'PixAxX') else [],
-            'PixAxY': self.PixAxY if hasattr(self, 'PixAxY') else [],
-            'gdx': self.gdx if hasattr(self, 'gdx') else 0,
-            'gdy': self.gdy if hasattr(self, 'gdy') else 0,
-            
-            # Data ranges
-            'DataSpecMin': self.DataSpecMin,
-            'DataSpecMax': self.DataSpecMax,
-            'DataSpecdL': self.DataSpecdL,
-            'DataPixSt': self.DataPixSt,
-            'DataPixDX': self.DataPixDX if hasattr(self, 'DataPixDX') else 0,
-            'DataPixDY': self.DataPixDY if hasattr(self, 'DataPixDY') else 0,
-            
-            # Configuration
-            'loadeachbg': self.loadeachbg,
-            'linearbg': self.linearbg,
-            'removecosmics': self.removecosmics,
-            'cosmicthreshold': self.cosmicthreshold,
-            'cosmicpixels': self.cosmicpixels,
-            'remcosmicfunc': self.remcosmicfunc,
-            'fontsize': self.fontsize,
-            
-            # Settings
-            'colormap': self.colormap.get(),
-            'WL_selection': self.WL_selection.get(),
-            'HSI_fit_useROI': self.HSI_fit_useROI.get(),
-            'HSI_from_fitparam_useROI': self.HSI_from_fitparam_useROI.get(),
-            
-            # Additional attributes
-            'defentries': self.defentries,
-        }
-        
-        # Save to file with error handling
         try:
-            # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(filename), exist_ok=True) if os.path.dirname(filename) else None
+            # Get error engine (may not be initialized yet)
+            try:
+                error_engine = ee.get_error_engine()
+            except RuntimeError:
+                error_engine = None
             
-            with open(filename, 'wb') as f:
-                pickle.dump(state, f, protocol=pickle.HIGHEST_PROTOCOL)
-            print(f"Successfully saved XYMap state to: {filename}")
-            print(f"  - Saved {len(self.specs)} spectra")
-            print(f"  - Saved {len(self.PMdict)} HSI images")
-            print(f"  - Saved {len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0} ROI masks")
-            return True
+            if error_engine:
+                error_engine.log_info("Saving XYMap state", filename=filename)
+            
+            # Create a dictionary with all important state
+            state = {
+                # Core data - WL and WL_eV arrays (shared references)
+                'WL': self.WL,
+                'WL_eV': self.WL_eV if hasattr(self, 'WL_eV') else None,
+                'BG': self.BG if hasattr(self, 'BG') else [],
+                'fnames': self.fnames,
+                
+                # Spectral data objects
+                'specs': self.specs,
+                
+                # Matrix data
+                'SpecDataMatrix': self.SpecDataMatrix,
+                
+                # PMdict - contains all HSI images (PixMatrix objects with fit results)
+                'PMdict': self.PMdict,
+                'PMmetadata': self.PMmetadata if hasattr(self, 'PMmetadata') else {},
+                
+                # ROI data - masks and selections
+                'roilist': self.roihandler.roilist if hasattr(self, 'roihandler') else {},
+                
+                # Processing parameters
+                'wlstart': self.wlstart,
+                'wlend': self.wlend,
+                'countthreshv': self.countthreshv,
+                'aqpixstart': self.aqpixstart,
+                'aqpixend': self.aqpixend,
+                
+                # Grid parameters
+                'mxcoords': self.mxcoords if hasattr(self, 'mxcoords') else [],
+                'mycoords': self.mycoords if hasattr(self, 'mycoords') else [],
+                'PixAxX': self.PixAxX if hasattr(self, 'PixAxX') else [],
+                'PixAxY': self.PixAxY if hasattr(self, 'PixAxY') else [],
+                'gdx': self.gdx if hasattr(self, 'gdx') else 0,
+                'gdy': self.gdy if hasattr(self, 'gdy') else 0,
+                
+                # Data ranges
+                'DataSpecMin': self.DataSpecMin,
+                'DataSpecMax': self.DataSpecMax,
+                'DataSpecdL': self.DataSpecdL,
+                'DataPixSt': self.DataPixSt,
+                'DataPixDX': self.DataPixDX if hasattr(self, 'DataPixDX') else 0,
+                'DataPixDY': self.DataPixDY if hasattr(self, 'DataPixDY') else 0,
+                
+                # Configuration
+                'loadeachbg': self.loadeachbg,
+                'linearbg': self.linearbg,
+                'removecosmics': self.removecosmics,
+                'cosmicthreshold': self.cosmicthreshold,
+                'cosmicpixels': self.cosmicpixels,
+                'remcosmicfunc': self.remcosmicfunc,
+                'fontsize': self.fontsize,
+                
+                # Settings
+                'colormap': self.colormap.get(),
+                'WL_selection': self.WL_selection.get(),
+                'HSI_fit_useROI': self.HSI_fit_useROI.get(),
+                'HSI_from_fitparam_useROI': self.HSI_from_fitparam_useROI.get(),
+                
+                # Additional attributes
+                'defentries': self.defentries,
+            }
+            
+            # Save to file with error handling
+            try:
+                # Create directory if it doesn't exist
+                os.makedirs(os.path.dirname(filename), exist_ok=True) if os.path.dirname(filename) else None
+                
+                with open(filename, 'wb') as f:
+                    pickle.dump(state, f, protocol=pickle.HIGHEST_PROTOCOL)
+                print(f"Successfully saved XYMap state to: {filename}")
+                print(f"  - Saved {len(self.specs)} spectra")
+                print(f"  - Saved {len(self.PMdict)} HSI images")
+                print(f"  - Saved {len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0} ROI masks")
+                
+                if error_engine:
+                    error_engine.log_info("XYMap state saved successfully", 
+                                        filename=filename,
+                                        num_spectra=len(self.specs),
+                                        num_hsi_images=len(self.PMdict))
+                return True
+            except Exception as e:
+                print(f"Error saving XYMap state: {e}")
+                traceback.print_exc()
+                if error_engine:
+                    error_engine.handle_exception(
+                        e,
+                        context="Saving XYMap state to pickle file",
+                        show_user_message=False,
+                        additional_info={"filename": filename}
+                    )
+                return False
+                
         except Exception as e:
-            print(f"Error saving XYMap state: {e}")
+            print(f"Error in save_state: {e}")
             traceback.print_exc()
+            try:
+                error_engine = ee.get_error_engine()
+                error_engine.handle_exception(
+                    e,
+                    context="Preparing XYMap state for saving",
+                    show_user_message=False,
+                    additional_info={"filename": filename}
+                )
+            except:
+                pass
             return False
     
     def load_state(self, filename):
@@ -2619,11 +2735,46 @@ class XYMap:
             print(f"  - Loaded {len(self.PMdict)} HSI images")
             print(f"  - Loaded {len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0} ROI masks")
             print(f"  - WL axis: {len(self.WL)} points from {self.DataSpecMin:.2f} to {self.DataSpecMax:.2f} nm")
+            
+            # Get error engine (may not be initialized yet)
+            try:
+                error_engine = ee.get_error_engine()
+                error_engine.log_info("XYMap state loaded successfully", 
+                                    filename=filename,
+                                    num_spectra=len(self.specs),
+                                    num_hsi_images=len(self.PMdict))
+            except:
+                pass
+            
             return True
             
+        except FileNotFoundError as e:
+            print(f"Error loading XYMap state: File not found - {filename}")
+            traceback.print_exc()
+            try:
+                error_engine = ee.get_error_engine()
+                error_engine.handle_exception(
+                    e,
+                    context="Loading XYMap state from pickle file",
+                    show_user_message=False,
+                    additional_info={"filename": filename}
+                )
+            except:
+                pass
+            return False
         except Exception as e:
             print(f"Error loading XYMap state: {e}")
             traceback.print_exc()
+            try:
+                error_engine = ee.get_error_engine()
+                error_engine.handle_exception(
+                    e,
+                    context="Loading XYMap state from pickle file",
+                    show_user_message=False,
+                    additional_info={"filename": filename}
+                )
+            except:
+                pass
             return False
 		
         
@@ -2638,20 +2789,41 @@ class Roihandler():
         self.pixmatrix = np.transpose(self.pixmatrix)
 
     def construct(self, pixmatrix, roiselgui):
-        self.pixmatrix = pixmatrix
-        self.pixmatrix = np.transpose(self.pixmatrix)
-        self.roiselgui = roiselgui
-        self.fig, self.ax = plt.subplots()
-        self.fig.subplots_adjust(right=0.89)# distance on right side for buttons
-        self.ax.imshow(pixmatrix, cmap='viridis')
-        # plt.axess([left, bottom, width, height])
-        self.ax_button_toggle = plt.axes((0.89, 0.95, 0.1, 0.05))
-        self.button_toggle = Button(self.ax_button_toggle, 'Save ROI')
-        self.button_toggle.on_clicked(self.toggle_roi)
-        self.ax_button_clear = plt.axes((0.89, 0.89, 0.1, 0.05))
-        self.button_clear = Button(self.ax_button_clear, 'Clear ROI')
-        self.button_clear.on_clicked(self.clear_roi)
-        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+        try:
+            # Get error engine (may not be initialized yet)
+            try:
+                error_engine = ee.get_error_engine()
+            except RuntimeError:
+                error_engine = None
+            
+            self.pixmatrix = pixmatrix
+            self.pixmatrix = np.transpose(self.pixmatrix)
+            self.roiselgui = roiselgui
+            self.fig, self.ax = plt.subplots()
+            self.fig.subplots_adjust(right=0.89)# distance on right side for buttons
+            self.ax.imshow(pixmatrix, cmap='viridis')
+            # plt.axess([left, bottom, width, height])
+            self.ax_button_toggle = plt.axes((0.89, 0.95, 0.1, 0.05))
+            self.button_toggle = Button(self.ax_button_toggle, 'Save ROI')
+            self.button_toggle.on_clicked(self.toggle_roi)
+            self.ax_button_clear = plt.axes((0.89, 0.89, 0.1, 0.05))
+            self.button_clear = Button(self.ax_button_clear, 'Clear ROI')
+            self.button_clear.on_clicked(self.clear_roi)
+            self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+            
+        except Exception as e:
+            print(f"Error constructing ROI handler: {e}")
+            try:
+                error_engine = ee.get_error_engine()
+                error_engine.handle_exception(
+                    e,
+                    context="Constructing ROI handler matplotlib interface",
+                    show_user_message=False,
+                    additional_info={"pixmatrix_shape": pixmatrix.shape if hasattr(pixmatrix, 'shape') else 'unknown'}
+                )
+            except:
+                pass
+            raise
         plt.show()
         self.selnewestroi()
 

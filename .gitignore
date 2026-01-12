@@ -9,6 +9,7 @@ __pycache__/*
 defaults.txt
 hsidata/*
 savefiles/
+logs/
 testingscripts/**/*.png
 testingscripts/**/d1_individual/
 testingscripts/**/d2_individual/

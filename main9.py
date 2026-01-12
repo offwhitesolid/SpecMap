@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import HSI_debugger as DBG
 import TCSPClib as tcspclib
 import shutil, gc
+import error_engine as ee  # type: ignore
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -28,6 +29,15 @@ class FileProcessorApp:
         # Track threads with stop events for proper cleanup
         self.managed_threads = []
         self.derivative_polynomarray = [None, None, None, None]  # Placeholder for derivative settings
+        
+        # Get error engine instance
+        try:
+            self.error_engine = ee.get_error_engine()
+        except RuntimeError:
+            # If not initialized, create a default one
+            logger = ee.setup_logger("SpecMap", "logs")
+            self.error_engine = ee.initialize_error_engine(logger)
+        
         self.createmenue()
         self.windownotebook(deflib.Notebooks)
         # init XYMap GUI components
@@ -492,33 +502,62 @@ class FileProcessorApp:
             savedir = self.multiple_HSIs_save_dir_entry.get()
 
             if not filemaindir:
-                print("Error while loading HSI data, please select a main directory for multiple HSIs")
+                error_msg = "Error while loading HSI data, please select a main directory for multiple HSIs"
+                print(error_msg)
+                self.error_engine.log_warning(error_msg, user_action="Load HSI data")
                 self.spec_loadfiles()
             if not savedir:
-                print("Error while loading HSI data, please select a save directory for multiple HSIs")
+                error_msg = "Error while loading HSI data, please select a save directory for multiple HSIs"
+                print(error_msg)
+                self.error_engine.log_warning(error_msg, user_action="Load HSI data")
                 self.spec_loadfiles()
             else:
-                foldersinmaindir = [f for f in os.listdir(filemaindir) if os.path.isdir(os.path.join(filemaindir, f))]
-                for folder in foldersinmaindir:
-                    # debug: print all open files
-                    fullfolderpath =  os.path.join(filemaindir, folder)
-                    self.folder_entry.delete(0, tk.END)
-                    self.folder_entry.insert(0, fullfolderpath)
-                    filename = str(folder+"_HSI.png")
-                    imagesavefolder = os.path.join(savedir, filename)
-                    try:
-                        # before loading: delete self.Nanomap if it exists
-                        if hasattr(self, 'Nanomap'):
-                            self.Nanomap.on_close()
-                            del self.Nanomap
-                            # force garbage collection to release file handles immediately
-                            gc.collect()
-                        self.spec_loadfiles()
-                        # create intensity colormap and save spectra
-                        self.Nanomap.buildandPlotIntCmap(savetoimage=imagesavefolder)
-                    except:
-                        print("Error processing folder:", fullfolderpath)
-                        continue
+                try:
+                    if not os.path.exists(filemaindir):
+                        raise FileNotFoundError(f"Main directory not found: {filemaindir}")
+                    
+                    foldersinmaindir = [f for f in os.listdir(filemaindir) if os.path.isdir(os.path.join(filemaindir, f))]
+                    
+                    for folder in foldersinmaindir:
+                        # debug: print all open files
+                        fullfolderpath =  os.path.join(filemaindir, folder)
+                        self.folder_entry.delete(0, tk.END)
+                        self.folder_entry.insert(0, fullfolderpath)
+                        filename = str(folder+"_HSI.png")
+                        imagesavefolder = os.path.join(savedir, filename)
+                        try:
+                            # before loading: delete self.Nanomap if it exists
+                            if hasattr(self, 'Nanomap'):
+                                self.Nanomap.on_close()
+                                del self.Nanomap
+                                # force garbage collection to release file handles immediately
+                                gc.collect()
+                            self.spec_loadfiles()
+                            # create intensity colormap and save spectra
+                            self.Nanomap.buildandPlotIntCmap(savetoimage=imagesavefolder)
+                        except Exception as e:
+                            self.error_engine.handle_exception(
+                                e,
+                                context=f"Processing folder: {fullfolderpath}",
+                                show_user_message=False,
+                                additional_info={
+                                    "folder": fullfolderpath,
+                                    "user_action": "Batch HSI processing"
+                                }
+                            )
+                            print("Error processing folder:", fullfolderpath)
+                            continue
+                        
+                except Exception as e:
+                    self.error_engine.handle_exception(
+                        e,
+                        context="Loading multiple HSI directories",
+                        additional_info={
+                            "main_directory": filemaindir,
+                            "user_action": "Load HSI data button clicked"
+                        }
+                    )
+                    return
                 
         else:
             self.spec_loadfiles()
@@ -661,39 +700,58 @@ class FileProcessorApp:
         Save the complete XYMap state to a file.
         This saves all data, processing parameters, HSI images, and ROI masks.
         """
-        # check if the filename is empty
-        if not filename:
-            print("Error: Please enter a filename")
-            return
-        
-        # check if the Nanomap object exists
-        if not hasattr(self, 'Nanomap'):
-            print("Error: No data loaded to save")
-            return
-        
-        # Ensure .pkl extension
-        if not filename.endswith('.pkl'):
-            filename += '.pkl'
-        
-        # Handle file already exists
-        if os.path.exists(filename):
-            response = messagebox.askyesno(
-                "File Exists", 
-                f"File {os.path.basename(filename)} already exists. Overwrite?"
+        try:
+            # check if the filename is empty
+            if not filename:
+                error_msg = "Error: Please enter a filename"
+                print(error_msg)
+                self.error_engine.log_warning(error_msg, user_action="Save HSI data")
+                return
+            
+            # check if the Nanomap object exists
+            if not hasattr(self, 'Nanomap'):
+                error_msg = "Error: No data loaded to save"
+                print(error_msg)
+                self.error_engine.log_warning(error_msg, user_action="Save HSI data")
+                return
+            
+            # Ensure .pkl extension
+            if not filename.endswith('.pkl'):
+                filename += '.pkl'
+            
+            # Handle file already exists
+            if os.path.exists(filename):
+                response = messagebox.askyesno(
+                    "File Exists", 
+                    f"File {os.path.basename(filename)} already exists. Overwrite?"
+                )
+                if not response:
+                    # Auto-increment filename
+                    filename = deflib.increment_filename(filename)
+                    print(f"Saving to: {filename}")
+            
+            self.error_engine.log_info("Saving HSI data", filename=filename)
+            
+            # Call the XYMap save_state method
+            success = self.Nanomap.save_state(filename)
+            
+            if success:
+                messagebox.showinfo("Success", f"Data saved successfully to:\n{filename}")
+                # Update the entry field with the actual saved path
+                self.savehsipath.set(filename)
+                self.error_engine.log_info("HSI data saved successfully", filename=filename)
+            else:
+                raise Exception("save_state returned False")
+                
+        except Exception as e:
+            self.error_engine.handle_exception(
+                e,
+                context="Saving HSI data",
+                additional_info={
+                    "filename": filename,
+                    "user_action": "Save button clicked"
+                }
             )
-            if not response:
-                # Auto-increment filename
-                filename = deflib.increment_filename(filename)
-                print(f"Saving to: {filename}")
-        
-        # Call the XYMap save_state method
-        success = self.Nanomap.save_state(filename)
-        
-        if success:
-            messagebox.showinfo("Success", f"Data saved successfully to:\n{filename}")
-            # Update the entry field with the actual saved path
-            self.savehsipath.set(filename)
-        else:
             messagebox.showerror("Error", "Failed to save data. Check console for details.")
     
     def loadhsisaved(self, filename):
@@ -701,51 +759,70 @@ class FileProcessorApp:
         Load a previously saved XYMap state from a file.
         This restores all data, processing parameters, HSI images, and ROI masks.
         """
-        # check if the filename is empty
-        if not filename:
-            print('Error: Please enter a filename to load')
-            messagebox.showerror("Error", "Please select a file to load")
-            return
-        
-        # check if filename is a valid path
-        if not os.path.exists(filename):
-            print(f'Error: File not found: {filename}')
-            messagebox.showerror("Error", f"File not found:\n{filename}")
-            return
-        
-        # Check if the Nanomap object exists; if not, we need to create one
-        if not hasattr(self, 'Nanomap'):
-            print("Creating new XYMap instance to load data into...")
-            # Create minimal frames for the XYMap if they don't exist
-            try:
-                self.cmapframe = tk.Frame(self.hyper_content_frame, width=100, height=50, borderwidth=5, relief="raised")
-                self.cmapframe.pack(fill=tk.BOTH)
-                self.specframe = tk.Frame(self.hyper_content_frame, borderwidth=5, relief="sunken")
-                self.specframe.pack(fill=tk.BOTH, expand=True)
-            except:
-                pass
+        try:
+            # check if the filename is empty
+            if not filename:
+                error_msg = 'Error: Please enter a filename to load'
+                print(error_msg)
+                self.error_engine.log_warning(error_msg, user_action="Load saved HSI")
+                messagebox.showerror("Error", "Please select a file to load")
+                return
             
-            # Create a temporary XYMap instance with minimal parameters
-            # Skip GUI building - it will be built after load_state() populates the data
-            self.Nanomap = lib.XYMap(
-                [], self.cmapframe, self.specframe, 
-                False, False, False, 
-                20, 3, list(deflib.cosmicfuncts.keys())[0], 
-                self.defaults,
-                skip_gui_build=True  # Don't build GUI yet - will build after loading data
+            # check if filename is a valid path
+            if not os.path.exists(filename):
+                error_msg = f'Error: File not found: {filename}'
+                print(error_msg)
+                self.error_engine.log_warning(error_msg, filename=filename, user_action="Load saved HSI")
+                messagebox.showerror("Error", f"File not found:\n{filename}")
+                return
+            
+            self.error_engine.log_info("Loading saved HSI data", filename=filename)
+            
+            # Check if the Nanomap object exists; if not, we need to create one
+            if not hasattr(self, 'Nanomap'):
+                print("Creating new XYMap instance to load data into...")
+                # Create minimal frames for the XYMap if they don't exist
+                try:
+                    self.cmapframe = tk.Frame(self.hyper_content_frame, width=100, height=50, borderwidth=5, relief="raised")
+                    self.cmapframe.pack(fill=tk.BOTH)
+                    self.specframe = tk.Frame(self.hyper_content_frame, borderwidth=5, relief="sunken")
+                    self.specframe.pack(fill=tk.BOTH, expand=True)
+                except:
+                    pass
+                
+                # Create a temporary XYMap instance with minimal parameters
+                # Skip GUI building - it will be built after load_state() populates the data
+                self.Nanomap = lib.XYMap(
+                    [], self.cmapframe, self.specframe, 
+                    False, False, False, 
+                    20, 3, list(deflib.cosmicfuncts.keys())[0], 
+                    self.defaults,
+                    skip_gui_build=True  # Don't build GUI yet - will build after loading data
+                )
+                
+                # Create Exporter
+                self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
+            
+            # Load the state
+            success = self.Nanomap.load_state(filename)
+            
+            if success:
+                messagebox.showinfo("Success", f"Data loaded successfully from:\n{filename}")
+                # Update the entry field
+                self.loadhsipath.set(filename)
+                self.error_engine.log_info("HSI data loaded successfully", filename=filename)
+            else:
+                raise Exception("load_state returned False")
+                
+        except Exception as e:
+            self.error_engine.handle_exception(
+                e,
+                context="Loading saved HSI data",
+                additional_info={
+                    "filename": filename,
+                    "user_action": "Load saved data button clicked"
+                }
             )
-            
-            # Create Exporter
-            self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
-        
-        # Load the state
-        success = self.Nanomap.load_state(filename)
-        
-        if success:
-            messagebox.showinfo("Success", f"Data loaded successfully from:\n{filename}")
-            # Update the entry field
-            self.loadhsipath.set(filename)
-        else:
             messagebox.showerror("Error", "Failed to load data. Check console for details.")
 
 # sort files and multiple HSI processings
@@ -1117,6 +1194,13 @@ def pressclose(root, app):
     app.on_closing()
 
 if __name__ == "__main__":
+    # Initialize error engine and logging
+    logger = ee.setup_logger("SpecMap", "logs")
+    error_engine = ee.initialize_error_engine(logger, show_messagebox=True)
+    logger.info("="*50)
+    logger.info("SpecMap Application Starting")
+    logger.info("="*50)
+    
     # init debugger
     debugger = DBG.main_Debugger()
 
