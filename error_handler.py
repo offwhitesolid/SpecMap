@@ -31,8 +31,23 @@ from logging.handlers import RotatingFileHandler
 import os
 import traceback
 from datetime import datetime
-import tkinter as tk
-from tkinter import messagebox
+
+# Try to import tkinter, but make it optional for testing
+try:
+    import tkinter as tk
+    from tkinter import messagebox
+    HAS_TKINTER = True
+except ImportError:
+    HAS_TKINTER = False
+    # Create dummy messagebox for environments without tkinter
+    class messagebox:
+        @staticmethod
+        def showerror(title, message):
+            print(f"ERROR [{title}]: {message}")
+        
+        @staticmethod
+        def showwarning(title, message):
+            print(f"WARNING [{title}]: {message}")
 
 
 class ErrorEngine:
