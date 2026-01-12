@@ -154,8 +154,6 @@ class SpectrumData:
                     if error_engine:
                         error_engine.log_warning(error_msg, filename=self.filename, method=self.removecosmicsmethod)
             
-            # if 
-            
             # important: clean up! delete everything that is not needed anymore
             del lines
             
