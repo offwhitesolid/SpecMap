@@ -360,8 +360,8 @@ class XYMap:
         default_dataset = self.defentries.get('data_set', 'Spectrum (PL-BG)')
         if default_dataset in values:
             self.selectspecbox.set(default_dataset)
-        else:
-            self.selectspecbox.set('Spectrum (PL-BG)')  # Hardcoded fallback
+        elif 'Spectrum (PL-BG)' in values:
+            self.selectspecbox.set('Spectrum (PL-BG)')  # Hardcoded fallback if defentries value not found
         self.selectspecbox.grid(row=1, column=1)
         tk.Label(frame, text="Select Colormap".format(self.DataSpecMax)).grid(row=0, column=2)
         self.selectcolmapbox = ttk.Combobox(frame, values=plt.colormaps(), textvariable=self.colormap)
