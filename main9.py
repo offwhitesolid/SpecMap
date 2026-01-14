@@ -18,6 +18,8 @@ import TCSPClib as tcspclib
 import shutil, gc
 import error_handler  # Centralized error handling and logging
 
+# test commit
+
 class FileProcessorApp:
     def __init__(self, root, defaults):
         self.defaults = defaults
