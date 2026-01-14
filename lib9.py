@@ -1960,6 +1960,12 @@ class XYMap:
                             PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PL[self.aqpixstart:self.aqpixend])
                         elif self.speckeys[self.selectspecboxVari] == 'PLB': #Spectrum
                             PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend])
+                        elif self.speckeys[self.selectspecboxVari] == 'Specdiff1': # First Derivative
+                            if hasattr(self.SpecDataMatrix[i][j], 'Specdiff1') and self.SpecDataMatrix[i][j].Specdiff1 is not None:
+                                PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff1[self.aqpixstart:self.aqpixend])
+                        elif self.speckeys[self.selectspecboxVari] == 'Specdiff2': # Second Derivative
+                            if hasattr(self.SpecDataMatrix[i][j], 'Specdiff2') and self.SpecDataMatrix[i][j].Specdiff2 is not None:
+                                PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff2[self.aqpixstart:self.aqpixend])
                         if PixMatrix[i][j] < self.countthreshv:
                             if makenan == True:
                                 PixMatrix[i][j] = np.nan
