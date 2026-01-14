@@ -18,7 +18,6 @@ import TCSPClib as tcspclib
 import shutil, gc
 import error_handler  # Centralized error handling and logging
 
-# test commit
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -548,22 +547,35 @@ class FileProcessorApp:
         # kill any existing Nanomap object
         try:
             if hasattr(self, 'Nanomap'):
-                self.Nanomap.on_close()
+                nanomap = getattr(self, 'Nanomap', None)
+                if nanomap is not None:
+                    try:
+                        nanomap.on_close()
+                    except Exception as e:
+                        print(f"Error calling on_close on Nanomap: {e}")
                 del self.Nanomap
         except Exception as e:
-            print(f"Error closing Nanomap: {e}")
+            print(f"Error closing/deleting Nanomap: {e}")
 
-        try:
-            if hasattr(self, 'cmapframe') and self.cmapframe.winfo_exists():
-                self.cmapframe.destroy()
-        except:
-             pass
+        # Destroy cmapframe if it exists
+        if hasattr(self, 'cmapframe'):
+            try:
+                if self.cmapframe.winfo_exists():
+                    self.cmapframe.destroy()
+            except tk.TclError:
+                pass
+            except Exception as e:
+                print(f"Error destroying cmapframe: {e}")
 
-        try:
-            if hasattr(self, 'specframe') and self.specframe.winfo_exists():
-                self.specframe.destroy()
-        except:
-             pass
+        # Destroy specframe if it exists
+        if hasattr(self, 'specframe'):
+            try:
+                if self.specframe.winfo_exists():
+                    self.specframe.destroy()
+            except tk.TclError:
+                pass
+            except Exception as e:
+                print(f"Error destroying specframe: {e}")
 
         try:
             if hasattr(self, 'Exporter'):
@@ -575,8 +587,9 @@ class FileProcessorApp:
         try:
             gc.collect()
         except:
-             pass
-
+            pass
+        
+        # Re-initialize defaults and read input fields
         self.defaults = deflib.initdefaults()
         folder = self.folder_entry.get()
         filename = self.filename_entry.get()
@@ -588,23 +601,25 @@ class FileProcessorApp:
         if not filename:
             print("Error while loading HSI data, please select a file")
             return
+            
         files_processed = []
         for dirpath, _, filenames in os.walk(folder):
             for i in self.filter_substring(filenames, filename):
                 if fileend in i:
                     file_path = os.path.join(dirpath, i)
                     files_processed.append(file_path) # can be accessed to process the files
+
         # frames for the colormap and spectral buttons
         if files_processed:
+            # Double check frames are cleared
             try:
                 if hasattr(self, 'cmapframe') and self.cmapframe.winfo_exists():
                     self.cmapframe.destroy()
                 if hasattr(self, 'specframe') and self.specframe.winfo_exists():
                     self.specframe.destroy()
-                if hasattr(self, 'Nanomap'):
-                    del self.Nanomap
             except:
                 pass
+                
             # Recreate frames inside hyper_content_frame
             self.cmapframe = tk.Frame(self.hyper_content_frame, width=100, height=50, borderwidth=5, relief="raised")
             self.cmapframe.pack(fill=tk.BOTH)
