@@ -2454,10 +2454,10 @@ class XYMap:
     def on_close(self):
         plt.close('all')
         # tkinter destroy
-        try:
-            self.cmapframe.destroy()
-        except:
-            pass
+        # try:
+        #     self.cmapframe.destroy()
+        # except:
+        #     pass
         # explicitly clean up spectra to release file handles
         if hasattr(self, 'specs'):
             for spec in self.specs:

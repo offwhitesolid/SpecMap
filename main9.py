@@ -545,15 +545,36 @@ class FileProcessorApp:
 		
         # kill any existing Nanomap object
         try:
-            self.Nanomap.on_close()
-            del self.Nanomap
-            self.cmapframe.destroy()
-            self.specframe.destroy()
-            del self.Exporter
-            # force garbage collection to release file handles immediately
+            if hasattr(self, 'Nanomap'):
+                self.Nanomap.on_close()
+                del self.Nanomap
+        except Exception as e:
+            print(f"Error closing Nanomap: {e}")
+
+        try:
+            if hasattr(self, 'cmapframe') and self.cmapframe.winfo_exists():
+                self.cmapframe.destroy()
+        except:
+             pass
+
+        try:
+            if hasattr(self, 'specframe') and self.specframe.winfo_exists():
+                self.specframe.destroy()
+        except:
+             pass
+
+        try:
+            if hasattr(self, 'Exporter'):
+                del self.Exporter
+        except:
+             pass
+        
+        # force garbage collection to release file handles immediately
+        try:
             gc.collect()
         except:
              pass
+
         self.defaults = deflib.initdefaults()
         folder = self.folder_entry.get()
         filename = self.filename_entry.get()
@@ -574,9 +595,12 @@ class FileProcessorApp:
         # frames for the colormap and spectral buttons
         if files_processed:
             try:
-                self.cmapframe.destroy()
-                self.specframe.destroy()
-                del self.Nanomap
+                if hasattr(self, 'cmapframe') and self.cmapframe.winfo_exists():
+                    self.cmapframe.destroy()
+                if hasattr(self, 'specframe') and self.specframe.winfo_exists():
+                    self.specframe.destroy()
+                if hasattr(self, 'Nanomap'):
+                    del self.Nanomap
             except:
                 pass
             # Recreate frames inside hyper_content_frame
