@@ -50,7 +50,8 @@ def find_spectrum_file(dataset, number):
     if not os.path.exists(dataset_path):
         return None
     
-    target_pattern = f"{number:05d}"
+    # Target pattern includes dataset name to be specific: Dataset_Number
+    target_pattern = f"{dataset}_{number:05d}"
     
     # Search for file containing the target number
     for root, dirs, files in os.walk(dataset_path):
@@ -62,6 +63,7 @@ def find_spectrum_file(dataset, number):
 
 def calculate_fit_rmse(wl, y, window_size, poly_order):
     """
+    RMSE stands for Root Mean Square Error.
     Calculates the RMSE of the polynomial fit at the center point across the spectrum.
     This replicates the sliding window logic to evaluate fit quality.
     """
@@ -93,8 +95,8 @@ def calculate_fit_rmse(wl, y, window_size, poly_order):
 
 def main():
     # --- Configuration ---
-    TARGET_DATASET = "HSI20240909_I03"
-    TARGET_NUMBER = 2852  # Spectrum number to test
+    TARGET_DATASET = "HSI20250725_HSI1" #"HSI20240909_I03"
+    TARGET_NUMBER = 50 #2852  # Spectrum number to test - Updated to a file that exists
     
     # Default fallback
     DEFAULT_DATASET = "HSI20250725_HSI1"
@@ -124,8 +126,9 @@ def main():
             return
 
     # Setup Output Directory
-    base_filename = os.path.splitext(os.path.basename(data_file))[0]
-    output_dir = os.path.join(current_dir, base_filename)
+    # Enforce standard naming convention: Dataset_Number
+    folder_name = f"{TARGET_DATASET}_{TARGET_NUMBER:05d}"
+    output_dir = os.path.join(current_dir, folder_name)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         print(f"Created output directory: {output_dir}")
