@@ -44,3 +44,7 @@ power_correction = False
 tcspc_maindir = None
 tcspc_subdir = None
 process_multiple_HSIs_bool = False
+calculate_first_derivative': True
+calculate_second_derivative': True
+derivative_polynomial_order': 2
+derivative_Nfitpoints': 5

@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import HSI_debugger as DBG
 import TCSPClib as tcspclib
 import shutil, gc
+import error_handler  # Centralized error handling and logging
+
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -544,15 +546,50 @@ class FileProcessorApp:
 		
         # kill any existing Nanomap object
         try:
-            self.Nanomap.on_close()
-            del self.Nanomap
-            self.cmapframe.destroy()
-            self.specframe.destroy()
-            del self.Exporter
-            # force garbage collection to release file handles immediately
-            gc.collect()
+            if hasattr(self, 'Nanomap'):
+                nanomap = getattr(self, 'Nanomap', None)
+                if nanomap is not None:
+                    try:
+                        nanomap.on_close()
+                    except Exception as e:
+                        print(f"Error calling on_close on Nanomap: {e}")
+                del self.Nanomap
+        except Exception as e:
+            print(f"Error closing/deleting Nanomap: {e}")
+
+        # Destroy cmapframe if it exists
+        if hasattr(self, 'cmapframe'):
+            try:
+                if self.cmapframe.winfo_exists():
+                    self.cmapframe.destroy()
+            except tk.TclError:
+                pass
+            except Exception as e:
+                print(f"Error destroying cmapframe: {e}")
+
+        # Destroy specframe if it exists
+        if hasattr(self, 'specframe'):
+            try:
+                if self.specframe.winfo_exists():
+                    self.specframe.destroy()
+            except tk.TclError:
+                pass
+            except Exception as e:
+                print(f"Error destroying specframe: {e}")
+
+        try:
+            if hasattr(self, 'Exporter'):
+                del self.Exporter
         except:
              pass
+        
+        # force garbage collection to release file handles immediately
+        try:
+            gc.collect()
+        except:
+            pass
+        
+        # Re-initialize defaults and read input fields
         self.defaults = deflib.initdefaults()
         folder = self.folder_entry.get()
         filename = self.filename_entry.get()
@@ -564,20 +601,25 @@ class FileProcessorApp:
         if not filename:
             print("Error while loading HSI data, please select a file")
             return
+            
         files_processed = []
         for dirpath, _, filenames in os.walk(folder):
             for i in self.filter_substring(filenames, filename):
                 if fileend in i:
                     file_path = os.path.join(dirpath, i)
                     files_processed.append(file_path) # can be accessed to process the files
+
         # frames for the colormap and spectral buttons
         if files_processed:
+            # Double check frames are cleared
             try:
-                self.cmapframe.destroy()
-                self.specframe.destroy()
-                del self.Nanomap
+                if hasattr(self, 'cmapframe') and self.cmapframe.winfo_exists():
+                    self.cmapframe.destroy()
+                if hasattr(self, 'specframe') and self.specframe.winfo_exists():
+                    self.specframe.destroy()
             except:
                 pass
+                
             # Recreate frames inside hyper_content_frame
             self.cmapframe = tk.Frame(self.hyper_content_frame, width=100, height=50, borderwidth=5, relief="raised")
             self.cmapframe.pack(fill=tk.BOTH)
@@ -1117,6 +1159,23 @@ def pressclose(root, app):
     app.on_closing()
 
 if __name__ == "__main__":
+    # Initialize centralized error handling and logging
+    # This creates a rotating log file at logs/specmap.log (10MB max, 5 backups)
+    # Provides thread-safe logging and user-friendly error messages via tkinter messagebox
+    error_engine = error_handler.ErrorEngine(
+        log_file='logs/specmap.log',
+        max_bytes=10*1024*1024,  # 10MB
+        backup_count=5
+    )
+    
+    # Set as default error engine for application-wide use
+    # This allows lib9.py and other modules to use the same error handler
+    error_handler._default_error_engine = error_engine
+    
+    # Get logger for application-wide use
+    logger = error_engine.get_logger()
+    logger.info("SpecMap application starting", extra={'context': 'Application Startup'})
+    
     # init debugger
     debugger = DBG.main_Debugger()
 
@@ -1129,10 +1188,17 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.geometry('{}x{}'.format(int(defaults['windowsize_X']), int(defaults['windowsize_Y'])))
     frame = tk.Frame(root)
+    
+    # Store error_engine in app for use throughout application
     app = FileProcessorApp(root, defaults)
+    app.error_engine = error_engine  # Make error engine accessible to app
 
     # Set the protocol for closing the window
     root.protocol("WM_DELETE_WINDOW", lambda: pressclose(root, app))
 
+    logger.info("GUI initialized successfully", extra={'context': 'Application Startup'})
+    
     # Run the application
     root.mainloop()
+    
+    logger.info("SpecMap application shutting down", extra={'context': 'Application Shutdown'})
