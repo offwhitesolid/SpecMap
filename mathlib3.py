@@ -2290,6 +2290,113 @@ def getderivative2fwhm(params):
         return 0.0
 
 # ============================================================================
+# Derivative Points Analysis (Zero Points of D1 and Maxima of D2)
+# ============================================================================
+
+def fitderivativepoints(start, end, WL, PLB, maxfev=10000, guess=None, deriv1=None, deriv2=None):
+    """
+    Find up to 5 zero points of the 1st derivative and up to 10 maxima of the 2nd derivative.
+    Uses pre-calculated derivatives passed as arguments.
+    Returns 30 parameters + None.
+    """
+    x = np.array(WL[start:end])
+    y = np.array(PLB[start:end])
+    
+    # Initialize result array: 30 zeros (15 pairs of x,y)
+    results = [0.0] * 30
+    
+    if len(x) < 4:
+        return *results, None
+        
+    try:
+        # --- Handle First Derivative (Zero Crossings) ---
+        # We need deriv1 to correspond to the ROI or be sliceable
+        if deriv1 is not None and len(deriv1) > 0:
+            if len(deriv1) == len(WL): # Full spectrum derivative
+                 d1_roi = np.array(deriv1[start:end])
+                 x_d1 = x
+            elif len(deriv1) == len(x): # Already sliced
+                 d1_roi = np.array(deriv1)
+                 x_d1 = x
+            else:
+                 d1_roi = []
+        else:
+            d1_roi = [] # Do not calculate locally
+            
+        if len(d1_roi) > 1:
+            # Find zero crossings (sign changes)
+            sign_changes = np.where(np.diff(np.sign(d1_roi)))[0]
+            
+            d1_points = []
+            for idx in sign_changes:
+                # Interpolate x where D1 is zero
+                y1 = d1_roi[idx]
+                y2 = d1_roi[idx+1]
+                if y2 != y1:
+                     x_cross = x_d1[idx] - y1 * (x_d1[idx+1] - x_d1[idx]) / (y2 - y1)
+                else:
+                     x_cross = x_d1[idx]
+                
+                # Intensity at x_cross from original spectrum
+                int_cross = np.interp(x_cross, x, y)
+                d1_points.append((x_cross, int_cross))
+            
+            # Sort by Intensity descending
+            d1_points.sort(key=lambda p: p[1], reverse=True)
+            
+            for i in range(min(5, len(d1_points))):
+                results[2*i] = float(d1_points[i][0])
+                results[2*i+1] = float(d1_points[i][1])
+
+        # --- Handle Second Derivative (Maxima) ---
+        if deriv2 is not None and len(deriv2) > 0:
+            if len(deriv2) == len(WL):
+                 d2_roi = np.array(deriv2[start:end])
+                 x_d2 = x
+            elif len(deriv2) == len(x):
+                 d2_roi = np.array(deriv2)
+                 x_d2 = x
+            else:
+                 d2_roi = []
+        else:
+             d2_roi = []
+
+        if len(d2_roi) > 2:
+            # Find local maxima 
+            d2_points = []
+            for i in range(1, len(d2_roi)-1):
+                if d2_roi[i] > d2_roi[i-1] and d2_roi[i] > d2_roi[i+1]:
+                    curr_x = x_d2[i]
+                    curr_d2_val = d2_roi[i]
+                    # Corresponding Intensity in original spectrum
+                    curr_int = np.interp(curr_x, x, y)
+                    d2_points.append((curr_x, curr_int, curr_d2_val))
+            
+            # Sort by curvature magnitude (d2_val) descending
+            d2_points.sort(key=lambda p: p[2], reverse=True)
+            
+            for i in range(min(10, len(d2_points))):
+                offset = 10 + 2*i
+                results[offset] = float(d2_points[i][0])
+                results[offset+1] = float(d2_points[i][1])
+
+        return *results, None
+
+    except Exception as e:
+        print(f"Derivative points analysis failed: {e}")
+        return *([0.0]*30), None
+
+def derivativepoints_window(x, *params):
+    return np.zeros_like(np.array(x))
+
+def getmaxderivativepoints(xmin, xmax, *params):
+    # Return first point WL and Int
+    return params[0], params[1]
+
+def getderivativepointsfwhm(params):
+    return 0.0
+
+# ============================================================================
 # End of Derivative Analysis Functions
 # ============================================================================
 
@@ -2409,10 +2516,23 @@ fitkeys = {'lorentz':[lorentzwind, fitlorentztospec, getmaxlorentz, 'Lorentz fit
                ['Counts/eV²', 'eV', 'Counts/eV²', 'Counts/eV²', 'eV', 'eV', 'eV'],
                getderivative2fwhm,
                0
+           ],
+           'derivative_points': [
+               derivativepoints_window,
+               fitderivativepoints,
+               getmaxderivativepoints,
+               'Derivative Points',
+               30,
+               ['D1 Zero 1 WL', 'D1 Zero 1 Int', 'D1 Zero 2 WL', 'D1 Zero 2 Int', 'D1 Zero 3 WL', 'D1 Zero 3 Int', 'D1 Zero 4 WL', 'D1 Zero 4 Int', 'D1 Zero 5 WL', 'D1 Zero 5 Int',
+                'D2 Max 1 WL', 'D2 Max 1 Int', 'D2 Max 2 WL', 'D2 Max 2 Int', 'D2 Max 3 WL', 'D2 Max 3 Int', 'D2 Max 4 WL', 'D2 Max 4 Int', 'D2 Max 5 WL', 'D2 Max 5 Int',
+                'D2 Max 6 WL', 'D2 Max 6 Int', 'D2 Max 7 WL', 'D2 Max 7 Int', 'D2 Max 8 WL', 'D2 Max 8 Int', 'D2 Max 9 WL', 'D2 Max 9 Int', 'D2 Max 10 WL', 'D2 Max 10 Int'],
+               ['nm', 'Counts'] * 15,
+               getderivativepointsfwhm,
+               0
            ]
            }
 
-
+# units to add fit is not defined in context so I rely on surrounding code to handle units
 fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'gaussian': fitkeys['gaussian'][6][:] + unitstoaddfit,
             'voigt': fitkeys['voigt'][6][:] + unitstoaddfit,
@@ -2428,7 +2548,8 @@ fitunits = {'lorentz': fitkeys['lorentz'][6][:]+ unitstoaddfit,
             'decay': fitkeys['decay'][6][:] + unitstoaddfit,
             'binning': fitkeys['binning'][6][:] + unitstoaddfit,
             'derivative1': fitkeys['derivative1'][6][:] + unitstoaddfit,
-            'derivative2': fitkeys['derivative2'][6][:] + unitstoaddfit
+            'derivative2': fitkeys['derivative2'][6][:] + unitstoaddfit,
+            'derivative_points': fitkeys['derivative_points'][6][:] + unitstoaddfit
             }
 
 # fitparametersparis: dict of the fit parameters and their units. Key of getlistofallFitparameters() is the key of the fitkeys dictionary
