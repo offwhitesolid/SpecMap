@@ -6,13 +6,8 @@
 oldfiles/
 debugger_output/
 __pycache__/*
+__pycache__/*.pyc
 defaults.txt
 hsidata/*
 savefiles/
-<<<<<<< HEAD
-#testingscripts/**/*.png
-testingscripts/**/d1_individual/
-testingscripts/**/d2_individual/
-=======
 logs/
->>>>>>> a21dc43744d42116d7c92d86237fadfbd2dc5578
