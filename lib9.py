@@ -2507,6 +2507,17 @@ class XYMap:
                     else:
                         lastpm[newpm][i][j] = np.nan
                         print('No Data found in Pixel {}, {}'.format(i, j))
+        
+        # Apply normalization if enabled
+        norm_matrix = self.get_normalization_matrix()
+        if norm_matrix is not None:
+            lastpm = hsi_normalization.HSINormalization.apply_normalization(
+                lastpm, norm_matrix
+            )
+        
+        # Update the pixel matrix with normalized values
+        self.PMdict[newpm].PixMatrix = lastpm
+        
         # test
         self.plotPixelMatrix(newpm)
         #self.plotPixelMatrix(self.PMdict[newpm].PixMatrix)
