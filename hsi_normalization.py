@@ -7,6 +7,9 @@ It allows normalizing pixel intensities based on various criteria before plottin
 
 import numpy as np
 
+# Minimum normalization threshold to prevent numerical instability
+MIN_NORMALIZATION_THRESHOLD = 1e-10
+
 
 class HSINormalization:
     """
@@ -144,7 +147,7 @@ class HSINormalization:
                 # Calculate integrated counts
                 integrated = np.sum(data_array[pix_start:pix_end])
                 
-                if integrated > 0:
+                if integrated > MIN_NORMALIZATION_THRESHOLD:
                     norm_matrix[i][j] = 1.0 / integrated
                 else:
                     norm_matrix[i][j] = 1.0
@@ -208,7 +211,7 @@ class HSINormalization:
                 # Calculate max intensity
                 max_val = np.max(data_array[pix_start:pix_end])
                 
-                if max_val > 0:
+                if max_val > MIN_NORMALIZATION_THRESHOLD:
                     norm_matrix[i][j] = 1.0 / max_val
                 else:
                     norm_matrix[i][j] = 1.0
@@ -264,7 +267,7 @@ class HSINormalization:
                 # Get counts at wavelength
                 counts = data_array[wl_idx]
                 
-                if counts > 0:
+                if counts > MIN_NORMALIZATION_THRESHOLD:
                     norm_matrix[i][j] = 1.0 / counts
                 else:
                     norm_matrix[i][j] = 1.0

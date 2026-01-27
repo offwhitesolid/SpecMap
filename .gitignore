@@ -1,7 +1,7 @@
 *.pyc
 *.csv
 *.log
-.qodo/
+.qudo/
 .venv/
 oldfiles/
 debugger_output/
@@ -11,4 +11,3 @@ defaults.txt
 hsidata/*
 savefiles/
 logs/
-test_hsi_normalization.py
