@@ -11,3 +11,4 @@ defaults.txt
 hsidata/*
 savefiles/
 logs/
+test_hsi_normalization.py
