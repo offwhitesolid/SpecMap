@@ -353,6 +353,17 @@ class XYMap:
         # test: add text
         tk.Label(self.plotoptions_frame, text="Plot Options").grid(row=0, column=0)
 
+        # add normalizatize derivatives on signal: 
+        # normalizes the derivative intensity to the PLB intensity at each wavelength to enhance small features
+
+        self.normalize_HSI_var = tk.BooleanVar()                    # normalize derivatives to selected criteria
+        self.normalize_HSI_var.set(self.defentries['do_normalize_HSI_var'])  # set default value for normalize_derivatives_on_PLB
+        tk.Checkbutton(self.plotoptions_frame, text="Normalize HSI", variable=self.normalize_HSI_var).grid(row=1, column=0)
+
+        # selct what to normalize to
+        tk.Label(self.plotoptions_frame, text="Normalize to:").grid(row=2, column=0)
+        
+
     def buildselectboxes(self, frame, values):
         tk.Label(frame, text="Select Data Set".format(self.DataSpecMax)).grid(row=0, column=1)
         self.selectspecbox = ttk.Combobox(frame, values=values)

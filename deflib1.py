@@ -1353,6 +1353,7 @@ defaults={
     'hsi_show_colorbar': True,
     'hsi_scalebar_fontsize': 12,
     'hsi_unit': '$\\mu m$',
+    'normalize_derivatives_on_PLB': False,
 }
 
 defaulttypes = {
@@ -1426,6 +1427,7 @@ defaulttypes = {
     'hsi_show_colorbar': bool,
     'hsi_scalebar_fontsize': int,
     'hsi_unit': str,
+    'normalize_derivatives_on_PLB': bool,
 
 }
 
@@ -1758,6 +1760,9 @@ def plot_HSI(data, metadata=None, cmap='hot', vmin=None, vmax=None,
     plt.tight_layout()
     
     return fig, ax
+
+### HSI normalize block: implement normalize HSI on a certain criteria
+
 
 # check definitions 
 if __name__ == '__main__':

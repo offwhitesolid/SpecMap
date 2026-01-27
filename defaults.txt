@@ -48,3 +48,4 @@ calculate_first_derivative': True
 calculate_second_derivative': True
 derivative_polynomial_order': 2
 derivative_Nfitpoints': 5
+do_normalize_HSI_var = True
