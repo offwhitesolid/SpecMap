@@ -1353,7 +1353,7 @@ defaults={
     'hsi_show_colorbar': True,
     'hsi_scalebar_fontsize': 12,
     'hsi_unit': '$\\mu m$',
-    'normalize_derivatives_on_PLB': False,
+    'do_normalize_HSI_var': False,
 }
 
 defaulttypes = {
@@ -1427,7 +1427,7 @@ defaulttypes = {
     'hsi_show_colorbar': bool,
     'hsi_scalebar_fontsize': int,
     'hsi_unit': str,
-    'normalize_derivatives_on_PLB': bool,
+    'do_normalize_HSI_var': bool,
 
 }
 
