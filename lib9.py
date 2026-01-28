@@ -265,7 +265,9 @@ class XYMap:
         self.speckeys = {'Wavelength axis': 'WL', 'Background (BG)': 'BG',
                          'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB', # PLB is BG corrected (=PL-BG)
                          'first derivative': 'Specdiff1', # first derivative of PLB: d(PLB)/dWL
-                         'second derivative': 'Specdiff2' # second derivative of PLB: d2(PLB)/dWL2
+                         'second derivative': 'Specdiff2', # second derivative of PLB: d2(PLB)/dWL2
+                         'first derivative (normalized)': 'Specdiff1_norm', # first derivative normalized by signal
+                         'second derivative (normalized)': 'Specdiff2_norm' # second derivative normalized by signal
                          } 
         self.windowfunctions = list(matl.fitkeys.keys())                    # Window Functions from matl.fitkeys
         
@@ -1881,6 +1883,16 @@ class XYMap:
                              self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff2, wl, '2nd Derivative', xunit=self.WLunit)
                         else:
                             print("Second derivative not available for this pixel.")
+                    elif self.speckeys[self.selectdataboxVari] == 'Specdiff1_norm': # First Derivative (normalized)
+                        if hasattr(self.SpecDataMatrix[y][x], 'Specdiff1_norm') and self.SpecDataMatrix[y][x].Specdiff1_norm is not None:
+                             self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff1_norm, wl, '1st Derivative (normalized)', xunit=self.WLunit, yunit='1/nm')
+                        else:
+                            print("Normalized first derivative not available for this pixel.")
+                    elif self.speckeys[self.selectdataboxVari] == 'Specdiff2_norm': # Second Derivative (normalized)
+                        if hasattr(self.SpecDataMatrix[y][x], 'Specdiff2_norm') and self.SpecDataMatrix[y][x].Specdiff2_norm is not None:
+                             self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff2_norm, wl, '2nd Derivative (normalized)', xunit=self.WLunit, yunit='1/nm²')
+                        else:
+                            print("Normalized second derivative not available for this pixel.")
                     else:
                         print('No valid Data set selected for the Plot.')
                     print('x-position: {}, y-position: {}'.format(x, y))
@@ -2077,6 +2089,12 @@ class XYMap:
                         elif self.speckeys[self.selectspecboxVari] == 'Specdiff2': # Second Derivative
                             if hasattr(self.SpecDataMatrix[i][j], 'Specdiff2') and self.SpecDataMatrix[i][j].Specdiff2 is not None:
                                 PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff2[self.aqpixstart:self.aqpixend])
+                        elif self.speckeys[self.selectspecboxVari] == 'Specdiff1_norm': # First Derivative (normalized by signal)
+                            if hasattr(self.SpecDataMatrix[i][j], 'Specdiff1_norm') and self.SpecDataMatrix[i][j].Specdiff1_norm is not None:
+                                PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff1_norm[self.aqpixstart:self.aqpixend])
+                        elif self.speckeys[self.selectspecboxVari] == 'Specdiff2_norm': # Second Derivative (normalized by signal)
+                            if hasattr(self.SpecDataMatrix[i][j], 'Specdiff2_norm') and self.SpecDataMatrix[i][j].Specdiff2_norm is not None:
+                                PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff2_norm[self.aqpixstart:self.aqpixend])
                         if PixMatrix[i][j] < self.countthreshv:
                             if makenan == True:
                                 PixMatrix[i][j] = np.nan
@@ -2342,6 +2360,18 @@ class XYMap:
                 except Exception as e:
                     # print(f"Derivative fit failed at index {i}: {e}")
                     pass
+        
+        # After calculating derivatives, compute normalized derivatives (derivative/signal)
+        # This normalizes derivatives by the original PLB signal at each wavelength
+        if self.specs:
+            # Create a wrapper to match the expected 2D matrix format for normalize_derivatives_by_signal
+            specs_as_matrix = [[spec] for spec in self.specs if spec is not None]
+            if specs_as_matrix:
+                hsi_normalization.normalize_derivatives_by_signal(specs_as_matrix, signal_key='PLB')
+        
+        # Also normalize derivatives in SpecDataMatrix if it exists
+        if hasattr(self, 'SpecDataMatrix') and self.SpecDataMatrix:
+            hsi_normalization.normalize_derivatives_by_signal(self.SpecDataMatrix, signal_key='PLB')
     
     def UpdateHSIselect(self):
         if len(self.PMdict) > 0:

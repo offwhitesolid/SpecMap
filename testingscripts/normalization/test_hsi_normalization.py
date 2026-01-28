@@ -197,6 +197,101 @@ def test_normalize_with_different_dataset():
     print(f"  - PLB normalization value: {norm_matrix_plb[0][0]} (expected {expected_plb})")
     print(f"  - Specdiff1 normalization value: {norm_matrix_diff[0][0]} (expected {expected_diff})")
 
+def test_normalize_derivatives_by_signal():
+    """Test normalization of derivatives by the original signal.
+    
+    This tests the scenario where:
+    - User has derivatives (Specdiff1, Specdiff2)
+    - Normalizes them by the original PLB signal at each wavelength
+    - Result is relative derivatives (derivative / signal)
+    """
+    print("Testing normalize_derivatives_by_signal...")
+    
+    # Create mock data with known values for PLB and derivatives
+    wl = np.linspace(500, 700, 100)
+    
+    # PLB signal: values from 10 to 100 (linear increase)
+    plb_data = np.linspace(10, 100, 100)
+    
+    # First derivative: constant absolute value of 20
+    specdiff1_data = np.ones(100) * 20
+    
+    # Second derivative: constant absolute value of 5
+    specdiff2_data = np.ones(100) * 5
+    
+    # Create mock spectrum data matrix
+    spec_matrix = [[MockSpectrumData(plb_data.copy(), specdiff1_data.copy(), specdiff2_data.copy()) for _ in range(2)] for _ in range(2)]
+    
+    # Call normalize_derivatives_by_signal
+    hsi_normalization.normalize_derivatives_by_signal(spec_matrix, signal_key='PLB')
+    
+    # Check that normalized derivatives were added
+    for i in range(2):
+        for j in range(2):
+            spec = spec_matrix[i][j]
+            assert hasattr(spec, 'Specdiff1_norm'), "Specdiff1_norm not created"
+            assert hasattr(spec, 'Specdiff2_norm'), "Specdiff2_norm not created"
+            
+            # Check values: normalized = derivative / signal
+            # At index 0: PLB=10, Specdiff1=20 => Specdiff1_norm = 20/10 = 2.0
+            expected_d1_0 = 20.0 / 10.0  # = 2.0
+            assert np.isclose(spec.Specdiff1_norm[0], expected_d1_0), \
+                f"Expected Specdiff1_norm[0]={expected_d1_0}, got {spec.Specdiff1_norm[0]}"
+            
+            # At index 99: PLB=100, Specdiff1=20 => Specdiff1_norm = 20/100 = 0.2
+            expected_d1_99 = 20.0 / 100.0  # = 0.2
+            assert np.isclose(spec.Specdiff1_norm[99], expected_d1_99), \
+                f"Expected Specdiff1_norm[99]={expected_d1_99}, got {spec.Specdiff1_norm[99]}"
+            
+            # At index 0: PLB=10, Specdiff2=5 => Specdiff2_norm = 5/10 = 0.5
+            expected_d2_0 = 5.0 / 10.0  # = 0.5
+            assert np.isclose(spec.Specdiff2_norm[0], expected_d2_0), \
+                f"Expected Specdiff2_norm[0]={expected_d2_0}, got {spec.Specdiff2_norm[0]}"
+            
+            # At index 99: PLB=100, Specdiff2=5 => Specdiff2_norm = 5/100 = 0.05
+            expected_d2_99 = 5.0 / 100.0  # = 0.05
+            assert np.isclose(spec.Specdiff2_norm[99], expected_d2_99), \
+                f"Expected Specdiff2_norm[99]={expected_d2_99}, got {spec.Specdiff2_norm[99]}"
+    
+    print("✓ normalize_derivatives_by_signal passed")
+    print(f"  - Specdiff1_norm[0] = {spec_matrix[0][0].Specdiff1_norm[0]} (expected {expected_d1_0})")
+    print(f"  - Specdiff1_norm[99] = {spec_matrix[0][0].Specdiff1_norm[99]} (expected {expected_d1_99})")
+    print(f"  - Specdiff2_norm[0] = {spec_matrix[0][0].Specdiff2_norm[0]} (expected {expected_d2_0})")
+    print(f"  - Specdiff2_norm[99] = {spec_matrix[0][0].Specdiff2_norm[99]} (expected {expected_d2_99})")
+
+def test_normalize_derivatives_with_zero_signal():
+    """Test that normalization handles zero signal values gracefully."""
+    print("Testing normalize_derivatives_by_signal with zero signal values...")
+    
+    # Create mock data with some zero signal values
+    wl = np.linspace(500, 700, 100)
+    
+    # PLB signal with some zeros
+    plb_data = np.linspace(0, 100, 100)  # First value is 0
+    
+    # First derivative
+    specdiff1_data = np.ones(100) * 10
+    
+    spec_matrix = [[MockSpectrumData(plb_data.copy(), specdiff1_data.copy())]]
+    
+    # Call normalize_derivatives_by_signal
+    hsi_normalization.normalize_derivatives_by_signal(spec_matrix, signal_key='PLB')
+    
+    spec = spec_matrix[0][0]
+    
+    # Check that normalized derivative at zero signal is 0 (not inf or nan)
+    assert not np.isnan(spec.Specdiff1_norm[0]), "Specdiff1_norm[0] should not be NaN"
+    assert not np.isinf(spec.Specdiff1_norm[0]), "Specdiff1_norm[0] should not be Inf"
+    assert spec.Specdiff1_norm[0] == 0.0, f"Specdiff1_norm[0] should be 0.0, got {spec.Specdiff1_norm[0]}"
+    
+    # Check that normalization works for non-zero signal values
+    # At index 99: PLB=100, Specdiff1=10 => Specdiff1_norm = 10/100 = 0.1
+    expected = 10.0 / 100.0
+    assert np.isclose(spec.Specdiff1_norm[99], expected), \
+        f"Expected Specdiff1_norm[99]={expected}, got {spec.Specdiff1_norm[99]}"
+    
+    print("✓ normalize_derivatives_by_signal with zero signal passed")
+
 if __name__ == '__main__':
     print("Running HSI Normalization Tests...\n")
     
@@ -208,6 +303,8 @@ if __name__ == '__main__':
         test_apply_normalization()
         test_none_normalization()
         test_normalize_with_different_dataset()
+        test_normalize_derivatives_by_signal()
+        test_normalize_derivatives_with_zero_signal()
         
         print("\n✓ All tests passed!")
         sys.exit(0)
