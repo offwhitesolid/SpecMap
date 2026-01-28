@@ -365,7 +365,7 @@ class XYMap:
         tk.Label(self.plotoptions_frame, text="Normalize to:").grid(row=2, column=0)
         
         # Normalization method selector
-        self.normalization_methods = ['None', 'Integrated Counts', 'Max Intensity', 'Counts at Wavelength']
+        self.normalization_methods = ['None', 'Integrated Counts', 'Max Intensity', 'Counts at Wavelength', 'Normalize intern']
         self.normalize_method_var = tk.StringVar()
         self.normalize_method_var.set(self.defentries.get('normalize_method', 'None'))
         self.normalize_method_box = ttk.Combobox(self.plotoptions_frame, textvariable=self.normalize_method_var, values=self.normalization_methods, width=18)
@@ -1271,7 +1271,8 @@ class XYMap:
             'None': 'none',
             'Integrated Counts': 'integrated_counts',
             'Max Intensity': 'max_intensity',
-            'Counts at Wavelength': 'counts_at_wavelength'
+            'Counts at Wavelength': 'counts_at_wavelength',
+            'Normalize intern': 'normalize_intern'
         }
         
         method = method_map.get(method_name, 'none')

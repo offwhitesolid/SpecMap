@@ -43,7 +43,8 @@ class HSINormalization:
             'none': self._normalize_none,
             'integrated_counts': self._normalize_integrated_counts,
             'max_intensity': self._normalize_max_intensity,
-            'counts_at_wavelength': self._normalize_counts_at_wavelength
+            'counts_at_wavelength': self._normalize_counts_at_wavelength,
+            'normalize_intern': self._normalize_intern
         }
     
     def generate_normalization_matrix(self, method='none', params=None):
@@ -274,6 +275,23 @@ class HSINormalization:
         
         return norm_matrix
     
+    def _normalize_intern(self, params):
+        """
+        Marker for internal min-max normalization.
+        
+        This method returns a string marker because internal normalization
+        requires access to the final pixel matrix, which is not available
+        during normalization matrix generation. The actual normalization
+        is performed in apply_normalization.
+        
+        Args:
+            params: Not used
+            
+        Returns:
+            str: 'normalize_intern'
+        """
+        return 'normalize_intern'
+    
     @staticmethod
     def apply_normalization(pixel_matrix, normalization_matrix):
         """
@@ -283,11 +301,22 @@ class HSINormalization:
         
         Args:
             pixel_matrix: 2D numpy array of pixel values
-            normalization_matrix: 2D numpy array of normalization values
+            normalization_matrix: 2D numpy array of normalization values, or 'normalize_intern' string
             
         Returns:
             2D numpy array: Normalized pixel matrix
         """
+        if isinstance(normalization_matrix, str) and normalization_matrix == 'normalize_intern':
+            # Min-Max normalization to [0, 1] range
+            min_val = np.nanmin(pixel_matrix)
+            max_val = np.nanmax(pixel_matrix)
+            
+            if np.isclose(max_val, min_val):
+                # Avoid division by zero if all values are the same
+                return np.zeros_like(pixel_matrix)
+            
+            return (pixel_matrix - min_val) / (max_val - min_val)
+
         if normalization_matrix is None:
             return pixel_matrix
         
