@@ -21,6 +21,7 @@ import PMclasslib1 as PMlib # type: ignore
 import os, gc
 import traceback
 import error_handler  # Centralized error handling and logging
+import hsi_normalization  # HSI normalization module
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -362,6 +363,20 @@ class XYMap:
 
         # selct what to normalize to
         tk.Label(self.plotoptions_frame, text="Normalize to:").grid(row=2, column=0)
+        
+        # Normalization method selector
+        self.normalization_methods = ['None', 'Integrated Counts', 'Max Intensity', 'Counts at Wavelength']
+        self.normalize_method_var = tk.StringVar()
+        self.normalize_method_var.set(self.defentries.get('normalize_method', 'None'))
+        self.normalize_method_box = ttk.Combobox(self.plotoptions_frame, textvariable=self.normalize_method_var, values=self.normalization_methods, width=18)
+        self.normalize_method_box.grid(row=3, column=0)
+        
+        # Normalization wavelength parameter (for methods that need it)
+        tk.Label(self.plotoptions_frame, text="Norm. WL (nm):").grid(row=4, column=0, sticky=tk.W)
+        self.normalize_wl_var = tk.StringVar()
+        self.normalize_wl_var.set(self.defentries.get('normalize_wavelength', '600'))
+        self.normalize_wl_entry = tk.Entry(self.plotoptions_frame, textvariable=self.normalize_wl_var, width=10)
+        self.normalize_wl_entry.grid(row=5, column=0, sticky=tk.W)
         
 
     def buildselectboxes(self, frame, values):
@@ -1227,6 +1242,64 @@ class XYMap:
                         self.SpecButtons[i][j].config(bg="red")
                 else:
                     self.SpecButtons[i][j].config(bg="red")
+    
+    def get_normalization_matrix(self):
+        """
+        Generate normalization matrix based on current GUI settings.
+        
+        Returns:
+            2D numpy array: Normalization matrix or None if normalization is disabled
+        """
+        # Check if normalization is enabled
+        if not self.normalize_HSI_var.get():
+            return None
+        
+        # Get normalization method
+        method_name = self.normalize_method_var.get()
+        
+        # Map GUI names to internal method names
+        method_map = {
+            'None': 'none',
+            'Integrated Counts': 'integrated_counts',
+            'Max Intensity': 'max_intensity',
+            'Counts at Wavelength': 'counts_at_wavelength'
+        }
+        
+        method = method_map.get(method_name, 'none')
+        
+        # If method is 'none', return None (no normalization)
+        if method == 'none':
+            return None
+        
+        # Get selected data key from selectspecbox
+        selected_data_name = self.selectspecbox.get()
+        data_key = self.speckeys.get(selected_data_name, 'PLB')
+        
+        # Prepare parameters based on method
+        params = {'data_key': data_key}
+        
+        if method == 'integrated_counts' or method == 'max_intensity':
+            # Use current wavelength range
+            params['wl_start'] = self.wlstart
+            params['wl_end'] = self.wlend
+        elif method == 'counts_at_wavelength':
+            # Get wavelength from entry
+            try:
+                params['wavelength'] = float(self.normalize_wl_var.get())
+            except ValueError:
+                print(f"Warning: Invalid normalization wavelength '{self.normalize_wl_var.get()}'. Using mean wavelength.")
+                params['wavelength'] = np.mean(self.WL)
+        
+        # Create normalization object and generate matrix
+        try:
+            normalizer = hsi_normalization.HSINormalization(self.SpecDataMatrix, np.array(self.WL))
+            norm_matrix = normalizer.generate_normalization_matrix(method, params)
+            return norm_matrix
+        except Exception as e:
+            print(f"Error generating normalization matrix: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
 
     def updateselectionentries(self):
         self.selectPixX.delete(0, tk.END)
@@ -1244,6 +1317,14 @@ class XYMap:
         lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
+        
+        # Apply normalization if enabled
+        norm_matrix = self.get_normalization_matrix()
+        if norm_matrix is not None:
+            self.PMdict[newpm].PixMatrix = hsi_normalization.HSINormalization.apply_normalization(
+                self.PMdict[newpm].PixMatrix, norm_matrix
+            )
+        
         self.UpdateHSIselect()
         self.plotPixelMatrix(self.hsiselect.get(), savetoimage=savetoimage)
         
@@ -1269,6 +1350,14 @@ class XYMap:
             # use the ROI mask to fit the pixel matrix
             self.fittoMatrixfitparams(self.PMdict[newpm].PixMatrix, 'fitmaxX', mode='roi', roi=roi)
         self.getPLpixelSpecMax(self.PMdict[newpm].PixMatrix)
+        
+        # Apply normalization if enabled
+        norm_matrix = self.get_normalization_matrix()
+        if norm_matrix is not None:
+            self.PMdict[newpm].PixMatrix = hsi_normalization.HSINormalization.apply_normalization(
+                self.PMdict[newpm].PixMatrix, norm_matrix
+            )
+        
         self.UpdateHSIselect()
     
         try:
@@ -2418,6 +2507,17 @@ class XYMap:
                     else:
                         lastpm[newpm][i][j] = np.nan
                         print('No Data found in Pixel {}, {}'.format(i, j))
+        
+        # Apply normalization if enabled
+        norm_matrix = self.get_normalization_matrix()
+        if norm_matrix is not None:
+            lastpm = hsi_normalization.HSINormalization.apply_normalization(
+                lastpm, norm_matrix
+            )
+        
+        # Update the pixel matrix with normalized values
+        self.PMdict[newpm].PixMatrix = lastpm
+        
         # test
         self.plotPixelMatrix(newpm)
         #self.plotPixelMatrix(self.PMdict[newpm].PixMatrix)

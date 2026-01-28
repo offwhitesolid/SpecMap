@@ -1354,6 +1354,8 @@ defaults={
     'hsi_scalebar_fontsize': 12,
     'hsi_unit': '$\\mu m$',
     'do_normalize_HSI_var': False,
+    'normalize_method': 'None',
+    'normalize_wavelength': '600',
 }
 
 defaulttypes = {
@@ -1428,6 +1430,8 @@ defaulttypes = {
     'hsi_scalebar_fontsize': int,
     'hsi_unit': str,
     'do_normalize_HSI_var': bool,
+    'normalize_method': str,
+    'normalize_wavelength': str,
 
 }
 

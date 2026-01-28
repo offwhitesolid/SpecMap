@@ -1,7 +1,7 @@
 *.pyc
 *.csv
 *.log
-.qodo/
+.qudo/
 .venv/
 oldfiles/
 debugger_output/
