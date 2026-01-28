@@ -378,6 +378,15 @@ class XYMap:
         self.normalize_wl_entry = tk.Entry(self.plotoptions_frame, textvariable=self.normalize_wl_var, width=10)
         self.normalize_wl_entry.grid(row=5, column=0, sticky=tk.W)
         
+        # Normalization dataset selector - allows normalizing based on a different dataset
+        # e.g., normalize derivatives by counts from the original Spectrum (PL-BG)
+        tk.Label(self.plotoptions_frame, text="Norm. Dataset:").grid(row=6, column=0, sticky=tk.W)
+        self.normalize_dataset_var = tk.StringVar()
+        self.normalize_dataset_var.set(self.defentries.get('normalize_dataset', 'Spectrum (PL-BG)'))
+        self.normalize_dataset_box = ttk.Combobox(self.plotoptions_frame, textvariable=self.normalize_dataset_var, 
+                                                   values=list(self.speckeys.keys()), width=18)
+        self.normalize_dataset_box.grid(row=7, column=0, sticky=tk.W)
+        
 
     def buildselectboxes(self, frame, values):
         tk.Label(frame, text="Select Data Set".format(self.DataSpecMax)).grid(row=0, column=1)
@@ -1271,8 +1280,9 @@ class XYMap:
         if method == 'none':
             return None
         
-        # Get selected data key from selectspecbox
-        selected_data_name = self.selectspecbox.get()
+        # Get selected data key from normalize_dataset_box (independent of plot dataset)
+        # This allows normalizing e.g., derivatives by counts from the original signal
+        selected_data_name = self.normalize_dataset_var.get()
         data_key = self.speckeys.get(selected_data_name, 'PLB')
         
         # Prepare parameters based on method
