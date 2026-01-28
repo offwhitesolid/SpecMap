@@ -13,10 +13,12 @@ import hsi_normalization
 
 # Mock SpectrumData class for testing
 class MockSpectrumData:
-    def __init__(self, plb_data):
+    def __init__(self, plb_data, specdiff1_data=None, specdiff2_data=None):
         self.PLB = plb_data
         self.PL = plb_data
         self.BG = np.zeros_like(plb_data)
+        self.Specdiff1 = specdiff1_data if specdiff1_data is not None else np.zeros_like(plb_data)
+        self.Specdiff2 = specdiff2_data if specdiff2_data is not None else np.zeros_like(plb_data)
         self.dataokay = True
 
 def test_normalize_none():
@@ -149,6 +151,52 @@ def test_none_normalization():
     assert np.array_equal(normalized, pixel_matrix), "None normalization should return original"
     print("✓ None normalization passed")
 
+def test_normalize_with_different_dataset():
+    """Test normalization using a different dataset than the one being plotted.
+    
+    This tests the scenario where:
+    - User plots derivatives (e.g., Specdiff1)
+    - But normalizes by counts from the original PLB signal
+    """
+    print("Testing normalization with different dataset...")
+    
+    # Create mock data with different values for PLB and Specdiff1
+    wl = np.linspace(500, 700, 100)
+    
+    # PLB has max value of 100, Specdiff1 has max value of 10
+    plb_data = np.ones(100) * 10
+    plb_data[50] = 100  # Max value is 100 for PLB
+    
+    specdiff1_data = np.ones(100) * 1
+    specdiff1_data[50] = 10  # Max value is 10 for Specdiff1
+    
+    spec_matrix = [[MockSpectrumData(plb_data.copy(), specdiff1_data.copy()) for _ in range(2)] for _ in range(2)]
+    
+    # Create normalizer
+    normalizer = hsi_normalization.HSINormalization(spec_matrix, wl)
+    
+    # Test 1: Normalize using PLB (like normalizing derivatives by original signal)
+    params = {'wl_start': 500, 'wl_end': 700, 'data_key': 'PLB'}
+    norm_matrix_plb = normalizer.generate_normalization_matrix('max_intensity', params)
+    
+    # Max intensity of PLB = 100
+    # Normalization value should be 1/100 = 0.01
+    expected_plb = 1.0 / 100.0
+    assert np.allclose(norm_matrix_plb, expected_plb), f"Expected {expected_plb}, got {norm_matrix_plb[0][0]}"
+    
+    # Test 2: Normalize using Specdiff1 (using derivatives as the normalization source)
+    params = {'wl_start': 500, 'wl_end': 700, 'data_key': 'Specdiff1'}
+    norm_matrix_diff = normalizer.generate_normalization_matrix('max_intensity', params)
+    
+    # Max intensity of Specdiff1 = 10
+    # Normalization value should be 1/10 = 0.1
+    expected_diff = 1.0 / 10.0
+    assert np.allclose(norm_matrix_diff, expected_diff), f"Expected {expected_diff}, got {norm_matrix_diff[0][0]}"
+    
+    print(f"✓ normalization with different dataset passed")
+    print(f"  - PLB normalization value: {norm_matrix_plb[0][0]} (expected {expected_plb})")
+    print(f"  - Specdiff1 normalization value: {norm_matrix_diff[0][0]} (expected {expected_diff})")
+
 if __name__ == '__main__':
     print("Running HSI Normalization Tests...\n")
     
@@ -159,6 +207,7 @@ if __name__ == '__main__':
         test_normalize_counts_at_wavelength()
         test_apply_normalization()
         test_none_normalization()
+        test_normalize_with_different_dataset()
         
         print("\n✓ All tests passed!")
         sys.exit(0)
