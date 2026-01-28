@@ -262,6 +262,7 @@ class FileProcessorApp:
         if 'derivative_Nfitpoints' in defaults:
             self.derivative_fitpoints_entry.insert(0, str(defaults['derivative_Nfitpoints']))
         else:
+            print("No default for derivative N fit points found, using 5")
             self.derivative_fitpoints_entry.insert(0, str(5))
         # construct polynomarray: [ first_derivative_bool, second_derivative_bool, polynomial_order ]
         self.derivative_polynomarray = [ self.calculate_firstderivativeBool, self.calculate_secondderivativeBool, self.derivative_polyorder_entry, self.derivative_fitpoints_entry ]
