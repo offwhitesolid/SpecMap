@@ -1,9 +1,10 @@
 import numpy as np
 import json
+from scipy.signal import savgol_filter
 
 class PMclass(): # PixMatrix class
     def __init__(self, PixMatrix, xax, yax, metadata, name='', units='', description='', data_type=''):
-        self.PixMatrix = PixMatrix
+        self.PixMatrix = np.asarray(PixMatrix, dtype=np.float32)
         self.xax = xax
         self.yax = yax
         self.metadata = metadata
@@ -72,6 +73,29 @@ def calc_derivative(spec_obj, derivative_polynomarray):
     y = spec_obj.Spec
     n_points = len(wl)
     
+    # Ensure window_size is odd for savgol_filter
+    eff_window = window_size
+    if eff_window % 2 == 0:
+        eff_window += 1
+    
+    # Check uniformity of wavelength axis
+    if len(wl) > 1:
+        dx = np.diff(wl)
+        is_uniform = np.allclose(dx, dx[0], rtol=1e-3)
+        delta_val = dx[0]
+    else:
+        is_uniform = True
+        delta_val = 1.0
+
+    # Use fast vectorized implementation if possible
+    if is_uniform:
+        if calc_d1:
+            spec_obj.Spec_d1 = savgol_filter(y, eff_window, poly_order, deriv=1, delta=delta_val, mode='interp')
+        if calc_d2:
+            spec_obj.Spec_d2 = savgol_filter(y, eff_window, poly_order, deriv=2, delta=delta_val, mode='interp')
+        return
+
+    # Fallback for non-uniform grid
     if calc_d1:
         spec_obj.Spec_d1 = np.zeros(n_points)
     if calc_d2:

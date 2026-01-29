@@ -46,13 +46,13 @@ class SpectrumData:
         self.removecosmics = removecosmics
         self.cosmicthreshold = cosmicthreshold
         self.cosmicpixels = cosmicpixels
-        self.WL = WL
+        self.WL = np.asarray(WL, dtype=np.float32) if WL is not None else None
         self.WL_eV = WL_eV
         self.dofit = False # set True if fit is done
         if self.loadeachbg == True:
             self.BG = []
         else:
-            self.BG = BG
+            self.BG = np.asarray(BG, dtype=np.float32) if BG is not None and len(BG) > 0 else []
         self.filename = filename
         self.readinkeys = ['BG', 'PL'] # WL is defined in XYMap
         self.openFstate = [] # open floats state from metadata
@@ -140,9 +140,9 @@ class SpectrumData:
                 elif startreaddata == True:
                     try:
                         if self.loadeachbg == True:
-                            self.BG.append(int(parts[1]))
+                            self.BG.append(float(parts[1]))
                         #self.WL.append(float(parts[0]))  WL is only read once by XYMap since each SpectrumData has the same WL-axis
-                        self.PL.append(int(parts[2]))
+                        self.PL.append(float(parts[2]))
                     except Exception as e:
                         # Use ErrorEngine for data parsing errors
                         error_engine.error(
@@ -153,11 +153,16 @@ class SpectrumData:
                         )
         if self.loadeachbg == True and self.linearbg == True:
             av = np.mean(self.BG)
-            for i in range(len(self.BG)):
-                self.BG[i] = av
+            self.BG = np.full_like(self.BG, av)
 
         try:
-            self.PLB = np.subtract(self.PL, self.BG).tolist() # add PLB = PL-BG
+            # Convert lists to float32 arrays if they aren't already
+            if isinstance(self.PL, list):
+                self.PL = np.asarray(self.PL, dtype=np.float32)
+            if isinstance(self.BG, list):
+                self.BG = np.asarray(self.BG, dtype=np.float32)
+
+            self.PLB = np.subtract(self.PL, self.BG) # add PLB = PL-BG
         except Exception as e:
             # Use ErrorEngine for background subtraction errors
             error_engine.error(
