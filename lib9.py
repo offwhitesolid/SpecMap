@@ -912,17 +912,20 @@ class XYMap:
         PLB = np.zeros_like(WL, dtype=float)
         speccount = 0
 
+        # Optimized averaging: vectorized inner loop
+        aqstart = int(self.aqpixstart)
+        aqend = int(self.aqpixend)
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 if np.isnan(self.PMdict[self.hsiselected].PixMatrix[i][j]) == False:
                     speccount += 1
-                    for k in range(int(self.aqpixstart), int(self.aqpixend)):
-                        # average HSI to spec for all pixels that are not NaN in the selected HSI
-                        PLB[k-int(self.aqpixstart)] += self.SpecDataMatrix[i][j].PLB[k]
+                    # Vectorized addition instead of per-wavelength loop
+                    PLB += self.SpecDataMatrix[i][j].PLB[aqstart:aqend]
+        
         PLB = np.divide(PLB, speccount)
         new_spec = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
         
-        # Calculate derivatives for the averaged spectrum if requested
+        # Calculate derivatives using optimized function
         if self.derivative_polynomarray and len(self.derivative_polynomarray) >= 4:
             try:
                 # Handle both Tkinter variables and direct values
@@ -939,35 +942,9 @@ class XYMap:
                     n_points_val = self.derivative_polynomarray[3]
                     N_fitpoints = int(n_points_val.get()) if hasattr(n_points_val, 'get') else int(n_points_val)
                     
-                    if N_fitpoints % 2 == 0:
-                        N_fitpoints += 1
-                        
-                    # Calculate derivatives for the averaged spectrum
-                    if calc_d1:
-                        new_spec.Spec_d1 = np.zeros_like(PLB)
-                    if calc_d2:
-                        new_spec.Spec_d2 = np.zeros_like(PLB)
-                        
-                    half_window = N_fitpoints // 2
-                    n_points = len(WL)
-                    
-                    for i in range(half_window, n_points - half_window):
-                        start_idx = i - half_window
-                        end_idx = i + half_window + 1
-                        
-                        wl_window = WL[start_idx:end_idx]
-                        plb_window = PLB[start_idx:end_idx]
-                        
-                        try:
-                            p = np.polyfit(wl_window, plb_window, poly_order)
-                            if calc_d1:
-                                dp = np.polyder(p)
-                                new_spec.Spec_d1[i] = np.polyval(dp, WL[i])
-                            if calc_d2:
-                                ddp = np.polyder(np.polyder(p))
-                                new_spec.Spec_d2[i] = np.polyval(ddp, WL[i])
-                        except:
-                            pass
+                    # Use optimized calc_derivative function instead of manual loop
+                    derivative_config = [calc_d1, calc_d2, poly_order, N_fitpoints]
+                    PMlib.calc_derivative(new_spec, derivative_config)
             except Exception as e:
                 print(f"Error calculating derivatives for averaged spectrum: {e}")
 
