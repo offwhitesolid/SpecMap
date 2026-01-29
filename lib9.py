@@ -864,8 +864,19 @@ class XYMap:
         # correct the selected spectrum with the correction spectrum. Make sure to match the WL by interpolation
         corrected_spec = deflib.correct_spectrum(self.disspecs[specname].Spec, self.disspecs[specname].WL, self.correctionSpec, self.correctionWL)
         spname = '{}_corrected'.format(self.createdisspecname())
-        self.disspecs[spname] = copy.deepcopy(self.disspecs[specname])
-        self.disspecs[spname].Spec = corrected_spec
+        # Create new Spectra object more efficiently - avoid deepcopy
+        source_spec = self.disspecs[specname]
+        self.disspecs[spname] = PMlib.Spectra(
+            corrected_spec,
+            source_spec.WL,
+            source_spec.metadata.copy() if isinstance(source_spec.metadata, dict) else source_spec.metadata,
+            source_spec.parenthsi
+        )
+        # Copy derivative data if present
+        if hasattr(source_spec, 'Spec_d1') and source_spec.Spec_d1 is not None:
+            self.disspecs[spname].Spec_d1 = source_spec.Spec_d1.copy() if hasattr(source_spec.Spec_d1, 'copy') else source_spec.Spec_d1
+        if hasattr(source_spec, 'Spec_d2') and source_spec.Spec_d2 is not None:
+            self.disspecs[spname].Spec_d2 = source_spec.Spec_d2.copy() if hasattr(source_spec.Spec_d2, 'copy') else source_spec.Spec_d2
         # update the combobox with the new spectrum name
         # todo: fix this
         self.specselect['values'] = list(self.disspecs.keys())
@@ -897,20 +908,24 @@ class XYMap:
         # update wlstart and wlend entries on GUI
         metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
         WL = self.WL[self.aqpixstart: self.aqpixend]
-        PLB = WL.copy()
+        # Initialize with zeros instead of copying WL - more efficient and correct
+        PLB = np.zeros_like(WL, dtype=float)
         speccount = 0
 
+        # Optimized averaging: vectorized inner loop
+        aqstart = int(self.aqpixstart)
+        aqend = int(self.aqpixend)
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 if np.isnan(self.PMdict[self.hsiselected].PixMatrix[i][j]) == False:
                     speccount += 1
-                    for k in range(int(self.aqpixstart), int(self.aqpixend)):
-                        # average HSI to spec for all pixels that are not NaN in the selected HSI
-                        PLB[k-int(self.aqpixstart)] += self.SpecDataMatrix[i][j].PLB[k]
+                    # Vectorized addition instead of per-wavelength loop
+                    PLB += self.SpecDataMatrix[i][j].PLB[aqstart:aqend]
+        
         PLB = np.divide(PLB, speccount)
         new_spec = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
         
-        # Calculate derivatives for the averaged spectrum if requested
+        # Calculate derivatives using optimized function
         if self.derivative_polynomarray and len(self.derivative_polynomarray) >= 4:
             try:
                 # Handle both Tkinter variables and direct values
@@ -927,35 +942,9 @@ class XYMap:
                     n_points_val = self.derivative_polynomarray[3]
                     N_fitpoints = int(n_points_val.get()) if hasattr(n_points_val, 'get') else int(n_points_val)
                     
-                    if N_fitpoints % 2 == 0:
-                        N_fitpoints += 1
-                        
-                    # Calculate derivatives for the averaged spectrum
-                    if calc_d1:
-                        new_spec.Spec_d1 = np.zeros_like(PLB)
-                    if calc_d2:
-                        new_spec.Spec_d2 = np.zeros_like(PLB)
-                        
-                    half_window = N_fitpoints // 2
-                    n_points = len(WL)
-                    
-                    for i in range(half_window, n_points - half_window):
-                        start_idx = i - half_window
-                        end_idx = i + half_window + 1
-                        
-                        wl_window = WL[start_idx:end_idx]
-                        plb_window = PLB[start_idx:end_idx]
-                        
-                        try:
-                            p = np.polyfit(wl_window, plb_window, poly_order)
-                            if calc_d1:
-                                dp = np.polyder(p)
-                                new_spec.Spec_d1[i] = np.polyval(dp, WL[i])
-                            if calc_d2:
-                                ddp = np.polyder(np.polyder(p))
-                                new_spec.Spec_d2[i] = np.polyval(ddp, WL[i])
-                        except:
-                            pass
+                    # Use optimized calc_derivative function instead of manual loop
+                    derivative_config = [calc_d1, calc_d2, poly_order, N_fitpoints]
+                    PMlib.calc_derivative(new_spec, derivative_config)
             except Exception as e:
                 print(f"Error calculating derivatives for averaged spectrum: {e}")
 
@@ -1326,8 +1315,9 @@ class XYMap:
         self.updatecountthresh()
         # update spec min and max values
         self.updatewl()
-        # create a new colormap by copying the selected HSI
-        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
+        # create a new colormap by using the selected HSI
+        # Avoid deepcopy - writetopixmatrix creates its own copy via np.asarray
+        lastpm = self.PMdict[self.hsiselect.get()].PixMatrix
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
         
@@ -1346,7 +1336,8 @@ class XYMap:
         self.updatewl()
         self.updatecountthresh()
         self.readfontsize()
-        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
+        # Avoid deepcopy - writetopixmatrix creates its own copy via np.asarray
+        lastpm = self.PMdict[self.hsiselect.get()].PixMatrix
         newpm = self.writetopixmatrix(lastpm, None)#str(self.selectspecpixbox.get()))
         if self.HSI_fit_useROI.get() == False:
             self.fittoMatrixfitparams(self.PMdict[newpm].PixMatrix, 'fitmaxX', mode='fullHSI', roi=None)
@@ -2388,13 +2379,22 @@ class XYMap:
         else: 
             roi = self.roihandler.roilist[self.roiselgui.get()]
             newroiname = "{}{}".format(self.hsiselect.get(), self.roiselgui.get())
-        # Generate a copy of the selected PixMatrix class
-        lastpixmatrix = copy.deepcopy(self.PMdict[self.hsiselect.get()])
-        for i in range(len(lastpixmatrix.PixMatrix)):
-            for j in range(len(lastpixmatrix.PixMatrix[i])):
-                if np.isnan(roi[i][j]) == True:
-                    lastpixmatrix.PixMatrix[i][j] = np.nan
-        lastpixmatrix.name = newroiname
+        # Create new PixMatrix more efficiently - only copy the matrix data, not the entire object
+        source_pm = self.PMdict[self.hsiselect.get()]
+        # Create a copy of just the matrix data, apply ROI mask
+        masked_matrix = np.array(source_pm.PixMatrix)  # Creates a copy
+        masked_matrix[np.isnan(roi)] = np.nan
+        # Create new PMclass with copied attributes instead of deepcopy
+        lastpixmatrix = PMlib.PMclass(
+            masked_matrix,
+            source_pm.xax,
+            source_pm.yax,
+            source_pm.metadata.copy() if isinstance(source_pm.metadata, dict) else source_pm.metadata,
+            name=newroiname,
+            units=source_pm.units,
+            description=source_pm.description,
+            data_type=source_pm.data_type
+        )
         self.PMdict[newroiname] = lastpixmatrix
         #fig.imshow(self.PMdict[newroiname].PixMatrix) error
         ax.imshow(self.PMdict[newroiname].PixMatrix)
@@ -2483,7 +2483,8 @@ class XYMap:
     def plotHSIfromfitparam(self):
         self.updatewl()
         self.updatecountthresh()
-        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
+        # Avoid deepcopy - writetopixmatrix creates its own copy via np.asarray
+        lastpm = self.PMdict[self.hsiselect.get()].PixMatrix
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
 

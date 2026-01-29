@@ -11,3 +11,5 @@ defaults.txt
 hsidata/*
 savefiles/
 logs/
+benchmarks/*.png
+benchmarks/*.txt
