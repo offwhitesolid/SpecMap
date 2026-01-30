@@ -2520,10 +2520,10 @@ class XYMap:
                             except Exception as e:
                                 print('Error in plotHSIfromfitparam. {}'.format(str(e)))
                         else:
-                            lastpm[newpm][i][j] = np.nan
+                            lastpm[i][j] = np.nan
                             print('No Data found in Pixel {}, {}'.format(i, j))
                     else:
-                        lastpm[newpm][i][j] = np.nan
+                        lastpm[i][j] = np.nan
         else: 
             # get index of fitvari in self.allfitparams
             for i in range(len(self.SpecDataMatrix)):
@@ -2544,10 +2544,10 @@ class XYMap:
                             except Exception as e:
                                 print('Error in plotHSIfromfitparam. {}'.format(str(e)))
                         else:
-                            lastpm[newpm][i][j] = np.nan
+                            lastpm[i][j] = np.nan
                             print('No Data found in Pixel {}, {}'.format(i, j))
                     else:
-                        lastpm[newpm][i][j] = np.nan
+                        lastpm[i][j] = np.nan
                         print('No Data found in Pixel {}, {}'.format(i, j))
         
         # Apply normalization if enabled
