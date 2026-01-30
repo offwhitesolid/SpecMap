@@ -1905,6 +1905,7 @@ class XYMap:
         # collect entries and run PlotFitSpectrum
         self.updatewl()
         data = None
+        self.selectspecboxVari = self.selectspecbox.get()
         x, y, valid = self.validpixelinput()
         if valid[0] == True and valid[1] == True:
             if self.speckeys[self.selectspecboxVari] == 'WL': #Wavelength
