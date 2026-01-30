@@ -2646,14 +2646,23 @@ class XYMap:
         Replace np.nan values in PMdict PixMatrix data with unique numbers.
         This significantly reduces pickle file size and save/load time.
         
+        Note: Creates deep copies of PM objects to avoid modifying the original.
+        
         Returns:
-            tuple: (modified_pmdict, nan_replacements_dict)
+            tuple: (modified_pmdict_copy, nan_replacements_dict)
         """
+        import copy
         nan_replacements = {}
         
+        # Create deep copy to avoid modifying original PMdict
+        pmdict_copy = {}
+        
         for hsi_name, pm_obj in pmdict.items():
-            if hasattr(pm_obj, 'PixMatrix'):
-                matrix = np.array(pm_obj.PixMatrix)
+            # Deep copy the PM object
+            pm_obj_copy = copy.deepcopy(pm_obj)
+            
+            if hasattr(pm_obj_copy, 'PixMatrix'):
+                matrix = np.array(pm_obj_copy.PixMatrix)
                 
                 # Check if matrix contains np.nan
                 if np.any(np.isnan(matrix)):
@@ -2663,23 +2672,38 @@ class XYMap:
                         # Use a value outside the data range
                         data_min = np.min(valid_data)
                         data_max = np.max(valid_data)
-                        # Choose the more extreme value to minimize collision risk
-                        if abs(data_min) > abs(data_max):
-                            unique_num = data_min - abs(data_min) - 1.0
+                        
+                        # Generate two candidate unique numbers
+                        candidate1 = data_min - max(1.0, abs(data_min)) - 1.0
+                        candidate2 = data_max + max(1.0, abs(data_max)) + 1.0
+                        
+                        # Verify neither candidate is in the data (extra safety)
+                        if candidate1 not in valid_data:
+                            unique_num = candidate1
+                        elif candidate2 not in valid_data:
+                            unique_num = candidate2
                         else:
-                            unique_num = data_max + abs(data_max) + 1.0
+                            # Very unlikely, but use an extreme fallback
+                            unique_num = -999999999.0
                     else:
                         unique_num = -999999.0  # fallback for all-nan matrices
                     
                     # Create a copy and replace nan with unique number
                     matrix_copy = np.copy(matrix)
                     matrix_copy[np.isnan(matrix_copy)] = unique_num
-                    pm_obj.PixMatrix = matrix_copy.tolist() if isinstance(pm_obj.PixMatrix, list) else matrix_copy
+                    
+                    # Preserve original type (list or array)
+                    if isinstance(pm_obj_copy.PixMatrix, list):
+                        pm_obj_copy.PixMatrix = matrix_copy.tolist()
+                    else:
+                        pm_obj_copy.PixMatrix = matrix_copy
                     
                     # Store replacement info
                     nan_replacements[hsi_name] = unique_num
+            
+            pmdict_copy[hsi_name] = pm_obj_copy
         
-        return pmdict, nan_replacements
+        return pmdict_copy, nan_replacements
     
     def _restore_nan_in_pmdict(self, pmdict, nan_replacements):
         """
@@ -2712,8 +2736,8 @@ class XYMap:
         before pickling to significantly reduce file size and save/load time.
         """
         # Prepare PMdict by replacing nan values with unique numbers
-        # This creates a copy of PMdict with nan values replaced
-        pmdict_prepared, nan_replacements = self._prepare_pmdict_for_pickle(dict(self.PMdict))
+        # This creates a deep copy of PMdict with nan values replaced
+        pmdict_prepared, nan_replacements = self._prepare_pmdict_for_pickle(self.PMdict)
         
         # Create a dictionary with all important state
         state = {
@@ -2794,7 +2818,7 @@ class XYMap:
             print(f"  - Saved {len(self.PMdict)} HSI images")
             print(f"  - Saved {len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0} ROI masks")
             if nan_replacements:
-                print(f"  - Optimized {len(nan_replacements)} HSI images with nan replacement")
+                print(f"  - Replaced nan values in {len(nan_replacements)} HSI images for optimization")
             return True
         except Exception as e:
             print(f"Error saving XYMap state: {e}")

@@ -6,8 +6,6 @@
 oldfiles/
 debugger_output/
 __pycache__/
-*/__pycache__/
-**/__pycache__/
 defaults.txt
 hsidata/*
 savefiles/
