@@ -2641,11 +2641,104 @@ class XYMap:
         except:
             pass
     
+    def _prepare_pmdict_for_pickle(self, pmdict):
+        """
+        Replace np.nan values in PMdict PixMatrix data with unique numbers.
+        This significantly reduces pickle file size and save/load time.
+        
+        Note: Creates deep copies of PM objects to avoid modifying the original.
+        
+        Returns:
+            tuple: (modified_pmdict_copy, nan_replacements_dict)
+        """
+        import copy
+        nan_replacements = {}
+        
+        # Create deep copy to avoid modifying original PMdict
+        pmdict_copy = {}
+        
+        for hsi_name, pm_obj in pmdict.items():
+            # Deep copy the PM object
+            pm_obj_copy = copy.deepcopy(pm_obj)
+            
+            if hasattr(pm_obj_copy, 'PixMatrix'):
+                matrix = np.array(pm_obj_copy.PixMatrix)
+                
+                # Check if matrix contains np.nan
+                if np.any(np.isnan(matrix)):
+                    # Find a unique number not in the data
+                    valid_data = matrix[~np.isnan(matrix)]
+                    if len(valid_data) > 0:
+                        # Use a value outside the data range
+                        data_min = np.min(valid_data)
+                        data_max = np.max(valid_data)
+                        
+                        # Generate two candidate unique numbers
+                        candidate1 = data_min - max(1.0, abs(data_min)) - 1.0
+                        candidate2 = data_max + max(1.0, abs(data_max)) + 1.0
+                        
+                        # Verify neither candidate is in the data (extra safety)
+                        if candidate1 not in valid_data:
+                            unique_num = candidate1
+                        elif candidate2 not in valid_data:
+                            unique_num = candidate2
+                        else:
+                            # Very unlikely, but use an extreme fallback
+                            unique_num = -999999999.0
+                    else:
+                        unique_num = -999999.0  # fallback for all-nan matrices
+                    
+                    # Create a copy and replace nan with unique number
+                    matrix_copy = np.copy(matrix)
+                    matrix_copy[np.isnan(matrix_copy)] = unique_num
+                    
+                    # Preserve original type (list or array)
+                    if isinstance(pm_obj_copy.PixMatrix, list):
+                        pm_obj_copy.PixMatrix = matrix_copy.tolist()
+                    else:
+                        pm_obj_copy.PixMatrix = matrix_copy
+                    
+                    # Store replacement info
+                    nan_replacements[hsi_name] = unique_num
+            
+            pmdict_copy[hsi_name] = pm_obj_copy
+        
+        return pmdict_copy, nan_replacements
+    
+    def _restore_nan_in_pmdict(self, pmdict, nan_replacements):
+        """
+        Restore np.nan values in PMdict PixMatrix data from unique numbers.
+        
+        Args:
+            pmdict: Dictionary of PM objects
+            nan_replacements: Dictionary mapping HSI names to replacement numbers
+            
+        Returns:
+            pmdict with np.nan values restored
+        """
+        for hsi_name, unique_num in nan_replacements.items():
+            if hsi_name in pmdict:
+                pm_obj = pmdict[hsi_name]
+                if hasattr(pm_obj, 'PixMatrix'):
+                    matrix = np.array(pm_obj.PixMatrix)
+                    # Replace unique number back to nan
+                    matrix = np.where(matrix == unique_num, np.nan, matrix)
+                    pm_obj.PixMatrix = matrix.tolist() if isinstance(pm_obj.PixMatrix, list) else matrix
+        
+        return pmdict
+    
     def save_state(self, filename):
         """
         Save the complete state of the XYMap instance to a file.
         This includes all data, processing parameters, and results.
+        
+        Optimization: Replaces np.nan values in PixMatrix data with unique numbers
+        before pickling to significantly reduce file size and save/load time.
         """
+        # Prepare PMdict by replacing nan values with unique numbers
+        # This creates a deep copy of PMdict with nan values replaced
+        pmdict_prepared, nan_replacements = self._prepare_pmdict_for_pickle(self.PMdict)
+        
         # Create a dictionary with all important state
         state = {
             # Core data - WL and WL_eV arrays (shared references)
@@ -2661,8 +2754,12 @@ class XYMap:
             'SpecDataMatrix': self.SpecDataMatrix,
             
             # PMdict - contains all HSI images (PixMatrix objects with fit results)
-            'PMdict': self.PMdict,
+            # Using the prepared version with nan values replaced
+            'PMdict': pmdict_prepared,
             'PMmetadata': self.PMmetadata if hasattr(self, 'PMmetadata') else {},
+            
+            # Store nan replacement metadata for restoration
+            '_nan_replacements': nan_replacements,
             
             # ROI data - masks and selections
             'roilist': self.roihandler.roilist if hasattr(self, 'roihandler') else {},
@@ -2720,6 +2817,8 @@ class XYMap:
             print(f"  - Saved {len(self.specs)} spectra")
             print(f"  - Saved {len(self.PMdict)} HSI images")
             print(f"  - Saved {len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0} ROI masks")
+            if nan_replacements:
+                print(f"  - Replaced nan values in {len(nan_replacements)} HSI images for optimization")
             return True
         except Exception as e:
             print(f"Error saving XYMap state: {e}")
@@ -2730,6 +2829,9 @@ class XYMap:
         """
         Load a previously saved XYMap state from a file.
         This restores all data, processing parameters, and results.
+        
+        Automatically restores np.nan values that were replaced with unique numbers
+        during the save operation.
         """
         try:
             with open(filename, 'rb') as f:
@@ -2765,7 +2867,17 @@ class XYMap:
                             self.SpecDataMatrix[i][j].WL_eV = self.WL_eV
             
             # Restore PMdict - contains all HSI images with fit results
-            self.PMdict = state['PMdict']
+            # First load the PMdict, then restore nan values if they were replaced
+            pmdict_loaded = state['PMdict']
+            nan_replacements = state.get('_nan_replacements', {})
+            
+            # Restore nan values from unique numbers
+            if nan_replacements:
+                self.PMdict = self._restore_nan_in_pmdict(pmdict_loaded, nan_replacements)
+                print(f"  - Restored nan values in {len(nan_replacements)} HSI images")
+            else:
+                self.PMdict = pmdict_loaded
+            
             self.PMmetadata = state.get('PMmetadata', {})
             
             # Restore ROI data
