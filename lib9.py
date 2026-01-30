@@ -905,11 +905,26 @@ class XYMap:
         self.hsiselected = self.hsiselect.get()
         # get wlstart and wlend from self.hsiselected
         self.updatewl()
+        
+        # Get selected data source
+        data_source_name = self.selectspecbox.get()
+        # Fallback to PLB if something is wrong or key not found
+        data_key = self.speckeys.get(data_source_name, 'PLB')
+        
+        # Check if we are trying to average something that isn't an array (like WL)
+        if data_key == 'WL':
+             print("Cannot average Wavelength axis. Using Spectrum (PL-BG) instead.")
+             data_key = 'PLB'
+             data_source_name = 'Spectrum (PL-BG)'
+        
         # update wlstart and wlend entries on GUI
-        metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
+        metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 
+                    'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 
+                    'aqpixend': self.aqpixend, 'averaged_data_type': data_source_name}
+        
         WL = self.WL[self.aqpixstart: self.aqpixend]
         # Initialize with zeros instead of copying WL - more efficient and correct
-        PLB = np.zeros_like(WL, dtype=float)
+        accumulated_data = np.zeros_like(WL, dtype=float)
         speccount = 0
 
         # Optimized averaging: vectorized inner loop
@@ -918,12 +933,21 @@ class XYMap:
         for i in range(len(self.SpecDataMatrix)):
             for j in range(len(self.SpecDataMatrix[i])):
                 if np.isnan(self.PMdict[self.hsiselected].PixMatrix[i][j]) == False:
-                    speccount += 1
-                    # Vectorized addition instead of per-wavelength loop
-                    PLB += self.SpecDataMatrix[i][j].PLB[aqstart:aqend]
+                    # Check if attribute exists and is valid
+                    pixel_obj = self.SpecDataMatrix[i][j]
+                    if hasattr(pixel_obj, data_key):
+                         data_array = getattr(pixel_obj, data_key)
+                         
+                         # Ensure data array is compatible and exists
+                         if data_array is not None and len(data_array) >= aqend:
+                            speccount += 1
+                            # Vectorized addition
+                            accumulated_data += data_array[aqstart:aqend]
         
-        PLB = np.divide(PLB, speccount)
-        new_spec = PMlib.Spectra(PLB, WL, metadata, self.hsiselected)
+        if speccount > 0:
+            accumulated_data = np.divide(accumulated_data, speccount)
+        
+        new_spec = PMlib.Spectra(accumulated_data, WL, metadata, self.hsiselected)
         
         # Calculate derivatives using optimized function
         if self.derivative_polynomarray and len(self.derivative_polynomarray) >= 4:
@@ -1032,7 +1056,12 @@ class XYMap:
             
             # So let's look at PlotPixelSpectrum.
             
-            self.PlotSpectrum(selspecdataclass.Spec, selspecdataclass.WL, 'Averaged HSI Spectrum')
+            # Get averaged data type from metadata if available
+            caption = 'Averaged HSI Spectrum'
+            if hasattr(selspecdataclass, 'metadata') and 'averaged_data_type' in selspecdataclass.metadata:
+                caption = f"Averaged HSI ({selspecdataclass.metadata['averaged_data_type']})"
+            
+            self.PlotSpectrum(selspecdataclass.Spec, selspecdataclass.WL, caption)
             
             # If the averaged spectrum has derivatives, maybe we should plot them too?
             if hasattr(selspecdataclass, 'Spec_d1') and selspecdataclass.Spec_d1 is not None:
