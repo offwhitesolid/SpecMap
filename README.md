@@ -287,6 +287,46 @@ SpecMap1/
 - Perform 2D Gaussian fitting for beam characterization
 - Calculate beam parameters and areas
 
+### Advanced Data Export Features ✨
+
+#### Saving and Loading with ROI Masks
+SpecMap now automatically saves and restores ROI (Region of Interest) masks when you save/load your analysis sessions. This means:
+- **ROI masks persist** across sessions - no need to redraw them
+- **Automatic validation** - ROI dimensions are checked against HSI data on load
+- **Multiple ROI support** - save and restore any number of ROI masks
+
+Example workflow:
+```python
+# Create ROI masks, then save
+xymap.save_state('my_analysis.pkl')
+# Output: Saved 2 ROI masks: ['bright_region', 'edge_region']
+
+# Later, load and continue working
+xymap.load_state('my_analysis.pkl')
+# Output: Loaded 2 ROI masks (dimensions validated)
+```
+
+#### Spectral Averaging Options
+When averaging HSI data to spectra, you can now work with multiple data types:
+- **Spectrum (PL-BG)** - Background-corrected photoluminescence
+- **First derivative** - Highlights spectral features and transitions
+- **Second derivative** - Enhances fine spectral features
+- **First derivative (normalized)** - Shape analysis independent of intensity
+- **Second derivative (normalized)** - Enhanced feature detection
+
+Use the new **"Export All Averaged Spectra"** button to:
+1. Generate all spectral data types at once
+2. Automatically calculate derivatives if needed
+3. Export everything to a single CSV file
+
+#### Comprehensive Data Export
+New export capabilities include:
+- **`exportHSIWithSpectra()`** - Export HSI matrix and all associated averaged spectra in separate files
+- **`exportAllAveragedSpectra()`** - Generate and export all spectral data types in one operation
+- **Metadata preservation** - All exports include wavelength ranges, acquisition parameters, and data type information
+
+For detailed documentation, see [DATA_SAVE_LOAD_ENHANCEMENT.md](documentation/DATA_SAVE_LOAD_ENHANCEMENT.md)
+
 ## Configuration
 
 ### Default Settings
