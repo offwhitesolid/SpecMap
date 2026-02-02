@@ -3330,6 +3330,14 @@ class XYMap:
                 self.specselect['values'] = list(self.disspecs.keys())
                 self.specselect.set(list(self.disspecs.keys())[-1])
             
+            # Update the GUI combobox for ROI selection
+            if hasattr(self, 'roiselgui') and hasattr(self, 'roihandler'):
+                self.roiselgui['values'] = list(self.roihandler.roilist.keys())
+                if len(self.roihandler.roilist) > 0:
+                    self.roiselgui.set(list(self.roihandler.roilist.keys())[-1])
+                else:
+                    self.roiselgui.set('')
+            
             # Restore processing parameters
             self.wlstart = state['wlstart']
             self.wlend = state['wlend']
@@ -3439,9 +3447,9 @@ class Roihandler():
 
     def toggle_roi(self, event):
         if self.roi_mode == True:
-            fig, ax = plt.subplots()
-            self.button_toggle.label.set_text('Edit ROI')
+            # Save the current ROI if valid
             if len(self.roi_points) > 2:
+                fig, ax = plt.subplots()
                 nrois = len(list(self.roilist.keys()))
                 for i in range(len(self.roi_points)):
                     self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
@@ -3455,9 +3463,17 @@ class Roihandler():
 
                 plt.show()
                 self.roiselgui['values'] = list(self.roilist.keys())
+                # Clear ROI points and lines to allow immediate painting of new ROI
                 self.roi_points.clear()
-            self.roi_mode = False
-            print(len(self.roilist))
+                self.clear_roi_lines()
+                # Keep roi_mode = True to allow immediate painting of next ROI
+                print(len(self.roilist))
+                plt.draw()
+            else:
+                # Not enough points, just clear and stay in painting mode
+                self.roi_points.clear()
+                self.clear_roi_lines()
+                plt.draw()
         else:
             self.button_toggle.label.set_text('Save ROI')
             self.roi_points.clear()
