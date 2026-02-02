@@ -521,7 +521,8 @@ class XYMap:
         b2.grid(row=2, column=0)
 
     def build_roi_frame(self, parframe, PMname='HSI0'):
-        self.roihandler = Roihandler()#self)
+        if not hasattr(self, 'roihandler'):
+            self.roihandler = Roihandler()#self)
         self.roisel = tk.StringVar()
 
         frame = tk.Frame(parframe, border=5, relief="raised")
@@ -529,6 +530,12 @@ class XYMap:
         tk.Label(frame, text="Select ROI").grid(row=0, column=0)
         self.roiselgui = ttk.Combobox(frame, textvariable=self.roisel)
         self.roiselgui.grid(row=1, column=0)
+        
+        # Populate ROI list from existing data if available - fixes empty combobox after loading
+        if hasattr(self.roihandler, 'roilist') and len(self.roihandler.roilist) > 0:
+            self.roiselgui['values'] = list(self.roihandler.roilist.keys())
+            self.roiselgui.set(list(self.roihandler.roilist.keys())[-1])
+
         try:
             b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
         except: # select first HSI
@@ -567,6 +574,12 @@ class XYMap:
         tk.Label(frame, text="Select Spectral Data").grid(row=0, column=2)
         self.specselect = ttk.Combobox(frame)
         self.specselect.grid(row=1, column=2)
+        
+        # Populate Spectrum list from existing data if available - fixes empty combobox after loading
+        if hasattr(self, 'disspecs') and len(self.disspecs) > 0:
+            self.specselect['values'] = list(self.disspecs.keys())
+            self.specselect.set(list(self.disspecs.keys())[-1])
+            
         b7 = tk.Button(frame, text="Plot Spectrum", command= lambda: self.plotSpectral(self.specselect.get()))
         b7.grid(row=2, column=2)
         b8 = tk.Button(frame, text="Save Spectrum to .txt", command= lambda: self.saveSpectrum(self.specselect.get()))
