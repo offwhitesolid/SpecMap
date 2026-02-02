@@ -3043,17 +3043,105 @@ class XYMap:
         
         return pmdict
     
+    def _prepare_roilist_for_pickle(self, roilist):
+        """
+        Replace np.nan values in ROI masks with unique numbers for efficient compression.
+        Similar to _prepare_pmdict_for_pickle, but for ROI data structures.
+        
+        ROI masks use np.nan to mark pixels that are NOT in the ROI.
+        This method replaces them with unique numbers for better pickle compression.
+        
+        Args:
+            roilist: Dictionary mapping ROI names to ROI mask arrays
+            
+        Returns:
+            tuple: (modified_roilist_copy, nan_replacements_dict)
+        """
+        import copy
+        nan_replacements = {}
+        roilist_copy = {}
+        
+        for roi_name, roi_mask in roilist.items():
+            # Convert to numpy array if it isn't already
+            roi_array = np.array(roi_mask)
+            
+            # Check if the ROI mask contains np.nan
+            if np.any(np.isnan(roi_array)):
+                # Find a unique number not in the data
+                valid_data = roi_array[~np.isnan(roi_array)]
+                if len(valid_data) > 0:
+                    # ROI masks typically contain 1.0 for ROI pixels and np.nan for non-ROI
+                    # Use a value outside the expected range
+                    data_min = np.min(valid_data)
+                    data_max = np.max(valid_data)
+                    
+                    # Generate unique number outside data range
+                    candidate1 = data_min - max(1.0, abs(data_min)) - 1.0
+                    candidate2 = data_max + max(1.0, abs(data_max)) + 1.0
+                    
+                    # Verify candidate is not in data
+                    if candidate1 not in valid_data:
+                        unique_num = candidate1
+                    elif candidate2 not in valid_data:
+                        unique_num = candidate2
+                    else:
+                        # Fallback (very unlikely)
+                        unique_num = -999999999.0
+                else:
+                    # All-nan ROI mask (empty ROI)
+                    unique_num = -999999.0
+                
+                # Create copy and replace nan with unique number
+                roi_array_copy = np.copy(roi_array)
+                roi_array_copy[np.isnan(roi_array_copy)] = unique_num
+                
+                # Store the processed ROI mask
+                roilist_copy[roi_name] = roi_array_copy
+                
+                # Store replacement info
+                nan_replacements[roi_name] = unique_num
+            else:
+                # No nan values, just copy the array
+                roilist_copy[roi_name] = np.copy(roi_array)
+        
+        return roilist_copy, nan_replacements
+    
+    def _restore_nan_in_roilist(self, roilist, nan_replacements):
+        """
+        Restore np.nan values in ROI masks from unique numbers.
+        
+        Args:
+            roilist: Dictionary of ROI masks
+            nan_replacements: Dictionary mapping ROI names to replacement numbers
+            
+        Returns:
+            roilist with np.nan values restored
+        """
+        for roi_name, unique_num in nan_replacements.items():
+            if roi_name in roilist:
+                roi_array = np.array(roilist[roi_name])
+                # Replace unique number back to nan
+                roi_array = np.where(roi_array == unique_num, np.nan, roi_array)
+                roilist[roi_name] = roi_array
+        
+        return roilist
+    
     def save_state(self, filename):
         """
         Save the complete state of the XYMap instance to a file.
         This includes all data, processing parameters, and results.
         
-        Optimization: Replaces np.nan values in PixMatrix data with unique numbers
-        before pickling to significantly reduce file size and save/load time.
+        Optimization: Replaces np.nan values in PixMatrix data and ROI masks with unique 
+        numbers before pickling to significantly reduce file size and save/load time.
         """
         # Prepare PMdict by replacing nan values with unique numbers
         # This creates a deep copy of PMdict with nan values replaced
-        pmdict_prepared, nan_replacements = self._prepare_pmdict_for_pickle(self.PMdict)
+        pmdict_prepared, nan_replacements_pmdict = self._prepare_pmdict_for_pickle(self.PMdict)
+        
+        # Prepare ROI list by replacing nan values with unique numbers
+        # ROI masks use np.nan to mark non-ROI pixels, which needs compression
+        roilist_raw = self.roihandler.roilist if hasattr(self, 'roihandler') else {}
+        roilist_prepared, nan_replacements_roilist = self._prepare_roilist_for_pickle(roilist_raw)
         
         # Create a dictionary with all important state
         state = {
@@ -3075,10 +3163,11 @@ class XYMap:
             'PMmetadata': self.PMmetadata if hasattr(self, 'PMmetadata') else {},
             
             # Store nan replacement metadata for restoration
-            '_nan_replacements': nan_replacements,
+            '_nan_replacements': nan_replacements_pmdict,
+            '_nan_replacements_roilist': nan_replacements_roilist,
             
-            # ROI data - masks and selections
-            'roilist': self.roihandler.roilist if hasattr(self, 'roihandler') else {},
+            # ROI data - masks and selections (with nan values replaced)
+            'roilist': roilist_prepared,
             
             # Averaged spectra data
             'disspecs': self.disspecs if hasattr(self, 'disspecs') else {},
@@ -3143,8 +3232,10 @@ class XYMap:
             print(f"  - Saved {disspecs_count} averaged spectra")
             if disspecs_count > 0:
                 print(f"    Averaged spectra names: {list(self.disspecs.keys())}")
-            if nan_replacements:
-                print(f"  - Replaced nan values in {len(nan_replacements)} HSI images for optimization")
+            if nan_replacements_pmdict:
+                print(f"  - Replaced nan values in {len(nan_replacements_pmdict)} HSI images for optimization")
+            if nan_replacements_roilist:
+                print(f"  - Replaced nan values in {len(nan_replacements_roilist)} ROI masks for optimization")
             return True
         except Exception as e:
             print(f"Error saving XYMap state: {e}")
@@ -3206,9 +3297,18 @@ class XYMap:
             
             self.PMmetadata = state.get('PMmetadata', {})
             
-            # Restore ROI data
+            # Restore ROI data with nan value restoration
             if hasattr(self, 'roihandler'):
-                self.roihandler.roilist = state.get('roilist', {})
+                roilist_loaded = state.get('roilist', {})
+                nan_replacements_roilist = state.get('_nan_replacements_roilist', {})
+                
+                # Restore nan values from unique numbers in ROI masks
+                if nan_replacements_roilist:
+                    self.roihandler.roilist = self._restore_nan_in_roilist(roilist_loaded, nan_replacements_roilist)
+                    print(f"  - Restored nan values in {len(nan_replacements_roilist)} ROI masks")
+                else:
+                    self.roihandler.roilist = roilist_loaded
+                
                 # Validate ROI dimensions match HSI data dimensions
                 if self.roihandler.roilist and len(self.PMdict) > 0:
                     # Get the first HSI to check dimensions
