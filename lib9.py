@@ -576,14 +576,20 @@ class XYMap:
         b10 = tk.Button(frame, text="Delete selected Spectral Data", command= lambda:
                           self.delSpecData(self.specselect.get()))
         b10.grid(row=4, column=2)
+        
+        # Add button for exporting all averaged spectra
+        b_export_all = tk.Button(frame, text="Export All Averaged Spectra", 
+                                 command=lambda: self.exportAllAveragedSpectra())
+        b_export_all.grid(row=6, column=2)
+        
         # add entry for a correction spectrum
-        tk.Label(frame, text="Correction Spectrum").grid(row=6, column=2)
+        tk.Label(frame, text="Correction Spectrum").grid(row=7, column=2)
 
         # Button to select correction spectrum file
         b11 = tk.Button(frame, text="Select Correction Spec File", command=self.select_correction_spectrum_file)
-        b11.grid(row=7, column=2)
-        b11 = tk.Button(frame, text="Correct Spectrum", command= lambda: self.correctSpectrum(self.specselect.get()))
         b11.grid(row=8, column=2)
+        b12 = tk.Button(frame, text="Correct Spectrum", command= lambda: self.correctSpectrum(self.specselect.get()))
+        b12.grid(row=9, column=2)
     
     def build_plot_options_frame(self, parframe):
         """Build GUI frame for HSI plot options with scale bar and advanced formatting."""
@@ -847,6 +853,141 @@ class XYMap:
                         for val in row
                     ]
                     f.write(';'.join(formatted_row) + '\n')
+    
+    def exportHSIWithSpectra(self):
+        """
+        Export the selected HSI along with associated averaged spectra to CSV files.
+        Creates multiple files:
+        - <basename>_matrix.csv: HSI pixel matrix
+        - <basename>_avg_spectra.csv: All averaged spectra from this HSI
+        """
+        filename = tkfd.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV files', '*.csv')])
+        if not filename:
+            return
+        
+        # Get base filename without extension
+        base_name = filename.rsplit('.', 1)[0]
+        selhsi = self.hsiselect.get()
+        
+        # Export HSI matrix
+        matrix_filename = f"{base_name}_matrix.csv"
+        metadata = '\n'.join([f'{key}: {value}' for key, value in self.PMdict[selhsi].metadata.items()])
+        with open(matrix_filename, 'w') as f:
+            f.write(metadata + '\n')
+            for row in self.PMdict[selhsi].PixMatrix:
+                formatted_row = [
+                    'Nan' if (isinstance(val, float) and np.isnan(val)) else str(val)
+                    for val in row
+                ]
+                f.write(';'.join(formatted_row) + '\n')
+        print(f"Exported HSI matrix to: {matrix_filename}")
+        
+        # Export averaged spectra from this HSI
+        spectra_filename = f"{base_name}_avg_spectra.csv"
+        
+        # Find all averaged spectra from this HSI
+        hsi_spectra = {name: spec for name, spec in self.disspecs.items() 
+                       if spec.parenthsi == selhsi}
+        
+        if len(hsi_spectra) > 0:
+            with open(spectra_filename, 'w') as f:
+                # Write header with metadata
+                f.write(f"# Averaged spectra from HSI: {selhsi}\n")
+                f.write(f"# Wavelength range: {self.wlstart} - {self.wlend} nm\n")
+                f.write(f"# Number of spectra: {len(hsi_spectra)}\n")
+                f.write("#\n")
+                
+                # Write column headers
+                headers = ['Wavelength (nm)'] + list(hsi_spectra.keys())
+                f.write(','.join(headers) + '\n')
+                
+                # Get wavelength array from first spectrum
+                first_spec = list(hsi_spectra.values())[0]
+                wavelengths = first_spec.WL
+                
+                # Write data rows
+                for i, wl in enumerate(wavelengths):
+                    row = [str(wl)]
+                    for spec in hsi_spectra.values():
+                        if i < len(spec.Spec):
+                            row.append(str(spec.Spec[i]))
+                        else:
+                            row.append('NaN')
+                    f.write(','.join(row) + '\n')
+            
+            print(f"Exported {len(hsi_spectra)} averaged spectra to: {spectra_filename}")
+        else:
+            print(f"No averaged spectra found for HSI: {selhsi}")
+        
+        print("Export complete!")
+    
+    def exportAllAveragedSpectra(self):
+        """
+        Export all averaged spectra (all data types) for the selected HSI.
+        First generates averaged spectra for all data types if they don't exist,
+        then exports them to a CSV file.
+        """
+        filename = tkfd.asksaveasfilename(defaultextension='.csv', 
+                                          filetypes=[('CSV files', '*.csv')])
+        if not filename:
+            return
+        
+        selhsi = self.hsiselect.get()
+        
+        # Generate averaged spectra for all data types
+        print(f"Generating averaged spectra for all data types from {selhsi}...")
+        data_types = ['PLB', 'Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm']
+        generated_spectra = self.averageHSItoSpecDataMultiple(data_types)
+        
+        if len(generated_spectra) == 0:
+            print("No spectra were generated. Export cancelled.")
+            return
+        
+        # Export all spectra to CSV
+        with open(filename, 'w') as f:
+            # Write header
+            f.write(f"# All averaged spectra from HSI: {selhsi}\n")
+            f.write(f"# Wavelength range: {self.wlstart} - {self.wlend} nm\n")
+            f.write(f"# Generated: {len(generated_spectra)} spectral data types\n")
+            f.write("#\n")
+            
+            # Get data type mapping for column headers
+            type_names = []
+            for spec_name in generated_spectra.keys():
+                # Extract data type from name (format: HSI0_PLB_avg -> PLB)
+                parts = spec_name.split('_')
+                if len(parts) >= 2:
+                    data_key = parts[-2]  # Get the data type key
+                    # Find human-readable name
+                    for name, key in self.speckeys.items():
+                        if key == data_key:
+                            type_names.append(name)
+                            break
+                    else:
+                        type_names.append(data_key)
+                else:
+                    type_names.append(spec_name)
+            
+            # Write column headers
+            headers = ['Wavelength (nm)'] + type_names
+            f.write(','.join(headers) + '\n')
+            
+            # Get wavelength array from first spectrum
+            first_spec = list(generated_spectra.values())[0]
+            wavelengths = first_spec.WL
+            
+            # Write data rows
+            for i, wl in enumerate(wavelengths):
+                row = [str(wl)]
+                for spec in generated_spectra.values():
+                    if i < len(spec.Spec):
+                        row.append(str(spec.Spec[i]))
+                    else:
+                        row.append('NaN')
+                f.write(','.join(row) + '\n')
+        
+        print(f"Exported {len(generated_spectra)} averaged spectra to: {filename}")
+        print("Export complete!")
 
     def correctSpectrum(self, specname):
         # correct the selected spectrum with the entered correction spectrum
@@ -977,6 +1118,151 @@ class XYMap:
         # update the selectbox for spectral data
         self.specselect['values'] = list(self.disspecs.keys())
         self.specselect.set(list(self.disspecs.keys())[-1])
+    
+    def averageHSItoSpecDataMultiple(self, data_types=None):
+        """
+        Average HSI to multiple spectral data types simultaneously.
+        
+        Parameters:
+        -----------
+        data_types : list, optional
+            List of data type keys to average. If None, defaults to all available types:
+            ['PLB', 'Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm']
+        
+        Returns:
+        --------
+        dict : Dictionary of generated averaged spectra with their names as keys
+        """
+        # Default to all available data types if not specified
+        if data_types is None:
+            data_types = ['PLB', 'Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm']
+        
+        # Get current HSI selection
+        self.hsiselected = self.hsiselect.get()
+        self.updatewl()
+        
+        # Prepare metadata
+        base_metadata = {
+            'wlstart': self.wlstart, 
+            'wlend': self.wlend, 
+            'countthresh': self.countthreshv, 
+            'aqpixstart': self.aqpixstart, 
+            'aqpixend': self.aqpixend
+        }
+        
+        WL = self.WL[self.aqpixstart: self.aqpixend]
+        aqstart = int(self.aqpixstart)
+        aqend = int(self.aqpixend)
+        
+        # Check if derivatives need to be calculated for individual pixels
+        needs_derivatives = any(dt in data_types for dt in ['Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm'])
+        
+        if needs_derivatives:
+            # Ensure derivatives are calculated for all spectra in SpecDataMatrix
+            print("Checking if derivatives are calculated for individual spectra...")
+            derivatives_exist = False
+            
+            # Check if derivatives exist in SpecDataMatrix
+            for i in range(len(self.SpecDataMatrix)):
+                for j in range(len(self.SpecDataMatrix[i])):
+                    pixel_obj = self.SpecDataMatrix[i][j]
+                    if pixel_obj is not None:
+                        if hasattr(pixel_obj, 'Specdiff1') and pixel_obj.Specdiff1 is not None:
+                            derivatives_exist = True
+                            break
+                if derivatives_exist:
+                    break
+            
+            if not derivatives_exist:
+                print("Derivatives not found in SpecDataMatrix. Calculating derivatives...")
+                self.calculate_derivatives()
+            else:
+                print("Derivatives already exist in SpecDataMatrix.")
+        
+        generated_spectra = {}
+        
+        for data_key in data_types:
+            # Get the human-readable name for this data type
+            data_source_name = None
+            for name, key in self.speckeys.items():
+                if key == data_key:
+                    data_source_name = name
+                    break
+            
+            if data_source_name is None:
+                print(f"Warning: Unknown data type '{data_key}', skipping...")
+                continue
+            
+            print(f"Averaging {data_source_name}...")
+            
+            # Initialize accumulator
+            accumulated_data = np.zeros_like(WL, dtype=float)
+            speccount = 0
+            
+            # Average over all valid pixels in SpecDataMatrix
+            for i in range(len(self.SpecDataMatrix)):
+                for j in range(len(self.SpecDataMatrix[i])):
+                    if np.isnan(self.PMdict[self.hsiselected].PixMatrix[i][j]) == False:
+                        pixel_obj = self.SpecDataMatrix[i][j]
+                        if hasattr(pixel_obj, data_key):
+                            data_array = getattr(pixel_obj, data_key)
+                            
+                            if data_array is not None and len(data_array) >= aqend:
+                                speccount += 1
+                                accumulated_data += data_array[aqstart:aqend]
+            
+            if speccount > 0:
+                accumulated_data = np.divide(accumulated_data, speccount)
+            else:
+                print(f"Warning: No valid spectra found for {data_source_name}")
+                continue
+            
+            # Create metadata for this specific data type
+            metadata = base_metadata.copy()
+            metadata['averaged_data_type'] = data_source_name
+            
+            # Create the spectrum object
+            new_spec = PMlib.Spectra(accumulated_data, WL, metadata, self.hsiselected)
+            
+            # Calculate derivatives for the averaged spectrum itself
+            if self.derivative_polynomarray and len(self.derivative_polynomarray) >= 4:
+                try:
+                    d1_val = self.derivative_polynomarray[0]
+                    calc_d1 = d1_val.get() if hasattr(d1_val, 'get') else d1_val
+                    
+                    d2_val = self.derivative_polynomarray[1]
+                    calc_d2 = d2_val.get() if hasattr(d2_val, 'get') else d2_val
+                    
+                    if calc_d1 or calc_d2:
+                        p_order_val = self.derivative_polynomarray[2]
+                        poly_order = int(p_order_val.get()) if hasattr(p_order_val, 'get') else int(p_order_val)
+                        
+                        n_points_val = self.derivative_polynomarray[3]
+                        N_fitpoints = int(n_points_val.get()) if hasattr(n_points_val, 'get') else int(n_points_val)
+                        
+                        derivative_config = [calc_d1, calc_d2, poly_order, N_fitpoints]
+                        PMlib.calc_derivative(new_spec, derivative_config)
+                except Exception as e:
+                    print(f"Error calculating derivatives for averaged spectrum: {e}")
+            
+            # Create a descriptive name for this averaged spectrum
+            # Format: HSI0_PLB_avg, HSI0_Specdiff1_avg, etc.
+            spec_name = f"{self.hsiselected}_{data_key}_avg"
+            
+            # Store in disspecs
+            self.disspecs[spec_name] = new_spec
+            generated_spectra[spec_name] = new_spec
+            
+            print(f"  Created averaged spectrum: {spec_name}")
+        
+        # Update the GUI combobox
+        if hasattr(self, 'specselect'):
+            self.specselect['values'] = list(self.disspecs.keys())
+            if len(self.disspecs) > 0:
+                self.specselect.set(list(self.disspecs.keys())[-1])
+        
+        print(f"Generated {len(generated_spectra)} averaged spectra")
+        return generated_spectra
     
     def createdisspecname(self): # create a new spectral data name
         HSIname = self.hsiselect.get()
@@ -2794,6 +3080,9 @@ class XYMap:
             # ROI data - masks and selections
             'roilist': self.roihandler.roilist if hasattr(self, 'roihandler') else {},
             
+            # Averaged spectra data
+            'disspecs': self.disspecs if hasattr(self, 'disspecs') else {},
+            
             # Processing parameters
             'wlstart': self.wlstart,
             'wlend': self.wlend,
@@ -2846,7 +3135,14 @@ class XYMap:
             print(f"Successfully saved XYMap state to: {filename}")
             print(f"  - Saved {len(self.specs)} spectra")
             print(f"  - Saved {len(self.PMdict)} HSI images")
-            print(f"  - Saved {len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0} ROI masks")
+            roi_count = len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0
+            print(f"  - Saved {roi_count} ROI masks")
+            if roi_count > 0:
+                print(f"    ROI names: {list(self.roihandler.roilist.keys())}")
+            disspecs_count = len(self.disspecs) if hasattr(self, 'disspecs') else 0
+            print(f"  - Saved {disspecs_count} averaged spectra")
+            if disspecs_count > 0:
+                print(f"    Averaged spectra names: {list(self.disspecs.keys())}")
             if nan_replacements:
                 print(f"  - Replaced nan values in {len(nan_replacements)} HSI images for optimization")
             return True
@@ -2913,6 +3209,26 @@ class XYMap:
             # Restore ROI data
             if hasattr(self, 'roihandler'):
                 self.roihandler.roilist = state.get('roilist', {})
+                # Validate ROI dimensions match HSI data dimensions
+                if self.roihandler.roilist and len(self.PMdict) > 0:
+                    # Get the first HSI to check dimensions
+                    first_hsi_name = list(self.PMdict.keys())[0]
+                    hsi_shape = np.array(self.PMdict[first_hsi_name].PixMatrix).shape
+                    
+                    for roi_name, roi_mask in self.roihandler.roilist.items():
+                        roi_array = np.array(roi_mask)
+                        if roi_array.shape != hsi_shape:
+                            print(f"  ⚠ Warning: ROI '{roi_name}' dimensions {roi_array.shape} don't match HSI dimensions {hsi_shape}")
+                        else:
+                            print(f"  ✓ ROI '{roi_name}' dimensions validated: {roi_array.shape}")
+            
+            # Restore averaged spectra data
+            self.disspecs = state.get('disspecs', {})
+            
+            # Update the GUI combobox for spectra selection
+            if hasattr(self, 'specselect') and len(self.disspecs) > 0:
+                self.specselect['values'] = list(self.disspecs.keys())
+                self.specselect.set(list(self.disspecs.keys())[-1])
             
             # Restore processing parameters
             self.wlstart = state['wlstart']
@@ -2976,7 +3292,14 @@ class XYMap:
             print(f"Successfully loaded XYMap state from: {filename}")
             print(f"  - Loaded {len(self.specs)} spectra")
             print(f"  - Loaded {len(self.PMdict)} HSI images")
-            print(f"  - Loaded {len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0} ROI masks")
+            roi_count = len(self.roihandler.roilist) if hasattr(self, 'roihandler') else 0
+            print(f"  - Loaded {roi_count} ROI masks")
+            if roi_count > 0:
+                print(f"    ROI names: {list(self.roihandler.roilist.keys())}")
+            disspecs_count = len(self.disspecs)
+            print(f"  - Loaded {disspecs_count} averaged spectra")
+            if disspecs_count > 0:
+                print(f"    Averaged spectra names: {list(self.disspecs.keys())}")
             print(f"  - WL axis: {len(self.WL)} points from {self.DataSpecMin:.2f} to {self.DataSpecMax:.2f} nm")
             return True
             
