@@ -271,13 +271,13 @@ class FileProcessorApp:
         # Caclulate first and second derivatives but normalize before derivative ist calculated.
         self.calc_norm_and_deriveBool = tk.IntVar()
         self.calc_norm_and_deriveBool.set(defaults['calc_norm_and_derive'])
-        self.calc_norm_and_derive_check = tk.Checkbutton(self.load_content_frame, text="normalize, then calc derivatives", variable=self.calc_norm_and_deriveBool)
+        self.calc_norm_and_derive_check = tk.Checkbutton(self.load_content_frame, text="normalize on counts, then derive", variable=self.calc_norm_and_deriveBool)
         self.calc_norm_and_derive_check.grid(row=5, column=0)
 
         # Normalize on total intensity
         self.calc_norm_on_intensityBool = tk.IntVar()
         self.calc_norm_on_intensityBool.set(defaults['calc_norm_on_intensity'])
-        self.calc_norm_on_intensity_check = tk.Checkbutton(self.load_content_frame, text="normalize on total intensity", variable=self.calc_norm_on_intensityBool)
+        self.calc_norm_on_intensity_check = tk.Checkbutton(self.load_content_frame, text="normalize on total intensity, then derive", variable=self.calc_norm_on_intensityBool)
         self.calc_norm_on_intensity_check.grid(row=6, column=0)
 
         # Clara load frame (now inside load_content_frame)
