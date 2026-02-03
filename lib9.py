@@ -22,6 +22,7 @@ import os, gc
 import traceback
 import error_handler  # Centralized error handling and logging
 import hsi_normalization  # HSI normalization module
+import copy
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -2804,6 +2805,8 @@ class XYMap:
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
     
     def writetopixmatrix(self, matrix, name=None):
+        # selected dataset = self.PMdict[self.hsiselect.get()]
+
         if name == None or name not in self.PMdict.keys():
             # Use monotonically increasing counter for unique HSI names
             newpmname = f'HSI{self._hsi_counter}'
@@ -2988,7 +2991,6 @@ class XYMap:
         Returns:
             tuple: (modified_pmdict_copy, nan_replacements_dict)
         """
-        import copy
         nan_replacements = {}
         
         # Create deep copy to avoid modifying original PMdict
