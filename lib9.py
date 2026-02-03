@@ -2719,8 +2719,8 @@ class XYMap:
             return
         else: 
             roi = self.roihandler.roilist[self.roiselgui.get()]
-            # Use counter to ensure unique name
-            newroiname = f"HSI{self._hsi_counter}"
+            # Use counter to ensure unique HSI name for this ROI-based HSI
+            new_hsi_name = f"HSI{self._hsi_counter}"
             self._hsi_counter += 1
         # Create new PixMatrix more efficiently - only copy the matrix data, not the entire object
         source_pm = self.PMdict[self.hsiselect.get()]
@@ -2733,14 +2733,14 @@ class XYMap:
             source_pm.xax,
             source_pm.yax,
             source_pm.metadata.copy() if isinstance(source_pm.metadata, dict) else source_pm.metadata,
-            name=newroiname,
+            name=new_hsi_name,
             units=source_pm.units,
             description=source_pm.description,
             data_type=source_pm.data_type
         )
-        self.PMdict[newroiname] = lastpixmatrix
-        #fig.imshow(self.PMdict[newroiname].PixMatrix) error
-        ax.imshow(self.PMdict[newroiname].PixMatrix)
+        self.PMdict[new_hsi_name] = lastpixmatrix
+        #fig.imshow(self.PMdict[new_hsi_name].PixMatrix) error
+        ax.imshow(self.PMdict[new_hsi_name].PixMatrix)
         fig.show()
         self.UpdateHSIselect()
     
