@@ -2778,9 +2778,9 @@ class XYMap:
             norm_type: Type of normalization ('counts' or 'intensity')
             attr_suffix: Suffix for attribute names (e.g., '_norm_counts' or '_norm_intensity')
         """
-        # Minimum threshold to avoid division by zero or near-zero values
-        # Set to 1e-10 to handle very small but non-zero signals
-        MIN_NORMALIZATION_THRESHOLD = 1e-10
+        # Use the same normalization threshold as in hsi_normalization module
+        # to maintain consistency across the codebase
+        MIN_NORMALIZATION_THRESHOLD = hsi_normalization.MIN_NORMALIZATION_THRESHOLD
         
         half_window = N_fitpoints // 2
         
@@ -2846,6 +2846,8 @@ class XYMap:
                         getattr(spec, f'Specdiff2{attr_suffix}')[i] = np.polyval(ddp, wl[i])
                 
                 except Exception as e:
+                    # Polynomial fit can fail for bad data points
+                    # Skip this point and leave it as zero in the derivative array
                     pass
         
         # Also process SpecDataMatrix if it exists
@@ -2910,6 +2912,8 @@ class XYMap:
                                 getattr(spec, f'Specdiff2{attr_suffix}')[k] = np.polyval(ddp, wl[k])
                         
                         except Exception as e:
+                            # Polynomial fit can fail for bad data points
+                            # Skip this point and leave it as zero in the derivative array
                             pass
     
     def UpdateHSIselect(self):
