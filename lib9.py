@@ -532,9 +532,12 @@ class XYMap:
         self.roiselgui.grid(row=1, column=0)
         
         # Populate ROI list from existing data if available - fixes empty combobox after loading
-        if hasattr(self.roihandler, 'roilist') and len(self.roihandler.roilist) > 0:
+        if hasattr(self.roihandler, 'roilist'): #and len(self.roihandler.roilist) > 0: 
+            # the and condition is not needed, since an empty list is also fine
             self.roiselgui['values'] = list(self.roihandler.roilist.keys())
-            self.roiselgui.set(list(self.roihandler.roilist.keys())[-1])
+            # but if the list is not empty, select the last one
+            if len(self.roihandler.roilist) > 0:
+                self.roiselgui.set(list(self.roihandler.roilist.keys())[-1])
 
         try:
             b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
@@ -3463,6 +3466,14 @@ class Roihandler():
         self.roilist = roilist
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
+        # loading init
+        self.construct_roiselgui()
+    
+    def construct_roiselgui(self):
+        # dev pass
+        pass
+        
+
 
     def construct(self, pixmatrix, roiselgui):
         self.pixmatrix = pixmatrix
