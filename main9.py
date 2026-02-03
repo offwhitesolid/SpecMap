@@ -783,11 +783,13 @@ class FileProcessorApp:
         
         # Load the state
         success = self.Nanomap.load_state(filename)
+
         
         if success:
             messagebox.showinfo("Success", f"Data loaded successfully from:\n{filename}")
             # Update the entry field
             self.loadhsipath.set(filename)
+            self.Nanomap.update_after_load()
         else:
             messagebox.showerror("Error", "Failed to load data. Check console for details.")
 

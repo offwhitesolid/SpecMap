@@ -3430,6 +3430,30 @@ class XYMap:
             return False
 		
         
+    # function to update after loading HSI pickle
+    def update_after_load(self):
+        self.update_SpectralData_combobox()
+        self.update_ROIcombobox()
+
+    # update ROI combobox: display all ROIs in the roihandler.roilist for selection
+    def update_ROIcombobox(self):
+        if hasattr(self, 'roihandler') and hasattr(self, 'roiselgui'):
+            self.roiselgui['values'] = list(self.roihandler.roilist.keys())
+            if len(self.roihandler.roilist) > 0:
+                self.roiselgui.set(list(self.roihandler.roilist.keys())[-1])
+            else:
+                self.roiselgui.set('')
+
+    # update Select Spectral Data combobox after loading HSI pickle
+    def update_SpectralData_combobox(self):
+        if hasattr(self, 'specselect'):
+            if hasattr(self, 'disspecs'):
+                self.specselect['values'] = list(self.disspecs.keys())
+                if len(self.disspecs) > 0:
+                    self.specselect.set(list(self.disspecs.keys())[-1])
+                else:
+                    self.specselect.set('')
+
 class Roihandler():
     def __init__(self, roilist={}, pixmatrix=[[]]):
         self.roi_mode = True
