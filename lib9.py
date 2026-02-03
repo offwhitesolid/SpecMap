@@ -2778,6 +2778,8 @@ class XYMap:
             norm_type: Type of normalization ('counts' or 'intensity')
             attr_suffix: Suffix for attribute names (e.g., '_norm_counts' or '_norm_intensity')
         """
+        # Minimum threshold to avoid division by zero or near-zero values
+        # Set to 1e-10 to handle very small but non-zero signals
         MIN_NORMALIZATION_THRESHOLD = 1e-10
         
         half_window = N_fitpoints // 2
@@ -2803,7 +2805,7 @@ class XYMap:
                 else:
                     plb_normalized = plb.copy()
             elif norm_type == 'counts':
-                # Normalize by counts at each wavelength (max value)
+                # Normalize by maximum count value across all wavelengths
                 max_counts = np.max(plb)
                 if max_counts > MIN_NORMALIZATION_THRESHOLD:
                     plb_normalized = plb / max_counts
@@ -2869,6 +2871,7 @@ class XYMap:
                         else:
                             plb_normalized = plb.copy()
                     elif norm_type == 'counts':
+                        # Normalize by maximum count value across all wavelengths
                         max_counts = np.max(plb)
                         if max_counts > MIN_NORMALIZATION_THRESHOLD:
                             plb_normalized = plb / max_counts

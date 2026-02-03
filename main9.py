@@ -268,7 +268,7 @@ class FileProcessorApp:
         # construct polynomarray: [ first_derivative_bool, second_derivative_bool, polynomial_order ]
         self.derivative_polynomarray = [ self.calculate_firstderivativeBool, self.calculate_secondderivativeBool, self.derivative_polyorder_entry, self.derivative_fitpoints_entry]
         
-        # Caclulate first and second derivatives but normalize before derivative ist calculated.
+        # Calculate first and second derivatives but normalize before derivative is calculated.
         self.calc_norm_and_deriveBool = tk.IntVar()
         self.calc_norm_and_deriveBool.set(defaults['calc_norm_and_derive'])
         self.calc_norm_and_derive_check = tk.Checkbutton(self.load_content_frame, text="normalize on counts, then derive", variable=self.calc_norm_and_deriveBool)
