@@ -80,7 +80,8 @@ class FileProcessorApp:
             [], self.cmapframe, self.specframe, 
             False, False, False, 
             20, 3, list(deflib.cosmicfuncts.keys())[0], 
-            self.defaults, self.derivative_polynomarray
+            self.defaults, self.derivative_polynomarray,
+            self.calc_norm_and_deriveBool, self.calc_norm_on_intensityBool
         )
         #self.Nanomap.build_gui()  # Build GUI components now
         
@@ -654,7 +655,8 @@ class FileProcessorApp:
                 files_processed, self.cmapframe, self.specframe, 
                 bool(self.multiple_BG.get()), bool(self.linearBG.get()), bool(self.removecosmicsBool.get()), 
                 self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get(), 
-                self.defaults, self.derivative_polynomarray
+                self.defaults, self.derivative_polynomarray,
+                self.calc_norm_and_deriveBool, self.calc_norm_on_intensityBool
                 )
             if self.powercorrectionBool.get() == 1:
                 self.Nanomap.powercorrection()
@@ -786,7 +788,8 @@ class FileProcessorApp:
                 [], self.cmapframe, self.specframe, 
                 False, False, False, 
                 20, 3, list(deflib.cosmicfuncts.keys())[0], 
-                self.defaults,
+                self.defaults, self.derivative_polynomarray,
+                self.calc_norm_and_deriveBool, self.calc_norm_on_intensityBool,
                 skip_gui_build=True  # Don't build GUI yet - will build after loading data
             )
             

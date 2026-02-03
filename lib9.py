@@ -227,7 +227,7 @@ class SpectrumData:
 
 # create XY Map that contains the Pixels 
 class XYMap:
-    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults, derivative_polynomarray=[None, None, None, None], skip_gui_build=False):
+    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults, derivative_polynomarray=[None, None, None, None], calc_norm_and_derive=None, calc_norm_on_intensity=None, skip_gui_build=False):
         self.defentries = defentries
         self.remcosmicfunc = cosmicmethod
         self.removecosmics = removecosmics
@@ -250,6 +250,9 @@ class XYMap:
         self.HSI_from_fitparam_useROI.set(self.defentries['HSI_from_fitparam_useROI'])
         # derivative settings: [0] first derivative bool, [1] second derivative bool, [2] polynomial order, [3] N fit points
         self.derivative_polynomarray = derivative_polynomarray               # derivative settings from main
+        # normalization settings for derivatives
+        self.calc_norm_and_derive = calc_norm_and_derive                    # normalize, then calc derivatives checkbox
+        self.calc_norm_on_intensity = calc_norm_on_intensity                # normalize on total intensity checkbox
         
         self.fitkeys = matl.fitkeys
         self.countthreshv = self.defentries['colormap_threshold']
@@ -269,7 +272,11 @@ class XYMap:
                          'first derivative': 'Specdiff1', # first derivative of PLB: d(PLB)/dWL
                          'second derivative': 'Specdiff2', # second derivative of PLB: d2(PLB)/dWL2
                          'first derivative (normalized)': 'Specdiff1_norm', # first derivative normalized by signal
-                         'second derivative (normalized)': 'Specdiff2_norm' # second derivative normalized by signal
+                         'second derivative (normalized)': 'Specdiff2_norm', # second derivative normalized by signal
+                         'first derivative (norm on intensity, then derive)': 'Specdiff1_norm_intensity', # normalize on total intensity, then derive
+                         'second derivative (norm on intensity, then derive)': 'Specdiff2_norm_intensity', # normalize on total intensity, then derive
+                         'first derivative (norm on counts, then derive)': 'Specdiff1_norm_counts', # normalize on counts, then derive
+                         'second derivative (norm on counts, then derive)': 'Specdiff2_norm_counts' # normalize on counts, then derive
                          } 
         self.windowfunctions = list(matl.fitkeys.keys())                    # Window Functions from matl.fitkeys
         
@@ -959,7 +966,7 @@ class XYMap:
         
         # Generate averaged spectra for all data types
         print(f"Generating averaged spectra for all data types from {selhsi}...")
-        data_types = ['PLB', 'Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm']
+        data_types = ['PLB', 'Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm', 'Specdiff1_norm_intensity', 'Specdiff2_norm_intensity', 'Specdiff1_norm_counts', 'Specdiff2_norm_counts']
         generated_spectra = self.averageHSItoSpecDataMultiple(data_types)
         
         if len(generated_spectra) == 0:
@@ -1150,7 +1157,7 @@ class XYMap:
         -----------
         data_types : list, optional
             List of data type keys to average. If None, defaults to all available types:
-            ['PLB', 'Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm']
+            ['PLB', 'Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm', 'Specdiff1_norm_intensity', 'Specdiff2_norm_intensity', 'Specdiff1_norm_counts', 'Specdiff2_norm_counts']
         
         Returns:
         --------
@@ -1158,7 +1165,7 @@ class XYMap:
         """
         # Default to all available data types if not specified
         if data_types is None:
-            data_types = ['PLB', 'Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm']
+            data_types = ['PLB', 'Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm', 'Specdiff1_norm_intensity', 'Specdiff2_norm_intensity', 'Specdiff1_norm_counts', 'Specdiff2_norm_counts']
         
         # Get current HSI selection
         self.hsiselected = self.hsiselect.get()
@@ -1178,7 +1185,7 @@ class XYMap:
         aqend = int(self.aqpixend)
         
         # Check if derivatives need to be calculated for individual pixels
-        needs_derivatives = any(dt in data_types for dt in ['Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm'])
+        needs_derivatives = any(dt in data_types for dt in ['Specdiff1', 'Specdiff2', 'Specdiff1_norm', 'Specdiff2_norm', 'Specdiff1_norm_intensity', 'Specdiff2_norm_intensity', 'Specdiff1_norm_counts', 'Specdiff2_norm_counts'])
         
         if needs_derivatives:
             # Ensure derivatives are calculated for all spectra in SpecDataMatrix
@@ -2220,6 +2227,26 @@ class XYMap:
                              self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff2_norm, wl, '2nd Derivative (normalized)', xunit=self.WLunit, yunit='1/nm²')
                         else:
                             print("Normalized second derivative not available for this pixel.")
+                    elif self.speckeys[self.selectdataboxVari] == 'Specdiff1_norm_intensity': # First Derivative (norm on intensity, then derive)
+                        if hasattr(self.SpecDataMatrix[y][x], 'Specdiff1_norm_intensity') and self.SpecDataMatrix[y][x].Specdiff1_norm_intensity is not None:
+                             self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff1_norm_intensity, wl, '1st Derivative (norm on intensity, then derive)', xunit=self.WLunit, yunit='1/nm')
+                        else:
+                            print("First derivative (norm on intensity) not available for this pixel.")
+                    elif self.speckeys[self.selectdataboxVari] == 'Specdiff2_norm_intensity': # Second Derivative (norm on intensity, then derive)
+                        if hasattr(self.SpecDataMatrix[y][x], 'Specdiff2_norm_intensity') and self.SpecDataMatrix[y][x].Specdiff2_norm_intensity is not None:
+                             self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff2_norm_intensity, wl, '2nd Derivative (norm on intensity, then derive)', xunit=self.WLunit, yunit='1/nm²')
+                        else:
+                            print("Second derivative (norm on intensity) not available for this pixel.")
+                    elif self.speckeys[self.selectdataboxVari] == 'Specdiff1_norm_counts': # First Derivative (norm on counts, then derive)
+                        if hasattr(self.SpecDataMatrix[y][x], 'Specdiff1_norm_counts') and self.SpecDataMatrix[y][x].Specdiff1_norm_counts is not None:
+                             self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff1_norm_counts, wl, '1st Derivative (norm on counts, then derive)', xunit=self.WLunit, yunit='1/nm')
+                        else:
+                            print("First derivative (norm on counts) not available for this pixel.")
+                    elif self.speckeys[self.selectdataboxVari] == 'Specdiff2_norm_counts': # Second Derivative (norm on counts, then derive)
+                        if hasattr(self.SpecDataMatrix[y][x], 'Specdiff2_norm_counts') and self.SpecDataMatrix[y][x].Specdiff2_norm_counts is not None:
+                             self.PlotSpectrum(self.SpecDataMatrix[y][x].Specdiff2_norm_counts, wl, '2nd Derivative (norm on counts, then derive)', xunit=self.WLunit, yunit='1/nm²')
+                        else:
+                            print("Second derivative (norm on counts) not available for this pixel.")
                     else:
                         print('No valid Data set selected for the Plot.')
                     print('x-position: {}, y-position: {}'.format(x, y))
@@ -2423,6 +2450,18 @@ class XYMap:
                         elif self.speckeys[self.selectspecboxVari] == 'Specdiff2_norm': # Second Derivative (normalized by signal)
                             if hasattr(self.SpecDataMatrix[i][j], 'Specdiff2_norm') and self.SpecDataMatrix[i][j].Specdiff2_norm is not None:
                                 PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff2_norm[self.aqpixstart:self.aqpixend])
+                        elif self.speckeys[self.selectspecboxVari] == 'Specdiff1_norm_intensity': # First Derivative (norm on intensity, then derive)
+                            if hasattr(self.SpecDataMatrix[i][j], 'Specdiff1_norm_intensity') and self.SpecDataMatrix[i][j].Specdiff1_norm_intensity is not None:
+                                PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff1_norm_intensity[self.aqpixstart:self.aqpixend])
+                        elif self.speckeys[self.selectspecboxVari] == 'Specdiff2_norm_intensity': # Second Derivative (norm on intensity, then derive)
+                            if hasattr(self.SpecDataMatrix[i][j], 'Specdiff2_norm_intensity') and self.SpecDataMatrix[i][j].Specdiff2_norm_intensity is not None:
+                                PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff2_norm_intensity[self.aqpixstart:self.aqpixend])
+                        elif self.speckeys[self.selectspecboxVari] == 'Specdiff1_norm_counts': # First Derivative (norm on counts, then derive)
+                            if hasattr(self.SpecDataMatrix[i][j], 'Specdiff1_norm_counts') and self.SpecDataMatrix[i][j].Specdiff1_norm_counts is not None:
+                                PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff1_norm_counts[self.aqpixstart:self.aqpixend])
+                        elif self.speckeys[self.selectspecboxVari] == 'Specdiff2_norm_counts': # Second Derivative (norm on counts, then derive)
+                            if hasattr(self.SpecDataMatrix[i][j], 'Specdiff2_norm_counts') and self.SpecDataMatrix[i][j].Specdiff2_norm_counts is not None:
+                                PixMatrix[i][j] = np.sum(self.SpecDataMatrix[i][j].Specdiff2_norm_counts[self.aqpixstart:self.aqpixend])
                         if PixMatrix[i][j] < self.countthreshv:
                             if makenan == True:
                                 PixMatrix[i][j] = np.nan
@@ -2703,6 +2742,172 @@ class XYMap:
         # Also normalize derivatives in SpecDataMatrix if it exists
         if hasattr(self, 'SpecDataMatrix') and self.SpecDataMatrix:
             hsi_normalization.normalize_derivatives_by_signal(self.SpecDataMatrix, signal_key='PLB')
+        
+        # Calculate normalized derivatives: normalize FIRST, then derive
+        # Check if these normalization options are enabled
+        calc_norm_and_derive = False
+        calc_norm_on_intensity = False
+        
+        if self.calc_norm_and_derive is not None:
+            calc_norm_and_derive = self.calc_norm_and_derive.get() if hasattr(self.calc_norm_and_derive, 'get') else bool(self.calc_norm_and_derive)
+        
+        if self.calc_norm_on_intensity is not None:
+            calc_norm_on_intensity = self.calc_norm_on_intensity.get() if hasattr(self.calc_norm_on_intensity, 'get') else bool(self.calc_norm_on_intensity)
+        
+        # Calculate "normalize on counts, then derive" (calc_norm_and_derive checkbox)
+        if calc_norm_and_derive and (calc_d1 or calc_d2):
+            print("Calculating derivatives after normalizing on counts...")
+            self._calculate_normalized_derivatives(poly_order, N_fitpoints, calc_d1, calc_d2, 
+                                                   norm_type='counts', attr_suffix='_norm_counts')
+        
+        # Calculate "normalize on total intensity, then derive" (calc_norm_on_intensity checkbox)
+        if calc_norm_on_intensity and (calc_d1 or calc_d2):
+            print("Calculating derivatives after normalizing on total intensity...")
+            self._calculate_normalized_derivatives(poly_order, N_fitpoints, calc_d1, calc_d2, 
+                                                   norm_type='intensity', attr_suffix='_norm_intensity')
+    
+    def _calculate_normalized_derivatives(self, poly_order, N_fitpoints, calc_d1, calc_d2, norm_type='counts', attr_suffix='_norm_counts'):
+        """
+        Calculate derivatives after normalizing the PLB data first.
+        
+        Args:
+            poly_order: Polynomial order for fitting
+            N_fitpoints: Number of points in sliding window
+            calc_d1: Whether to calculate first derivative
+            calc_d2: Whether to calculate second derivative
+            norm_type: Type of normalization ('counts' or 'intensity')
+            attr_suffix: Suffix for attribute names (e.g., '_norm_counts' or '_norm_intensity')
+        """
+        MIN_NORMALIZATION_THRESHOLD = 1e-10
+        
+        half_window = N_fitpoints // 2
+        
+        # Iterate over all spectra
+        for spec in self.specs:
+            if spec is None:
+                continue
+            
+            # Ensure we have data
+            if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
+                continue
+            
+            wl = np.array(spec.WL)
+            plb = np.array(spec.PLB, dtype=float)
+            
+            # Normalize PLB based on norm_type
+            if norm_type == 'intensity':
+                # Normalize by total intensity (sum of all counts)
+                total_intensity = np.sum(plb)
+                if total_intensity > MIN_NORMALIZATION_THRESHOLD:
+                    plb_normalized = plb / total_intensity
+                else:
+                    plb_normalized = plb.copy()
+            elif norm_type == 'counts':
+                # Normalize by counts at each wavelength (max value)
+                max_counts = np.max(plb)
+                if max_counts > MIN_NORMALIZATION_THRESHOLD:
+                    plb_normalized = plb / max_counts
+                else:
+                    plb_normalized = plb.copy()
+            else:
+                plb_normalized = plb.copy()
+            
+            # Initialize derivative arrays with zeros
+            if calc_d1:
+                setattr(spec, f'Specdiff1{attr_suffix}', np.zeros_like(plb))
+            if calc_d2:
+                setattr(spec, f'Specdiff2{attr_suffix}', np.zeros_like(plb))
+            
+            n_points = len(wl)
+            
+            # Sliding window loop
+            for i in range(half_window, n_points - half_window):
+                start_idx = i - half_window
+                end_idx = i + half_window + 1
+                
+                # Extract window from NORMALIZED data
+                wl_window = wl[start_idx:end_idx]
+                plb_window = plb_normalized[start_idx:end_idx]
+                
+                # Fit polynomial
+                try:
+                    p = np.polyfit(wl_window, plb_window, poly_order)
+                    
+                    if calc_d1:
+                        # First derivative
+                        dp = np.polyder(p)
+                        getattr(spec, f'Specdiff1{attr_suffix}')[i] = np.polyval(dp, wl[i])
+                    
+                    if calc_d2:
+                        # Second derivative
+                        ddp = np.polyder(np.polyder(p))
+                        getattr(spec, f'Specdiff2{attr_suffix}')[i] = np.polyval(ddp, wl[i])
+                
+                except Exception as e:
+                    pass
+        
+        # Also process SpecDataMatrix if it exists
+        if hasattr(self, 'SpecDataMatrix') and self.SpecDataMatrix:
+            for i in range(len(self.SpecDataMatrix)):
+                for j in range(len(self.SpecDataMatrix[i])):
+                    spec = self.SpecDataMatrix[i][j]
+                    
+                    if spec is None or not hasattr(spec, 'dataokay') or not spec.dataokay:
+                        continue
+                    
+                    if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
+                        continue
+                    
+                    wl = np.array(spec.WL)
+                    plb = np.array(spec.PLB, dtype=float)
+                    
+                    # Normalize PLB based on norm_type
+                    if norm_type == 'intensity':
+                        total_intensity = np.sum(plb)
+                        if total_intensity > MIN_NORMALIZATION_THRESHOLD:
+                            plb_normalized = plb / total_intensity
+                        else:
+                            plb_normalized = plb.copy()
+                    elif norm_type == 'counts':
+                        max_counts = np.max(plb)
+                        if max_counts > MIN_NORMALIZATION_THRESHOLD:
+                            plb_normalized = plb / max_counts
+                        else:
+                            plb_normalized = plb.copy()
+                    else:
+                        plb_normalized = plb.copy()
+                    
+                    # Initialize derivative arrays with zeros
+                    if calc_d1:
+                        setattr(spec, f'Specdiff1{attr_suffix}', np.zeros_like(plb))
+                    if calc_d2:
+                        setattr(spec, f'Specdiff2{attr_suffix}', np.zeros_like(plb))
+                    
+                    n_points = len(wl)
+                    
+                    # Sliding window loop
+                    for k in range(half_window, n_points - half_window):
+                        start_idx = k - half_window
+                        end_idx = k + half_window + 1
+                        
+                        # Extract window from NORMALIZED data
+                        wl_window = wl[start_idx:end_idx]
+                        plb_window = plb_normalized[start_idx:end_idx]
+                        
+                        # Fit polynomial
+                        try:
+                            p = np.polyfit(wl_window, plb_window, poly_order)
+                            
+                            if calc_d1:
+                                dp = np.polyder(p)
+                                getattr(spec, f'Specdiff1{attr_suffix}')[k] = np.polyval(dp, wl[k])
+                            
+                            if calc_d2:
+                                ddp = np.polyder(np.polyder(p))
+                                getattr(spec, f'Specdiff2{attr_suffix}')[k] = np.polyval(ddp, wl[k])
+                        
+                        except Exception as e:
+                            pass
     
     def UpdateHSIselect(self):
         if len(self.PMdict) > 0:
