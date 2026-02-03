@@ -1356,6 +1356,8 @@ defaults={
     'do_normalize_HSI_var': False,
     'normalize_method': 'None',
     'normalize_wavelength': '600',
+    'calc_norm_and_derive': True,
+    'calc_norm_on_intensity': True
 }
 
 defaulttypes = {
@@ -1432,6 +1434,8 @@ defaulttypes = {
     'do_normalize_HSI_var': bool,
     'normalize_method': str,
     'normalize_wavelength': str,
+    'calc_norm_and_derive': bool,
+    'calc_norm_on_intensity': bool
 
 }
 

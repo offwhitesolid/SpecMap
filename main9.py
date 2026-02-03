@@ -265,7 +265,19 @@ class FileProcessorApp:
             print("No default for derivative N fit points found, using 5")
             self.derivative_fitpoints_entry.insert(0, str(5))
         # construct polynomarray: [ first_derivative_bool, second_derivative_bool, polynomial_order ]
-        self.derivative_polynomarray = [ self.calculate_firstderivativeBool, self.calculate_secondderivativeBool, self.derivative_polyorder_entry, self.derivative_fitpoints_entry ]
+        self.derivative_polynomarray = [ self.calculate_firstderivativeBool, self.calculate_secondderivativeBool, self.derivative_polyorder_entry, self.derivative_fitpoints_entry]
+        
+        # Caclulate first and second derivatives but normalize before derivative ist calculated.
+        self.calc_norm_and_deriveBool = tk.IntVar()
+        self.calc_norm_and_deriveBool.set(defaults['calc_norm_and_derive'])
+        self.calc_norm_and_derive_check = tk.Checkbutton(self.load_content_frame, text="normalize, then calc derivatives", variable=self.calc_norm_and_deriveBool)
+        self.calc_norm_and_derive_check.grid(row=5, column=0)
+
+        # Normalize on total intensity
+        self.calc_norm_on_intensityBool = tk.IntVar()
+        self.calc_norm_on_intensityBool.set(defaults['calc_norm_on_intensity'])
+        self.calc_norm_on_intensity_check = tk.Checkbutton(self.load_content_frame, text="normalize on total intensity, then calc derivatives", variable=self.calc_norm_on_intensityBool)
+        self.calc_norm_on_intensity_check.grid(row=6, column=0)
 
         # Clara load frame (now inside load_content_frame)
         self.claraloadframe = tk.Frame(self.load_content_frame, width=60, height=100, borderwidth=5, relief="ridge")

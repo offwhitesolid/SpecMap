@@ -1654,8 +1654,7 @@ class XYMap:
         # update spec min and max values
         self.updatewl()
         # create a new colormap by using the selected HSI
-        # Avoid deepcopy - writetopixmatrix creates its own copy via np.asarray
-        lastpm = self.PMdict[self.hsiselect.get()].PixMatrix
+        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
         
@@ -1674,8 +1673,7 @@ class XYMap:
         self.updatewl()
         self.updatecountthresh()
         self.readfontsize()
-        # Avoid deepcopy - writetopixmatrix creates its own copy via np.asarray
-        lastpm = self.PMdict[self.hsiselect.get()].PixMatrix
+        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)#str(self.selectspecpixbox.get()))
         if self.HSI_fit_useROI.get() == False:
             self.fittoMatrixfitparams(self.PMdict[newpm].PixMatrix, 'fitmaxX', mode='fullHSI', roi=None)
@@ -2720,8 +2718,17 @@ class XYMap:
             return
         else: 
             roi = self.roihandler.roilist[self.roiselgui.get()]
+            
+            # Get suffix from selected data set (Select Data Set)
+            suffix = ""
+            if hasattr(self, 'selectspecpixbox'):
+                val = self.selectspecpixbox.get()
+                # Use short code from speckeys if available, else sanitize value
+                short_code = self.speckeys.get(val, val)
+                suffix = f"_{short_code}".replace(" ", "_").replace("(", "").replace(")", "")
+            
             # Use counter to ensure unique HSI name for this ROI-based HSI
-            new_hsi_name = f"HSI{self._hsi_counter}"
+            new_hsi_name = f"HSI{self._hsi_counter}{suffix}"
             self._hsi_counter += 1
         # Create new PixMatrix more efficiently - only copy the matrix data, not the entire object
         source_pm = self.PMdict[self.hsiselect.get()]
@@ -2808,8 +2815,16 @@ class XYMap:
         # selected dataset = self.PMdict[self.hsiselect.get()]
 
         if name == None or name not in self.PMdict.keys():
+            # Get suffix from selected data set (Select Data Set)
+            suffix = ""
+            if hasattr(self, 'selectspecpixbox'):
+                val = self.selectspecpixbox.get()
+                # Use short code from speckeys if available, else sanitize value
+                short_code = self.speckeys.get(val, val)
+                suffix = f"_{short_code}".replace(" ", "_").replace("(", "").replace(")", "")
+
             # Use monotonically increasing counter for unique HSI names
-            newpmname = f'HSI{self._hsi_counter}'
+            newpmname = f'HSI{self._hsi_counter}{suffix}'
             self._hsi_counter += 1
         else: 
             newpmname = name
@@ -2823,8 +2838,7 @@ class XYMap:
     def plotHSIfromfitparam(self):
         self.updatewl()
         self.updatecountthresh()
-        # Avoid deepcopy - writetopixmatrix creates its own copy via np.asarray
-        lastpm = self.PMdict[self.hsiselect.get()].PixMatrix
+        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
 
