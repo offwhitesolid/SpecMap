@@ -259,6 +259,7 @@ class XYMap:
         
         # Initialize data structures
         self.PMdict = {}                                                    # Pixel Matrix Dictionary
+        self._hsi_counter = 0                                               # Global counter for unique HSI naming
         self.disspecs = {}                                                  # displayed spectra Objects contains [spec][wl]{metadata}
         self.allfpnames = matl.getlistofallFitparameters()
         self.allfpnamesinone = matl.getlistofallFitparaminone()
@@ -849,7 +850,9 @@ class XYMap:
         if filename:
             with open(filename, 'rb') as f:
                 hsi = pickle.load(f)
-            hsiname = f'HSI{len(self.PMdict)}'
+            # Use counter for unique naming
+            hsiname = f'HSI{self._hsi_counter}'
+            self._hsi_counter += 1
             # add the loaded HSI to the HSI list
             self.PMdict[hsiname] = hsi
             self.hsiselect['values'] = list(self.PMdict.keys())
@@ -2587,8 +2590,11 @@ class XYMap:
 
             PixMatrix, self.SpecDataMatrix, self.PixAxX, self.PixAxY = self.genmatgrid(self.mxcoords, self.mycoords)
             PixMatrixc = PMlib.PMclass(np.asarray(PixMatrix, dtype=float), self.PixAxX, self.PixAxY, self.PMmetadata)
-            PixMatrixc.name = 'HSI0'
-            self.PMdict['HSI0'] = PixMatrixc
+            # Use counter for consistent naming
+            initial_hsi_name = f'HSI{self._hsi_counter}'
+            self._hsi_counter += 1
+            PixMatrixc.name = initial_hsi_name
+            self.PMdict[initial_hsi_name] = PixMatrixc
             self.SpecdataintoMatrix()
             # after all threads are done, check if the cosmic ray removal method is in deflib.correlationcosmicfuncts
             if self.removecosmics == True:
@@ -2713,7 +2719,9 @@ class XYMap:
             return
         else: 
             roi = self.roihandler.roilist[self.roiselgui.get()]
-            newroiname = "{}{}".format(self.hsiselect.get(), self.roiselgui.get())
+            # Use counter to ensure unique HSI name for this ROI-based HSI
+            new_hsi_name = f"HSI{self._hsi_counter}"
+            self._hsi_counter += 1
         # Create new PixMatrix more efficiently - only copy the matrix data, not the entire object
         source_pm = self.PMdict[self.hsiselect.get()]
         # Create a copy of just the matrix data, apply ROI mask
@@ -2725,14 +2733,14 @@ class XYMap:
             source_pm.xax,
             source_pm.yax,
             source_pm.metadata.copy() if isinstance(source_pm.metadata, dict) else source_pm.metadata,
-            name=newroiname,
+            name=new_hsi_name,
             units=source_pm.units,
             description=source_pm.description,
             data_type=source_pm.data_type
         )
-        self.PMdict[newroiname] = lastpixmatrix
-        #fig.imshow(self.PMdict[newroiname].PixMatrix) error
-        ax.imshow(self.PMdict[newroiname].PixMatrix)
+        self.PMdict[new_hsi_name] = lastpixmatrix
+        #fig.imshow(self.PMdict[new_hsi_name].PixMatrix) error
+        ax.imshow(self.PMdict[new_hsi_name].PixMatrix)
         fig.show()
         self.UpdateHSIselect()
     
@@ -2796,16 +2804,10 @@ class XYMap:
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
     
     def writetopixmatrix(self, matrix, name=None):
-        newpmname = 'HSI0'
         if name == None or name not in self.PMdict.keys():
-            pmi = 0
-            for i in range(len(list(self.PMdict.keys()))+1):
-                newpmname = '{}{}'.format('HSI', i) # create name of new HSI
-                if newpmname in list(self.PMdict.keys()):
-                    pmi += 1
-                else:
-                    newpmname = '{}{}'.format('HSI', pmi) # create name of new HSI
-                    break
+            # Use monotonically increasing counter for unique HSI names
+            newpmname = f'HSI{self._hsi_counter}'
+            self._hsi_counter += 1
         else: 
             newpmname = name
         # add new PixMatrix to the dictionary with its metadata
@@ -3181,6 +3183,9 @@ class XYMap:
             'PMdict': pmdict_prepared,
             'PMmetadata': self.PMmetadata if hasattr(self, 'PMmetadata') else {},
             
+            # Store the HSI counter for unique naming persistence
+            '_hsi_counter': self._hsi_counter if hasattr(self, '_hsi_counter') else 0,
+            
             # Store nan replacement metadata for restoration
             '_nan_replacements': nan_replacements_pmdict,
             '_nan_replacements_roilist': nan_replacements_roilist,
@@ -3313,6 +3318,25 @@ class XYMap:
                 print(f"  - Restored nan values in {len(nan_replacements)} HSI images")
             else:
                 self.PMdict = pmdict_loaded
+            
+            # Restore HSI counter and ensure it's higher than any existing HSI numbers
+            self._hsi_counter = state.get('_hsi_counter', 0)
+            
+            # Ensure counter is higher than any existing HSI numbers to prevent duplicates
+            # Extract numeric parts from HSI names like 'HSI0', 'HSI1', etc.
+            max_hsi_num = -1
+            for hsi_name in self.PMdict.keys():
+                if hsi_name.startswith('HSI'):
+                    try:
+                        num = int(hsi_name[3:])  # Extract number after 'HSI'
+                        max_hsi_num = max(max_hsi_num, num)
+                    except ValueError:
+                        # Skip names that don't follow HSI{number} pattern
+                        pass
+            
+            # Set counter to be one more than the highest existing number
+            if max_hsi_num >= self._hsi_counter:
+                self._hsi_counter = max_hsi_num + 1
             
             self.PMmetadata = state.get('PMmetadata', {})
             
