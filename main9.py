@@ -276,7 +276,7 @@ class FileProcessorApp:
         # Normalize on total intensity
         self.calc_norm_on_intensityBool = tk.IntVar()
         self.calc_norm_on_intensityBool.set(defaults['calc_norm_on_intensity'])
-        self.calc_norm_on_intensity_check = tk.Checkbutton(self.load_content_frame, text="normalize on total intensity, then calc derivatives", variable=self.calc_norm_on_intensityBool)
+        self.calc_norm_on_intensity_check = tk.Checkbutton(self.load_content_frame, text="normalize on total intensity", variable=self.calc_norm_on_intensityBool)
         self.calc_norm_on_intensity_check.grid(row=6, column=0)
 
         # Clara load frame (now inside load_content_frame)
