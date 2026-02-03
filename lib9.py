@@ -531,6 +531,9 @@ class XYMap:
         self.roiselgui = ttk.Combobox(frame, textvariable=self.roisel)
         self.roiselgui.grid(row=1, column=0)
         
+        # assign roiselgui to roihandler
+        self.roihandler.construct_roiselgui(self.roiselgui)
+        
         # Populate ROI list from existing data if available - fixes empty combobox after loading
         if hasattr(self.roihandler, 'roilist'): #and len(self.roihandler.roilist) > 0: 
             # the and condition is not needed, since an empty list is also fine
@@ -3469,9 +3472,9 @@ class Roihandler():
         # loading init
         self.construct_roiselgui()
     
-    def construct_roiselgui(self):
-        # dev pass
-        pass
+    def construct_roiselgui(self, roiselgui=None):
+        if roiselgui is not None:
+            self.roiselgui = roiselgui
         
 
 
