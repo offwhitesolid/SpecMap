@@ -401,7 +401,7 @@ class XYMap:
 
     def buildselectboxes(self, frame, values):
         tk.Label(frame, text="Select Data Set".format(self.DataSpecMax)).grid(row=0, column=1)
-        self.selectspecbox = ttk.Combobox(frame, values=values)
+        self.selectspecbox = ttk.Combobox(frame, values=values, width=40)
         # Use the default from defentries if available, otherwise fall back to 'Spectrum (PL-BG)'
         DEFAULT_DATA_SET = 'Spectrum (PL-BG)'
         default_dataset = self.defentries.get('data_set', DEFAULT_DATA_SET)
