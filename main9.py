@@ -80,7 +80,8 @@ class FileProcessorApp:
             [], self.cmapframe, self.specframe, 
             False, False, False, 
             20, 3, list(deflib.cosmicfuncts.keys())[0], 
-            self.defaults, self.derivative_polynomarray
+            self.defaults, self.derivative_polynomarray,
+            self.calc_norm_and_deriveBool, self.calc_norm_on_intensityBool
         )
         #self.Nanomap.build_gui()  # Build GUI components now
         
@@ -267,16 +268,16 @@ class FileProcessorApp:
         # construct polynomarray: [ first_derivative_bool, second_derivative_bool, polynomial_order ]
         self.derivative_polynomarray = [ self.calculate_firstderivativeBool, self.calculate_secondderivativeBool, self.derivative_polyorder_entry, self.derivative_fitpoints_entry]
         
-        # Caclulate first and second derivatives but normalize before derivative ist calculated.
+        # Calculate first and second derivatives but normalize before derivative is calculated.
         self.calc_norm_and_deriveBool = tk.IntVar()
         self.calc_norm_and_deriveBool.set(defaults['calc_norm_and_derive'])
-        self.calc_norm_and_derive_check = tk.Checkbutton(self.load_content_frame, text="normalize, then calc derivatives", variable=self.calc_norm_and_deriveBool)
+        self.calc_norm_and_derive_check = tk.Checkbutton(self.load_content_frame, text="normalize on counts, then derive", variable=self.calc_norm_and_deriveBool)
         self.calc_norm_and_derive_check.grid(row=5, column=0)
 
         # Normalize on total intensity
         self.calc_norm_on_intensityBool = tk.IntVar()
         self.calc_norm_on_intensityBool.set(defaults['calc_norm_on_intensity'])
-        self.calc_norm_on_intensity_check = tk.Checkbutton(self.load_content_frame, text="normalize on total intensity", variable=self.calc_norm_on_intensityBool)
+        self.calc_norm_on_intensity_check = tk.Checkbutton(self.load_content_frame, text="normalize on total intensity, then derive", variable=self.calc_norm_on_intensityBool)
         self.calc_norm_on_intensity_check.grid(row=6, column=0)
 
         # Clara load frame (now inside load_content_frame)
@@ -654,7 +655,8 @@ class FileProcessorApp:
                 files_processed, self.cmapframe, self.specframe, 
                 bool(self.multiple_BG.get()), bool(self.linearBG.get()), bool(self.removecosmicsBool.get()), 
                 self.cosmicthreshold, self.cosmicwidth, self.cosmicremoval.get(), 
-                self.defaults, self.derivative_polynomarray
+                self.defaults, self.derivative_polynomarray,
+                self.calc_norm_and_deriveBool, self.calc_norm_on_intensityBool
                 )
             if self.powercorrectionBool.get() == 1:
                 self.Nanomap.powercorrection()
@@ -786,7 +788,8 @@ class FileProcessorApp:
                 [], self.cmapframe, self.specframe, 
                 False, False, False, 
                 20, 3, list(deflib.cosmicfuncts.keys())[0], 
-                self.defaults,
+                self.defaults, self.derivative_polynomarray,
+                self.calc_norm_and_deriveBool, self.calc_norm_on_intensityBool,
                 skip_gui_build=True  # Don't build GUI yet - will build after loading data
             )
             
