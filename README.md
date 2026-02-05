@@ -66,7 +66,13 @@ This notebook demonstrates:
 - K-means clustering and other classification methods
 - Data export in multiple formats (ENVI, NumPy, CSV)
 
-To use the notebook, install optional dependencies:
+**Quick Start Example:**
+```python
+python example_hyperspectral_conversion.py  # Standalone conversion script
+```
+
+**For Interactive Analysis:**
+To use the full notebook, install optional dependencies:
 ```bash
 pip install spectral pysptools  # Hyperspectral analysis libraries
 pip install jupyter notebook    # If you need Jupyter
@@ -76,6 +82,10 @@ Then launch Jupyter:
 ```bash
 jupyter notebook hyperspectral_standard_interface.ipynb
 ```
+
+**Files:**
+- `hyperspectral_standard_interface.ipynb` - Complete interactive tutorial
+- `example_hyperspectral_conversion.py` - Standalone conversion script
 
 ### Troubleshooting
 If you encounter TCL/Tkinter errors, you may need to:
