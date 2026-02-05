@@ -3,3 +3,9 @@ pandas>=2.2.3
 matplotlib>=3.10.0
 scipy>=1.7.1
 pillow>=9.4.0
+
+# Optional: Hyperspectral standard libraries
+# For hyperspectral_standard_interface.ipynb notebook
+# Install with: pip install spectral pysptools
+# spectral>=0.22.4  # Spectral Python (SPy) - industry standard for hyperspectral imaging
+# pysptools>=0.15.0  # Spectral unmixing and endmember extraction

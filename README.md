@@ -22,6 +22,7 @@ SpecMap is a comprehensive Python application for hyperspectral data analysis an
 - **Interactive Visualization**: Click-to-analyze functionality with real-time plotting
 - **Background Correction**: Multiple background correction methods including linear and cosmic ray removal
 - **ROI Analysis**: Region of interest selection and analysis tools
+- **Hyperspectral Standards Interface**: Convert SpecMap data to ENVI format and interface with industry-standard libraries (SPy, PySptools)
 
 
 ### Performance Optimizations ⚡
@@ -52,6 +53,39 @@ The program requires the following Python packages (see `requirements.txt`):
 
 1. Ensure all required packages are installed: `pip install -r requirements.txt`
 2. Run the main application: `python main9.py`
+
+### Hyperspectral Standard Interface (Optional)
+SpecMap includes a Jupyter notebook for interfacing with industry-standard hyperspectral libraries:
+
+📓 **[hyperspectral_standard_interface.ipynb](hyperspectral_standard_interface.ipynb)**
+
+This notebook demonstrates:
+- Converting SpecMap data to ENVI format (hyperspectral standard)
+- Interfacing with Spectral Python (SPy) for advanced analysis
+- Using PySptools for spectral unmixing and endmember extraction
+- K-means clustering and other classification methods
+- Data export in multiple formats (ENVI, NumPy, CSV)
+
+**Quick Start Example:**
+```python
+python example_hyperspectral_conversion.py  # Standalone conversion script
+```
+
+**For Interactive Analysis:**
+To use the full notebook, install optional dependencies:
+```bash
+pip install spectral pysptools  # Hyperspectral analysis libraries
+pip install jupyter notebook    # If you need Jupyter
+```
+
+Then launch Jupyter:
+```bash
+jupyter notebook hyperspectral_standard_interface.ipynb
+```
+
+**Files:**
+- `hyperspectral_standard_interface.ipynb` - Complete interactive tutorial
+- `example_hyperspectral_conversion.py` - Standalone conversion script
 
 ### Troubleshooting
 If you encounter TCL/Tkinter errors, you may need to:
