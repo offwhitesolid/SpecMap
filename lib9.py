@@ -2635,7 +2635,7 @@ class XYMap:
         # Force garbage collection after loading
         gc.collect()
         
-		# after specra are loaded, they must be put into matrix, after this, correlated cosmic ray removal can be applied (see autogenmatrix) # correlatedcosmicrayremoval
+		# after spectra are loaded, they must be put into matrix, after this, correlated cosmic ray removal can be applied (see autogenmatrix) # correlatedcosmicrayremoval
 
     def autogenmatrix(self):
         # Get memory tracker
@@ -2765,7 +2765,6 @@ class XYMap:
             N_fitpoints += 1 # Ensure odd window size
 
         print(f"Calculating derivatives: d1={calc_d1}, d2={calc_d2}, order={poly_order}, window={N_fitpoints}")
-
 
         # Iterate over all spectra
         for spec in self.specs:
