@@ -3301,6 +3301,147 @@ class XYMap:
         except:
             pass
     
+    def _save_specs_chunked(self, file_handle, specs, chunk_size=1000):
+        """
+        Save specs list in chunks to reduce memory usage during pickling.
+        
+        Args:
+            file_handle: Open file handle for writing
+            specs: List of SpectrumData objects
+            chunk_size: Number of items per chunk
+        """
+        total_specs = len(specs)
+        pickle.dump(total_specs, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
+        for i in range(0, total_specs, chunk_size):
+            chunk = specs[i:i+chunk_size]
+            pickle.dump(chunk, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+            if total_specs > 1000 and i > 0 and i % 5000 == 0:
+                print(f"  - Saved {min(i+chunk_size, total_specs)}/{total_specs} spectra...")
+    
+    def _save_matrix_chunked(self, file_handle, matrix, chunk_size=50):
+        """
+        Save SpecDataMatrix in chunks (row by row or in row chunks).
+        
+        Args:
+            file_handle: Open file handle for writing
+            matrix: 2D list/array of SpectrumData objects
+            chunk_size: Number of rows per chunk
+        """
+        if not matrix or len(matrix) == 0:
+            pickle.dump(0, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+            return
+        
+        num_rows = len(matrix)
+        num_cols = len(matrix[0]) if num_rows > 0 else 0
+        
+        # Save dimensions
+        pickle.dump((num_rows, num_cols), file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
+        # Save matrix in row chunks
+        for i in range(0, num_rows, chunk_size):
+            chunk = matrix[i:i+chunk_size]
+            pickle.dump(chunk, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    def _save_pmdict_chunked(self, file_handle, pmdict, chunk_size=10):
+        """
+        Save PMdict in chunks to reduce memory usage.
+        
+        Args:
+            file_handle: Open file handle for writing
+            pmdict: Dictionary of PM objects
+            chunk_size: Number of HSI images per chunk
+        """
+        keys = list(pmdict.keys())
+        total_items = len(keys)
+        
+        # Save total count
+        pickle.dump(total_items, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
+        # Save in chunks
+        for i in range(0, total_items, chunk_size):
+            chunk_keys = keys[i:i+chunk_size]
+            chunk_dict = {k: pmdict[k] for k in chunk_keys}
+            pickle.dump(chunk_dict, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    
+    def _load_specs_chunked(self, file_handle):
+        """
+        Load specs list from chunked format.
+        
+        Args:
+            file_handle: Open file handle for reading
+            
+        Returns:
+            List of SpectrumData objects
+        """
+        total_specs = pickle.load(file_handle)
+        specs = []
+        
+        chunk_size = 1000
+        for i in range(0, total_specs, chunk_size):
+            chunk = pickle.load(file_handle)
+            specs.extend(chunk)
+            if total_specs > 1000 and i > 0 and i % 5000 == 0:
+                print(f"  - Loaded {min(i+chunk_size, total_specs)}/{total_specs} spectra...")
+                gc.collect()  # Force garbage collection after each large chunk
+        
+        return specs
+    
+    def _load_matrix_chunked(self, file_handle):
+        """
+        Load SpecDataMatrix from chunked format.
+        
+        Args:
+            file_handle: Open file handle for reading
+            
+        Returns:
+            2D list of SpectrumData objects
+        """
+        dimensions = pickle.load(file_handle)
+        
+        if dimensions == 0:
+            return []
+        
+        num_rows, num_cols = dimensions
+        matrix = []
+        
+        chunk_size = 50
+        for i in range(0, num_rows, chunk_size):
+            chunk = pickle.load(file_handle)
+            matrix.extend(chunk)
+            if i > 0 and i % 100 == 0:
+                gc.collect()  # Periodic garbage collection
+        
+        return matrix
+    
+    def _load_pmdict_chunked(self, file_handle):
+        """
+        Load PMdict from chunked format.
+        
+        Args:
+            file_handle: Open file handle for reading
+            
+        Returns:
+            Dictionary of PM objects
+        """
+        total_items = pickle.load(file_handle)
+        pmdict = {}
+        
+        chunk_size = 10
+        items_loaded = 0
+        chunks_loaded = 0
+        
+        while items_loaded < total_items:
+            chunk_dict = pickle.load(file_handle)
+            pmdict.update(chunk_dict)
+            items_loaded += len(chunk_dict)
+            chunks_loaded += 1
+            if chunks_loaded % 5 == 0:  # Every 5 chunks (50 items)
+                gc.collect()  # Periodic garbage collection
+        
+        return pmdict
+    
     def _prepare_pmdict_for_pickle(self, pmdict):
         """
         Replace np.nan values in PMdict PixMatrix data with unique numbers.
@@ -3474,9 +3615,14 @@ class XYMap:
         Save the complete state of the XYMap instance to a file.
         This includes all data, processing parameters, and results.
         
-        Optimization: Replaces np.nan values in PixMatrix data and ROI masks with unique 
-        numbers before pickling to significantly reduce file size and save/load time.
+        Optimization: 
+        1. Replaces np.nan values in PixMatrix data and ROI masks with unique 
+           numbers before pickling to significantly reduce file size and save/load time.
+        2. Uses chunked saving for large data structures to reduce memory spikes.
         """
+        mem_tracker = memory_tracker.get_default_memory_tracker()
+        mem_tracker.log_memory("Before save_state", context="save_state")
+        
         # Prepare PMdict by replacing nan values with unique numbers
         # This creates a deep copy of PMdict with nan values replaced
         pmdict_prepared, nan_replacements_pmdict = self._prepare_pmdict_for_pickle(self.PMdict)
@@ -3486,7 +3632,9 @@ class XYMap:
         roilist_raw = self.roihandler.roilist if hasattr(self, 'roihandler') else {}
         roilist_prepared, nan_replacements_roilist = self._prepare_roilist_for_pickle(roilist_raw)
         
-        # Create a dictionary with all important state
+        mem_tracker.log_memory("After preparing data for pickle", context="save_state")
+        
+        # Create a dictionary with all important state (excluding large arrays)
         state = {
             # Core data - WL and WL_eV arrays (shared references)
             'WL': self.WL,
@@ -3494,15 +3642,10 @@ class XYMap:
             'BG': self.BG if hasattr(self, 'BG') else [],
             'fnames': self.fnames,
             
-            # Spectral data objects
-            'specs': self.specs,
+            # NOTE: Large arrays (specs, SpecDataMatrix, PMdict) saved separately
+            'format_version': 2,  # Version 2 = chunked format, Version 1 (implicit) = legacy format
             
-            # Matrix data
-            'SpecDataMatrix': self.SpecDataMatrix,
-            
-            # PMdict - contains all HSI images (PixMatrix objects with fit results)
-            # Using the prepared version with nan values replaced
-            'PMdict': pmdict_prepared,
+            # PMdict metadata
             'PMmetadata': self.PMmetadata if hasattr(self, 'PMmetadata') else {},
             
             # Store the HSI counter for unique naming persistence
@@ -3511,9 +3654,6 @@ class XYMap:
             # Store nan replacement metadata for restoration
             '_nan_replacements': nan_replacements_pmdict,
             '_nan_replacements_roilist': nan_replacements_roilist,
-            
-            # ROI data - masks and selections (with nan values replaced)
-            'roilist': roilist_prepared,
             
             # Averaged spectra data
             'disspecs': self.disspecs if hasattr(self, 'disspecs') else {},
@@ -3560,13 +3700,37 @@ class XYMap:
             'defentries': self.defentries,
         }
         
-        # Save to file with error handling
+        # Save to file with error handling and chunking
         try:
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(filename), exist_ok=True) if os.path.dirname(filename) else None
             
             with open(filename, 'wb') as f:
+                # Save main state dictionary first
                 pickle.dump(state, f, protocol=pickle.HIGHEST_PROTOCOL)
+                mem_tracker.log_memory("After saving main state", context="save_state")
+                
+                # Save large data structures in chunks with memory cleanup
+                # 1. Save specs list in chunks
+                self._save_specs_chunked(f, self.specs)
+                gc.collect()
+                mem_tracker.log_memory("After saving specs", context="save_state")
+                
+                # 2. Save SpecDataMatrix in chunks
+                self._save_matrix_chunked(f, self.SpecDataMatrix)
+                gc.collect()
+                mem_tracker.log_memory("After saving SpecDataMatrix", context="save_state")
+                
+                # 3. Save PMdict in chunks
+                self._save_pmdict_chunked(f, pmdict_prepared)
+                gc.collect()
+                mem_tracker.log_memory("After saving PMdict", context="save_state")
+                
+                # 4. Save ROI list
+                pickle.dump(roilist_prepared, f, protocol=pickle.HIGHEST_PROTOCOL)
+                gc.collect()
+                mem_tracker.log_memory("After saving roilist", context="save_state")
+            
             print(f"Successfully saved XYMap state to: {filename}")
             print(f"  - Saved {len(self.specs)} spectra")
             print(f"  - Saved {len(self.PMdict)} HSI images")
@@ -3595,20 +3759,51 @@ class XYMap:
         
         Automatically restores np.nan values that were replaced with unique numbers
         during the save operation.
+        
+        Supports both legacy (all-in-one) and new chunked format for memory efficiency.
         """
+        mem_tracker = memory_tracker.get_default_memory_tracker()
+        mem_tracker.log_memory("Before load_state", context="load_state")
+        
         try:
             with open(filename, 'rb') as f:
+                # Load main state dictionary
                 state = pickle.load(f)
+                mem_tracker.log_memory("After loading main state", context="load_state")
+                
+                # Check format version (version 2 = chunked, version 1 or missing = legacy)
+                format_version = state.get('format_version', 1)
+                
+                if format_version >= 2:
+                    # Load large data structures in chunks (version 2+)
+                    self.specs = self._load_specs_chunked(f)
+                    gc.collect()
+                    mem_tracker.log_memory("After loading specs", context="load_state")
+                    
+                    self.SpecDataMatrix = self._load_matrix_chunked(f)
+                    gc.collect()
+                    mem_tracker.log_memory("After loading SpecDataMatrix", context="load_state")
+                    
+                    pmdict_loaded = self._load_pmdict_chunked(f)
+                    gc.collect()
+                    mem_tracker.log_memory("After loading PMdict", context="load_state")
+                    
+                    roilist_loaded = pickle.load(f)
+                    gc.collect()
+                    mem_tracker.log_memory("After loading roilist", context="load_state")
+                else:
+                    # Legacy format (version 1) - load from state dictionary
+                    print("  - Loading legacy format (version 1)")
+                    self.specs = state['specs']
+                    self.SpecDataMatrix = state['SpecDataMatrix']
+                    pmdict_loaded = state['PMdict']
+                    roilist_loaded = state.get('roilist', {})
             
             # Restore WL arrays FIRST (these are shared references)
             self.WL = state['WL']
             self.WL_eV = state.get('WL_eV', None)
             self.BG = state.get('BG', [])
             self.fnames = state['fnames']
-            
-            # Restore spectral data objects
-            # Important: WL is already set above, so specs will use the restored WL
-            self.specs = state['specs']
             
             # Ensure all specs have the correct WL reference
             # This fixes the issue where WL was a pointer and needs to be restored
@@ -3618,9 +3813,6 @@ class XYMap:
                     if self.WL_eV is not None:
                         spec.WL_eV = self.WL_eV
             
-            # Restore matrix data
-            self.SpecDataMatrix = state['SpecDataMatrix']
-            
             # Ensure all SpectrumData objects in matrix have correct WL reference
             for i in range(len(self.SpecDataMatrix)):
                 for j in range(len(self.SpecDataMatrix[i])):
@@ -3629,9 +3821,10 @@ class XYMap:
                         if self.WL_eV is not None:
                             self.SpecDataMatrix[i][j].WL_eV = self.WL_eV
             
+            mem_tracker.log_memory("After WL reference updates", context="load_state")
+            
             # Restore PMdict - contains all HSI images with fit results
             # First load the PMdict, then restore nan values if they were replaced
-            pmdict_loaded = state['PMdict']
             nan_replacements = state.get('_nan_replacements', {})
             
             # Restore nan values from unique numbers
@@ -3640,6 +3833,8 @@ class XYMap:
                 print(f"  - Restored nan values in {len(nan_replacements)} HSI images")
             else:
                 self.PMdict = pmdict_loaded
+            
+            mem_tracker.log_memory("After PMdict restoration", context="load_state")
             
             # Restore HSI counter and ensure it's higher than any existing HSI numbers
             self._hsi_counter = state.get('_hsi_counter', 0)
@@ -3664,7 +3859,6 @@ class XYMap:
             
             # Restore ROI data with nan value restoration
             if hasattr(self, 'roihandler'):
-                roilist_loaded = state.get('roilist', {})
                 nan_replacements_roilist = state.get('_nan_replacements_roilist', {})
                 
                 # Restore nan values from unique numbers in ROI masks
@@ -3686,6 +3880,8 @@ class XYMap:
                             print(f"  ⚠ Warning: ROI '{roi_name}' dimensions {roi_array.shape} don't match HSI dimensions {hsi_shape}")
                         else:
                             print(f"  ✓ ROI '{roi_name}' dimensions validated: {roi_array.shape}")
+            
+            mem_tracker.log_memory("After ROI restoration", context="load_state")
             
             # Restore averaged spectra data
             self.disspecs = state.get('disspecs', {})
