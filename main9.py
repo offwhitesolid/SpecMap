@@ -223,6 +223,7 @@ class FileProcessorApp:
         tk.Label(self.multiple_HSIs_inp_frame, text="Save HSI objects Directory:").grid(row=4, column=0)
         self.multiple_HSIs_save_hsi_dir_entry = tk.Entry(self.multiple_HSIs_inp_frame, width=80)
         self.multiple_HSIs_save_hsi_dir_entry.grid(row=4, column=1)
+        self.Browse_hsiobject_save_dir_button = tk.Button(self.multiple_HSIs_inp_frame, text="Browse", command=lambda: deflib.browse_folder(self.multiple_HSIs_save_hsi_dir_entry)).grid(row=4, column=2)
 
         # Cosmic removal
         # add extra frame for cosmic removal onto loadframe
