@@ -51,3 +51,4 @@ derivative_Nfitpoints = 20
 do_normalize_HSI_var = False
 calc_norm_and_derive = True
 calc_norm_on_intensity = True
+save_multiple_HSIs_bool = True

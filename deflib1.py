@@ -1338,6 +1338,7 @@ defaults={
     'hsifilesorter_savedir': '',
     'hsifilesorter_processdir': False,
     'process_multiple_HSIs_bool': False,
+    'save_multiple_HSIs_bool': True,
     # HSI Plot Options defaults
     'hsi_cmap': 'hot',
     'hsi_vmin': '',
@@ -1416,6 +1417,7 @@ defaulttypes = {
     'hsifilesorter_savedir': str,
     'hsifilesorter_processdir': str, 
     'process_multiple_HSIs_bool': bool,
+    'save_multiple_HSIs_bool': bool,
     # HSI Plot Options types
     'hsi_cmap': str,
     'hsi_vmin': str,
