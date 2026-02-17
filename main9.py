@@ -748,24 +748,18 @@ class FileProcessorApp:
         
         # Handle file already exists
         if os.path.exists(filename):
-            response = messagebox.askyesno(
-                "File Exists", 
-                f"File {os.path.basename(filename)} already exists. Overwrite?"
-            )
-            if not response:
-                # Auto-increment filename
-                filename = deflib.increment_filename(filename)
-                print(f"Saving to: {filename}")
+            filename = deflib.increment_filename(filename)
+            print(f"Saving to: {filename}")
         
         # Call the XYMap save_state method
         success = self.Nanomap.save_state(filename)
         
         if success:
-            messagebox.showinfo("Success", f"Data saved successfully to:\n{filename}")
+            print("Success", f"Data saved successfully to:\n{filename}")
             # Update the entry field with the actual saved path
             self.savehsipath.set(filename)
         else:
-            messagebox.showerror("Error", "Failed to save data. Check console for details.")
+            print("Error", "Failed to save data. Check console for details.")
     
     def loadhsisaved(self, filename):
         """
@@ -775,13 +769,11 @@ class FileProcessorApp:
         # check if the filename is empty
         if not filename:
             print('Error: Please enter a filename to load')
-            messagebox.showerror("Error", "Please select a file to load")
             return
         
         # check if filename is a valid path
         if not os.path.exists(filename):
             print(f'Error: File not found: {filename}')
-            messagebox.showerror("Error", f"File not found:\n{filename}")
             return
         
         # Check if the Nanomap object exists; if not, we need to create one
@@ -815,12 +807,12 @@ class FileProcessorApp:
 
         
         if success:
-            messagebox.showinfo("Success", f"Data loaded successfully from:\n{filename}")
+            print("Success", f"Data loaded successfully from:\n{filename}")
             # Update the entry field
             self.loadhsipath.set(filename)
             self.Nanomap.update_after_load()
         else:
-            messagebox.showerror("Error", "Failed to load data. Check console for details.")
+            print("Error", "Failed to load data. Check console for details.")
 
 # sort files and multiple HSI processings
 # what is the taks of specfilesorter: 
