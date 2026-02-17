@@ -3316,7 +3316,7 @@ class XYMap:
         for i in range(0, total_specs, chunk_size):
             chunk = specs[i:i+chunk_size]
             pickle.dump(chunk, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
-            if total_specs > 1000 and (i + chunk_size) % 5000 == 0:
+            if total_specs > 1000 and i > 0 and i % 5000 == 0:
                 print(f"  - Saved {min(i+chunk_size, total_specs)}/{total_specs} spectra...")
     
     def _save_matrix_chunked(self, file_handle, matrix, chunk_size=50):
@@ -3382,7 +3382,7 @@ class XYMap:
         for i in range(0, total_specs, chunk_size):
             chunk = pickle.load(file_handle)
             specs.extend(chunk)
-            if total_specs > 1000 and (i + chunk_size) % 5000 == 0:
+            if total_specs > 1000 and i > 0 and i % 5000 == 0:
                 print(f"  - Loaded {min(i+chunk_size, total_specs)}/{total_specs} spectra...")
                 gc.collect()  # Force garbage collection after each large chunk
         
@@ -3430,12 +3430,14 @@ class XYMap:
         
         chunk_size = 10
         items_loaded = 0
+        chunks_loaded = 0
         
         while items_loaded < total_items:
             chunk_dict = pickle.load(file_handle)
             pmdict.update(chunk_dict)
             items_loaded += len(chunk_dict)
-            if items_loaded % 50 == 0:
+            chunks_loaded += 1
+            if chunks_loaded % 5 == 0:  # Every 5 chunks (50 items)
                 gc.collect()  # Periodic garbage collection
         
         return pmdict
@@ -3641,7 +3643,7 @@ class XYMap:
             'fnames': self.fnames,
             
             # NOTE: Large arrays (specs, SpecDataMatrix, PMdict) saved separately
-            '_chunked_format': True,  # Flag to indicate this uses chunked format
+            'format_version': 2,  # Version 2 = chunked format, Version 1 (implicit) = legacy format
             
             # PMdict metadata
             'PMmetadata': self.PMmetadata if hasattr(self, 'PMmetadata') else {},
@@ -3769,11 +3771,11 @@ class XYMap:
                 state = pickle.load(f)
                 mem_tracker.log_memory("After loading main state", context="load_state")
                 
-                # Check if this is the new chunked format
-                is_chunked = state.get('_chunked_format', False)
+                # Check format version (version 2 = chunked, version 1 or missing = legacy)
+                format_version = state.get('format_version', 1)
                 
-                if is_chunked:
-                    # Load large data structures in chunks
+                if format_version >= 2:
+                    # Load large data structures in chunks (version 2+)
                     self.specs = self._load_specs_chunked(f)
                     gc.collect()
                     mem_tracker.log_memory("After loading specs", context="load_state")
@@ -3790,8 +3792,8 @@ class XYMap:
                     gc.collect()
                     mem_tracker.log_memory("After loading roilist", context="load_state")
                 else:
-                    # Legacy format - load from state dictionary
-                    print("  - Loading legacy format (non-chunked)")
+                    # Legacy format (version 1) - load from state dictionary
+                    print("  - Loading legacy format (version 1)")
                     self.specs = state['specs']
                     self.SpecDataMatrix = state['SpecDataMatrix']
                     pmdict_loaded = state['PMdict']

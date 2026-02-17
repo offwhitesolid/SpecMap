@@ -118,15 +118,15 @@ def test_legacy_format_detection():
     
     os.unlink(temp_file)
     
-    # Verify legacy format (no _chunked_format flag)
-    assert '_chunked_format' not in loaded_state or loaded_state.get('_chunked_format') == False
+    # Verify legacy format (no format_version or format_version == 1)
+    assert loaded_state.get('format_version', 1) == 1
     assert 'specs' in loaded_state
     assert 'SpecDataMatrix' in loaded_state
     assert 'PMdict' in loaded_state
     assert len(loaded_state['specs']) == 100
     assert len(loaded_state['SpecDataMatrix']) == 10
     
-    print("✓ Legacy format correctly detected (no _chunked_format flag)")
+    print("✓ Legacy format correctly detected (format_version=1)")
     print(f"✓ Loaded {len(loaded_state['specs'])} specs from legacy format")
     print(f"✓ Loaded {len(loaded_state['SpecDataMatrix'])}x{len(loaded_state['SpecDataMatrix'][0])} matrix from legacy format")
     
@@ -141,7 +141,7 @@ def test_chunked_format_detection():
     
     # Create chunked format state (no large arrays in main dict)
     state = {
-        '_chunked_format': True,
+        'format_version': 2,
         'WL': np.linspace(400, 800, 100),
         'WL_eV': None,
         'BG': [],
@@ -166,12 +166,12 @@ def test_chunked_format_detection():
         loaded_state = pickle.load(f)
     
     # Verify chunked format
-    assert loaded_state.get('_chunked_format') == True
+    assert loaded_state.get('format_version') == 2
     assert 'specs' not in loaded_state  # specs not in main state dict
     
     os.unlink(temp_file)
     
-    print("✓ Chunked format correctly detected (_chunked_format=True)")
+    print("✓ Chunked format correctly detected (format_version=2)")
     print("✓ Large arrays correctly excluded from main state dict")
     
     return True
@@ -191,7 +191,7 @@ def test_format_version_compatibility():
     
     # Test 2: Chunked format
     chunked_state = {
-        '_chunked_format': True,
+        'format_version': 2,
         'WL': np.linspace(400, 800, 100),
         'WL_eV': None,
         'BG': [],
@@ -223,8 +223,8 @@ def test_format_version_compatibility():
         loaded_chunked_main = pickle.load(f)
         
         # Simulate chunked loading
-        is_chunked = loaded_chunked_main.get('_chunked_format', False)
-        if is_chunked:
+        format_version = loaded_chunked_main.get('format_version', 1)
+        if format_version >= 2:
             num_specs = pickle.load(f)
             specs_chunk = pickle.load(f)
             loaded_chunked_main['specs_loaded'] = specs_chunk
@@ -233,17 +233,17 @@ def test_format_version_compatibility():
     os.unlink(chunked_file)
     
     # Verify both loaded correctly
-    assert loaded_legacy.get('_chunked_format', False) == False
+    assert loaded_legacy.get('format_version', 1) == 1
     assert 'specs' in loaded_legacy
     assert len(loaded_legacy['specs']) == 100
     
-    assert loaded_chunked_main.get('_chunked_format') == True
+    assert loaded_chunked_main.get('format_version') == 2
     assert 'specs' not in loaded_chunked_main
     assert 'specs_loaded' in loaded_chunked_main
     assert len(loaded_chunked_main['specs_loaded']) == 10
     
-    print("✓ Legacy format loaded correctly (100 specs)")
-    print("✓ Chunked format loaded correctly (10 specs)")
+    print("✓ Legacy format loaded correctly (100 specs, version 1)")
+    print("✓ Chunked format loaded correctly (10 specs, version 2)")
     print("✓ Both formats can coexist")
     
     return True

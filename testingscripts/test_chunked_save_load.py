@@ -38,7 +38,7 @@ def test_chunked_format_flag():
     
     # Create a minimal state dict with chunked flag
     state = {
-        '_chunked_format': True,
+        'format_version': 2,
         'WL': np.array([1.0, 2.0, 3.0]),
         'WL_eV': None,
         'BG': [],
@@ -55,8 +55,8 @@ def test_chunked_format_flag():
     
     os.unlink(temp_file)
     
-    assert loaded_state['_chunked_format'] == True
-    print("✓ Chunked format flag correctly saved and loaded")
+    assert loaded_state['format_version'] == 2
+    print("✓ Format version flag correctly saved and loaded")
     return True
 
 
