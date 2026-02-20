@@ -2806,19 +2806,20 @@ class XYMap:
                 wl_window = wl[start_idx:end_idx]
                 plb_window = plb[start_idx:end_idx]
                 
-                # Fit polynomial
+                # Fit polynomial (center x at evaluation point for numerical stability)
                 try:
-                    p = np.polyfit(wl_window, plb_window, poly_order)
+                    wl_center = wl[i]
+                    p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
                     
                     if calc_d1:
                         # First derivative
                         dp = np.polyder(p)
-                        spec.Specdiff1[i] = np.polyval(dp, wl[i])
+                        spec.Specdiff1[i] = np.polyval(dp, 0.0)
                         
                     if calc_d2:
                         # Second derivative
                         ddp = np.polyder(np.polyder(p))
-                        spec.Specdiff2[i] = np.polyval(ddp, wl[i])
+                        spec.Specdiff2[i] = np.polyval(ddp, 0.0)
                         
                 except Exception as e:
                     # print(f"Derivative fit failed at index {i}: {e}")
@@ -2927,19 +2928,20 @@ class XYMap:
                 wl_window = wl[start_idx:end_idx]
                 plb_window = plb_normalized[start_idx:end_idx]
                 
-                # Fit polynomial
+                # Fit polynomial (center x at evaluation point for numerical stability)
                 try:
-                    p = np.polyfit(wl_window, plb_window, poly_order)
+                    wl_center = wl[i]
+                    p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
                     
                     if calc_d1:
                         # First derivative
                         dp = np.polyder(p)
-                        getattr(spec, f'Specdiff1{attr_suffix}')[i] = np.polyval(dp, wl[i])
+                        getattr(spec, f'Specdiff1{attr_suffix}')[i] = np.polyval(dp, 0.0)
                     
                     if calc_d2:
                         # Second derivative
                         ddp = np.polyder(np.polyder(p))
-                        getattr(spec, f'Specdiff2{attr_suffix}')[i] = np.polyval(ddp, wl[i])
+                        getattr(spec, f'Specdiff2{attr_suffix}')[i] = np.polyval(ddp, 0.0)
                 
                 except Exception as e:
                     # Polynomial fit can fail for bad data points
@@ -2995,17 +2997,18 @@ class XYMap:
                         wl_window = wl[start_idx:end_idx]
                         plb_window = plb_normalized[start_idx:end_idx]
                         
-                        # Fit polynomial
+                        # Fit polynomial (center x at evaluation point for numerical stability)
                         try:
-                            p = np.polyfit(wl_window, plb_window, poly_order)
+                            wl_center = wl[k]
+                            p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
                             
                             if calc_d1:
                                 dp = np.polyder(p)
-                                getattr(spec, f'Specdiff1{attr_suffix}')[k] = np.polyval(dp, wl[k])
+                                getattr(spec, f'Specdiff1{attr_suffix}')[k] = np.polyval(dp, 0.0)
                             
                             if calc_d2:
                                 ddp = np.polyder(np.polyder(p))
-                                getattr(spec, f'Specdiff2{attr_suffix}')[k] = np.polyval(ddp, wl[k])
+                                getattr(spec, f'Specdiff2{attr_suffix}')[k] = np.polyval(ddp, 0.0)
                         
                         except Exception as e:
                             # Polynomial fit can fail for bad data points

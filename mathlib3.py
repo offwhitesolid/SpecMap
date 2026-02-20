@@ -747,9 +747,10 @@ def extract_phase_evolution(oscillations, wl, maxima_indices, minima_indices):
     # Fit linear trend to frequency evolution: freq(E) = slope * E + intercept
     # This captures the "chirp" or phase evolution
     if len(freq_centers) > 1:
-        coeffs = np.polyfit(freq_centers, instantaneous_freq, 1)
+        freq_center_mean = np.mean(freq_centers)
+        coeffs = np.polyfit(freq_centers - freq_center_mean, instantaneous_freq, 1)
         phase_trend_slope = coeffs[0]  # How fast frequency changes with energy
-        phase_trend_intercept = coeffs[1]  # Initial frequency
+        phase_trend_intercept = coeffs[1] - coeffs[0] * freq_center_mean  # Initial frequency
     else:
         phase_trend_slope = 0.0
         phase_trend_intercept = instantaneous_freq[0] if len(instantaneous_freq) > 0 else 0.0
@@ -1026,7 +1027,7 @@ def calculate_flank_slopes(energy, intensity, peak_fraction=0.5, smooth=False):
         x_left = energy[left_base_idx:left_flank_end+1]
         y_left = intensity[left_base_idx:left_flank_end+1]
         if len(x_left) > 1:
-            poly_coeffs = np.polyfit(x_left, y_left, 1)
+            poly_coeffs = np.polyfit(x_left - np.mean(x_left), y_left, 1)
             a_L = float(poly_coeffs[0])
         else:
             a_L = 0.0
@@ -1038,7 +1039,7 @@ def calculate_flank_slopes(energy, intensity, peak_fraction=0.5, smooth=False):
         x_right = energy[right_flank_start:right_base_idx+1]
         y_right = intensity[right_flank_start:right_base_idx+1]
         if len(x_right) > 1:
-            poly_coeffs = np.polyfit(x_right, y_right, 1)
+            poly_coeffs = np.polyfit(x_right - np.mean(x_right), y_right, 1)
             a_R = float(poly_coeffs[0])
         else:
             a_R = 0.0
