@@ -59,14 +59,14 @@ def normalize_derivatives_by_signal(spec_data_matrix, signal_key='PLB'):
             if signal is None or len(signal) == 0:
                 continue
             
-            signal = np.array(signal, dtype=float)
+            signal = np.asarray(signal, dtype=np.float32)
             
             # Normalize first derivative if available
             if hasattr(spec_data, 'Specdiff1') and spec_data.Specdiff1 is not None:
-                specdiff1 = np.array(spec_data.Specdiff1, dtype=float)
+                specdiff1 = np.asarray(spec_data.Specdiff1, dtype=np.float32)
                 if len(specdiff1) == len(signal):
-                    # Create normalized derivative array
-                    specdiff1_norm = np.zeros_like(specdiff1)
+                    # Create normalized derivative array (float32 to reduce RAM usage)
+                    specdiff1_norm = np.zeros(len(specdiff1), dtype=np.float32)
                     # Only normalize where signal is above threshold
                     valid_mask = np.abs(signal) > MIN_NORMALIZATION_THRESHOLD
                     specdiff1_norm[valid_mask] = specdiff1[valid_mask] / signal[valid_mask]
@@ -74,10 +74,10 @@ def normalize_derivatives_by_signal(spec_data_matrix, signal_key='PLB'):
             
             # Normalize second derivative if available
             if hasattr(spec_data, 'Specdiff2') and spec_data.Specdiff2 is not None:
-                specdiff2 = np.array(spec_data.Specdiff2, dtype=float)
+                specdiff2 = np.asarray(spec_data.Specdiff2, dtype=np.float32)
                 if len(specdiff2) == len(signal):
-                    # Create normalized derivative array
-                    specdiff2_norm = np.zeros_like(specdiff2)
+                    # Create normalized derivative array (float32 to reduce RAM usage)
+                    specdiff2_norm = np.zeros(len(specdiff2), dtype=np.float32)
                     # Only normalize where signal is above threshold
                     valid_mask = np.abs(signal) > MIN_NORMALIZATION_THRESHOLD
                     specdiff2_norm[valid_mask] = specdiff2[valid_mask] / signal[valid_mask]

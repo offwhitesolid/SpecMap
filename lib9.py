@@ -158,8 +158,13 @@ class SpectrumData:
             for i in range(len(self.BG)):
                 self.BG[i] = av
 
+        # Convert PL (and BG for loadeachbg) to float32 numpy arrays to reduce RAM usage
+        self.PL = np.array(self.PL, dtype=np.float32)
+        if self.loadeachbg == True:
+            self.BG = np.array(self.BG, dtype=np.float32)
+
         try:
-            self.PLB = np.subtract(self.PL, self.BG).tolist() # add PLB = PL-BG
+            self.PLB = np.subtract(self.PL, self.BG).astype(np.float32) # add PLB = PL-BG
         except Exception as e:
             # Use ErrorEngine for background subtraction errors
             error_engine.error(
@@ -183,7 +188,7 @@ class SpectrumData:
         # remove cosmic rays todo: add nearest neighbor method
         if self.removecosmics == True:
             try:
-                self.PLB = deflib.cosmicfuncts[self.removecosmicsmethod](self.PLB, self.cosmicthreshold, self.cosmicpixels)
+                self.PLB = np.asarray(deflib.cosmicfuncts[self.removecosmicsmethod](self.PLB, self.cosmicthreshold, self.cosmicpixels), dtype=np.float32)
             except Exception as e:
                 # Use ErrorEngine for cosmic removal errors
                 error_engine.error(
@@ -2565,8 +2570,12 @@ class XYMap:
                 for i in range(len(self.BG)):
                     self.BG[i] = av
 
-        # convert WL in nm to eV and strore as WL_eV
-        self.WL_eV = deflib.wl_array_to_ev(self.WL[:])
+        # Convert WL and BG to float32 numpy arrays to reduce RAM usage
+        self.WL = np.array(self.WL, dtype=np.float32)
+        self.BG = np.array(self.BG, dtype=np.float32)
+
+        # convert WL in nm to eV and store as WL_eV (use copy to avoid modifying WL in-place)
+        self.WL_eV = deflib.wl_array_to_ev(self.WL.copy())
 
         # parallel loading of spectra
         self.parallel_load_spectra()
@@ -2776,14 +2785,14 @@ class XYMap:
             if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
                 continue
 
-            wl = np.array(spec.WL)
-            plb = np.array(spec.PLB)
+            wl = np.asarray(spec.WL, dtype=np.float32)
+            plb = np.asarray(spec.PLB, dtype=np.float32)
             
-            # Initialize derivative arrays with zeros
+            # Initialize derivative arrays with zeros (float32 to reduce RAM usage)
             if calc_d1:
-                spec.Specdiff1 = np.zeros_like(plb)
+                spec.Specdiff1 = np.zeros(len(plb), dtype=np.float32)
             if calc_d2:
-                spec.Specdiff2 = np.zeros_like(plb)
+                spec.Specdiff2 = np.zeros(len(plb), dtype=np.float32)
 
             half_window = N_fitpoints // 2
             n_points = len(wl)
@@ -2880,8 +2889,8 @@ class XYMap:
             if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
                 continue
             
-            wl = np.array(spec.WL)
-            plb = np.array(spec.PLB, dtype=float)
+            wl = np.asarray(spec.WL, dtype=np.float32)
+            plb = np.asarray(spec.PLB, dtype=np.float32)
             
             # Normalize PLB based on norm_type
             if norm_type == 'intensity':
@@ -2901,11 +2910,11 @@ class XYMap:
             else:
                 plb_normalized = plb.copy()
             
-            # Initialize derivative arrays with zeros
+            # Initialize derivative arrays with zeros (float32 to reduce RAM usage)
             if calc_d1:
-                setattr(spec, f'Specdiff1{attr_suffix}', np.zeros_like(plb))
+                setattr(spec, f'Specdiff1{attr_suffix}', np.zeros(len(plb), dtype=np.float32))
             if calc_d2:
-                setattr(spec, f'Specdiff2{attr_suffix}', np.zeros_like(plb))
+                setattr(spec, f'Specdiff2{attr_suffix}', np.zeros(len(plb), dtype=np.float32))
             
             n_points = len(wl)
             
@@ -2949,8 +2958,8 @@ class XYMap:
                     if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
                         continue
                     
-                    wl = np.array(spec.WL)
-                    plb = np.array(spec.PLB, dtype=float)
+                    wl = np.asarray(spec.WL, dtype=np.float32)
+                    plb = np.asarray(spec.PLB, dtype=np.float32)
                     
                     # Normalize PLB based on norm_type
                     if norm_type == 'intensity':
@@ -2969,11 +2978,11 @@ class XYMap:
                     else:
                         plb_normalized = plb.copy()
                     
-                    # Initialize derivative arrays with zeros
+                    # Initialize derivative arrays with zeros (float32 to reduce RAM usage)
                     if calc_d1:
-                        setattr(spec, f'Specdiff1{attr_suffix}', np.zeros_like(plb))
+                        setattr(spec, f'Specdiff1{attr_suffix}', np.zeros(len(plb), dtype=np.float32))
                     if calc_d2:
-                        setattr(spec, f'Specdiff2{attr_suffix}', np.zeros_like(plb))
+                        setattr(spec, f'Specdiff2{attr_suffix}', np.zeros(len(plb), dtype=np.float32))
                     
                     n_points = len(wl)
                     
