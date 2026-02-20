@@ -2590,7 +2590,7 @@ class XYMap:
         mem_tracker.log_memory(
             "Before loading", 
             context="Parallel spectra loading",
-            data_info={'num_files': len(self.fnames), 'spectral_points': len(self.WL) if hasattr(self, 'WL') and self.WL else 0}
+            data_info={'num_files': len(self.fnames), 'spectral_points': len(self.WL) if hasattr(self, 'WL') and len(self.WL) > 0 else 0}
         )
         
         # before starting threads, clear specs
