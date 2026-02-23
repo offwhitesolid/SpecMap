@@ -2807,21 +2807,24 @@ class XYMap:
                 plb_window = plb[start_idx:end_idx]
                 
                 # Fit polynomial
+                # Standardize x-axis to avoid poor conditioning
+                x_centered = wl_window - wl[i]
+                
                 try:
-                    p = np.polyfit(wl_window, plb_window, poly_order)
+                    p = np.polyfit(x_centered, plb_window, poly_order)
                     
                     if calc_d1:
                         # First derivative
                         dp = np.polyder(p)
-                        spec.Specdiff1[i] = np.polyval(dp, wl[i])
+                        spec.Specdiff1[i] = np.polyval(dp, 0.0)
                         
                     if calc_d2:
                         # Second derivative
                         ddp = np.polyder(np.polyder(p))
-                        spec.Specdiff2[i] = np.polyval(ddp, wl[i])
+                        spec.Specdiff2[i] = np.polyval(ddp, 0.0)
                         
                 except Exception as e:
-                    # print(f"Derivative fit failed at index {i}: {e}")
+                    print(f"Derivative fit failed at index {i}: {e}")
                     pass
         
         # After calculating derivatives, compute normalized derivatives (derivative/signal)
@@ -2928,22 +2931,24 @@ class XYMap:
                 plb_window = plb_normalized[start_idx:end_idx]
                 
                 # Fit polynomial
+                # Standardize x-axis to avoid poor conditioning
+                x_centered = wl_window - wl[i]
+                
                 try:
-                    p = np.polyfit(wl_window, plb_window, poly_order)
+                    p = np.polyfit(x_centered, plb_window, poly_order)
                     
                     if calc_d1:
                         # First derivative
                         dp = np.polyder(p)
-                        getattr(spec, f'Specdiff1{attr_suffix}')[i] = np.polyval(dp, wl[i])
+                        getattr(spec, f'Specdiff1{attr_suffix}')[i] = np.polyval(dp, 0.0)
                     
                     if calc_d2:
                         # Second derivative
                         ddp = np.polyder(np.polyder(p))
-                        getattr(spec, f'Specdiff2{attr_suffix}')[i] = np.polyval(ddp, wl[i])
+                        getattr(spec, f'Specdiff2{attr_suffix}')[i] = np.polyval(ddp, 0.0)
                 
                 except Exception as e:
-                    # Polynomial fit can fail for bad data points
-                    # Skip this point and leave it as zero in the derivative array
+                    print(f"Derivative calculation failed at index {i} in normalized loop: {e}")
                     pass
         
         # Also process SpecDataMatrix if it exists
@@ -2996,20 +3001,40 @@ class XYMap:
                         plb_window = plb_normalized[start_idx:end_idx]
                         
                         # Fit polynomial
+                        # Standardize x-axis to avoid poor conditioning (RankWarning) and float32 precision issues
+                        # We center around the evaluation point wl[k], so we just evaluate at x=0
+                        x_centered = wl_window - wl[k]
+                        
                         try:
-                            p = np.polyfit(wl_window, plb_window, poly_order)
+                            # Use float64 for fitting to ensure numerical stability, then cast back if needed
+                            # The input arrays are float32, so polyfit might warn. 
+                            # We can force float64 by casting x_centered and plb_window, 
+                            # but usually numpy handles this if we don't enforce dtype in polyfit (it returns float64).
+                            # However, x_centered is float32 because wl is float32.
+                            
+                            p = np.polyfit(x_centered, plb_window, poly_order)
                             
                             if calc_d1:
+                                # First derivative
+                                # differentiation of polynomial p
+                                # dp returns coefficients of derivative
                                 dp = np.polyder(p)
-                                getattr(spec, f'Specdiff1{attr_suffix}')[k] = np.polyval(dp, wl[k])
+                                # Evaluate at x=0 (since we centered at wl[k])
+                                # This is equivalent to the coefficient of the x^1 term in p
+                                getattr(spec, f'Specdiff1{attr_suffix}')[k] = np.polyval(dp, 0.0)
                             
                             if calc_d2:
+                                # Second derivative
                                 ddp = np.polyder(np.polyder(p))
-                                getattr(spec, f'Specdiff2{attr_suffix}')[k] = np.polyval(ddp, wl[k])
+                                # Evaluate at x=0
+                                getattr(spec, f'Specdiff2{attr_suffix}')[k] = np.polyval(ddp, 0.0)
                         
                         except Exception as e:
-                            # Polynomial fit can fail for bad data points
-                            # Skip this point and leave it as zero in the derivative array
+                            # Polynomial fit can fail for bad data points (e.g. all NaNs)
+                            # If it fails, we leave as zero or could set to NaN
+                            # For now, print error if it's not the expected RankWarning (which is suppressed by polyfit usually unless turned into error)
+                            # but user said "pass" is not what they want.
+                            print(f"Derivative calculation failed at index {k}: {e}")
                             pass
     
     def UpdateHSIselect(self):
