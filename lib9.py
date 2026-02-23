@@ -2775,8 +2775,26 @@ class XYMap:
 
         print(f"Calculating derivatives: d1={calc_d1}, d2={calc_d2}, order={poly_order}, window={N_fitpoints}")
 
+        # Collect all unique spectra to process
+        # Prioritize SpecDataMatrix if available, otherwise use self.specs
+        all_specs = []
+        if hasattr(self, 'SpecDataMatrix') and self.SpecDataMatrix:
+            for row in self.SpecDataMatrix:
+                if row:
+                    for spec in row:
+                        if spec is not None:
+                            all_specs.append(spec)
+        elif hasattr(self, 'specs') and self.specs:
+            all_specs = [s for s in self.specs if s is not None]
+            
+        if not all_specs:
+            print("No spectra found for derivative calculation.")
+            return
+
+        print(f"Processing derivatives for {len(all_specs)} spectra...")
+
         # Iterate over all spectra
-        for spec in self.specs:
+        for spec in all_specs:
             if spec is None:
                 continue
                 
@@ -2854,18 +2872,18 @@ class XYMap:
         if calc_norm_and_derive and (calc_d1 or calc_d2):
             print("Calculating derivatives after normalizing on counts...")
             self._calculate_normalized_derivatives(poly_order, N_fitpoints, calc_d1, calc_d2, 
-                                                   norm_type='counts', attr_suffix='_norm_counts')
+                                                   norm_type='counts', attr_suffix='_norm_counts', all_specs=all_specs)
         
         # Calculate "normalize on total intensity, then derive" (calc_norm_on_intensity checkbox)
         if calc_norm_on_intensity and (calc_d1 or calc_d2):
             print("Calculating derivatives after normalizing on total intensity...")
             self._calculate_normalized_derivatives(poly_order, N_fitpoints, calc_d1, calc_d2, 
-                                                   norm_type='intensity', attr_suffix='_norm_intensity')
+                                                   norm_type='intensity', attr_suffix='_norm_intensity', all_specs=all_specs)
         
         # Log memory after derivative calculation
         mem_tracker.log_memory("After derivative calculation", context="calculate_derivatives")
     
-    def _calculate_normalized_derivatives(self, poly_order, N_fitpoints, calc_d1, calc_d2, norm_type='counts', attr_suffix='_norm_counts'):
+    def _calculate_normalized_derivatives(self, poly_order, N_fitpoints, calc_d1, calc_d2, norm_type='counts', attr_suffix='_norm_counts', all_specs=None):
         """
         Calculate derivatives after normalizing the PLB data first.
         
@@ -2876,7 +2894,23 @@ class XYMap:
             calc_d2: Whether to calculate second derivative
             norm_type: Type of normalization ('counts' or 'intensity')
             attr_suffix: Suffix for attribute names (e.g., '_norm_counts' or '_norm_intensity')
+            all_specs: List of SpectrumData objects to process. If None, will try to find from self.specs or SpecDataMatrix
         """
+        # If all_specs not provided, find them
+        if all_specs is None:
+            all_specs = []
+            if hasattr(self, 'SpecDataMatrix') and self.SpecDataMatrix:
+                for row in self.SpecDataMatrix:
+                    if row:
+                        for spec in row:
+                            if spec is not None:
+                                all_specs.append(spec)
+            elif hasattr(self, 'specs') and self.specs:
+                all_specs = [s for s in self.specs if s is not None]
+
+        if not all_specs:
+            return
+
         # Use the same normalization threshold as in hsi_normalization module
         # to maintain consistency across the codebase
         MIN_NORMALIZATION_THRESHOLD = hsi_normalization.MIN_NORMALIZATION_THRESHOLD
@@ -2884,7 +2918,7 @@ class XYMap:
         half_window = N_fitpoints // 2
         
         # Iterate over all spectra
-        for spec in self.specs:
+        for spec in all_specs:
             if spec is None:
                 continue
             
@@ -2950,92 +2984,6 @@ class XYMap:
                 except Exception as e:
                     print(f"Derivative calculation failed at index {i} in normalized loop: {e}")
                     pass
-        
-        # Also process SpecDataMatrix if it exists
-        if hasattr(self, 'SpecDataMatrix') and self.SpecDataMatrix:
-            for i in range(len(self.SpecDataMatrix)):
-                for j in range(len(self.SpecDataMatrix[i])):
-                    spec = self.SpecDataMatrix[i][j]
-                    
-                    if spec is None or not hasattr(spec, 'dataokay') or not spec.dataokay:
-                        continue
-                    
-                    if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
-                        continue
-                    
-                    wl = np.asarray(spec.WL, dtype=np.float32)
-                    plb = np.asarray(spec.PLB, dtype=np.float32)
-                    
-                    # Normalize PLB based on norm_type
-                    if norm_type == 'intensity':
-                        total_intensity = np.sum(plb)
-                        if total_intensity > MIN_NORMALIZATION_THRESHOLD:
-                            plb_normalized = plb / total_intensity
-                        else:
-                            plb_normalized = plb.copy()
-                    elif norm_type == 'counts':
-                        # Normalize by maximum count value across all wavelengths
-                        max_counts = np.max(plb)
-                        if max_counts > MIN_NORMALIZATION_THRESHOLD:
-                            plb_normalized = plb / max_counts
-                        else:
-                            plb_normalized = plb.copy()
-                    else:
-                        plb_normalized = plb.copy()
-                    
-                    # Initialize derivative arrays with zeros (float32 to reduce RAM usage)
-                    if calc_d1:
-                        setattr(spec, f'Specdiff1{attr_suffix}', np.zeros(len(plb), dtype=np.float32))
-                    if calc_d2:
-                        setattr(spec, f'Specdiff2{attr_suffix}', np.zeros(len(plb), dtype=np.float32))
-                    
-                    n_points = len(wl)
-                    
-                    # Sliding window loop
-                    for k in range(half_window, n_points - half_window):
-                        start_idx = k - half_window
-                        end_idx = k + half_window + 1
-                        
-                        # Extract window from NORMALIZED data
-                        wl_window = wl[start_idx:end_idx]
-                        plb_window = plb_normalized[start_idx:end_idx]
-                        
-                        # Fit polynomial
-                        # Standardize x-axis to avoid poor conditioning (RankWarning) and float32 precision issues
-                        # We center around the evaluation point wl[k], so we just evaluate at x=0
-                        x_centered = wl_window - wl[k]
-                        
-                        try:
-                            # Use float64 for fitting to ensure numerical stability, then cast back if needed
-                            # The input arrays are float32, so polyfit might warn. 
-                            # We can force float64 by casting x_centered and plb_window, 
-                            # but usually numpy handles this if we don't enforce dtype in polyfit (it returns float64).
-                            # However, x_centered is float32 because wl is float32.
-                            
-                            p = np.polyfit(x_centered, plb_window, poly_order)
-                            
-                            if calc_d1:
-                                # First derivative
-                                # differentiation of polynomial p
-                                # dp returns coefficients of derivative
-                                dp = np.polyder(p)
-                                # Evaluate at x=0 (since we centered at wl[k])
-                                # This is equivalent to the coefficient of the x^1 term in p
-                                getattr(spec, f'Specdiff1{attr_suffix}')[k] = np.polyval(dp, 0.0)
-                            
-                            if calc_d2:
-                                # Second derivative
-                                ddp = np.polyder(np.polyder(p))
-                                # Evaluate at x=0
-                                getattr(spec, f'Specdiff2{attr_suffix}')[k] = np.polyval(ddp, 0.0)
-                        
-                        except Exception as e:
-                            # Polynomial fit can fail for bad data points (e.g. all NaNs)
-                            # If it fails, we leave as zero or could set to NaN
-                            # For now, print error if it's not the expected RankWarning (which is suppressed by polyfit usually unless turned into error)
-                            # but user said "pass" is not what they want.
-                            print(f"Derivative calculation failed at index {k}: {e}")
-                            pass
     
     def UpdateHSIselect(self):
         if len(self.PMdict) > 0:
