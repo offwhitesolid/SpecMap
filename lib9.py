@@ -2775,65 +2775,60 @@ class XYMap:
 
         print(f"Calculating derivatives: d1={calc_d1}, d2={calc_d2}, order={poly_order}, window={N_fitpoints}")
 
-        # Iterate over all spectra
-        for spec in self.specs:
-            if spec is None:
-                continue
-                
-            # Ensure we have data
-            # Check for None or empty arrays/lists explicitly to avoid ambiguity with numpy arrays
-            if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
-                continue
+        half_window = N_fitpoints // 2
 
-            wl = np.asarray(spec.WL, dtype=np.float32)
-            plb = np.asarray(spec.PLB, dtype=np.float32)
-            
-            # Initialize derivative arrays with zeros (float32 to reduce RAM usage)
-            if calc_d1:
-                spec.Specdiff1 = np.zeros(len(plb), dtype=np.float32)
-            if calc_d2:
-                spec.Specdiff2 = np.zeros(len(plb), dtype=np.float32)
+        # Iterate over all spectra in SpecDataMatrix
+        # (self.specs is cleared after autogenmatrix() to free memory)
+        for row in self.SpecDataMatrix:
+            for spec in row:
+                if spec is None:
+                    continue
 
-            half_window = N_fitpoints // 2
-            n_points = len(wl)
+                # Ensure we have data
+                # Check for None or empty arrays/lists explicitly to avoid ambiguity with numpy arrays
+                if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
+                    continue
 
-            # Sliding window loop
-            for i in range(half_window, n_points - half_window):
-                start_idx = i - half_window
-                end_idx = i + half_window + 1
-                
-                # Extract window
-                wl_window = wl[start_idx:end_idx]
-                plb_window = plb[start_idx:end_idx]
-                
-                # Fit polynomial (center x at evaluation point for numerical stability)
-                try:
-                    wl_center = wl[i]
-                    p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
-                    
-                    if calc_d1:
-                        # First derivative
-                        dp = np.polyder(p)
-                        spec.Specdiff1[i] = np.polyval(dp, 0.0)
-                        
-                    if calc_d2:
-                        # Second derivative
-                        ddp = np.polyder(np.polyder(p))
-                        spec.Specdiff2[i] = np.polyval(ddp, 0.0)
-                        
-                except Exception as e:
-                    # print(f"Derivative fit failed at index {i}: {e}")
-                    pass
-        
-        # After calculating derivatives, compute normalized derivatives (derivative/signal)
-        # This normalizes derivatives by the original PLB signal at each wavelength
-        if self.specs:
-            # Create a wrapper to match the expected 2D matrix format for normalize_derivatives_by_signal
-            specs_as_matrix = [[spec] for spec in self.specs if spec is not None]
-            if specs_as_matrix:
-                hsi_normalization.normalize_derivatives_by_signal(specs_as_matrix, signal_key='PLB')
-        
-        # Also normalize derivatives in SpecDataMatrix if it exists
+                wl = np.asarray(spec.WL, dtype=np.float32)
+                plb = np.asarray(spec.PLB, dtype=np.float32)
+
+                # Initialize derivative arrays with zeros (float32 to reduce RAM usage)
+                if calc_d1:
+                    spec.Specdiff1 = np.zeros(len(plb), dtype=np.float32)
+                if calc_d2:
+                    spec.Specdiff2 = np.zeros(len(plb), dtype=np.float32)
+
+                n_points = len(wl)
+
+                # Sliding window loop
+                for i in range(half_window, n_points - half_window):
+                    start_idx = i - half_window
+                    end_idx = i + half_window + 1
+
+                    # Extract window
+                    wl_window = wl[start_idx:end_idx]
+                    plb_window = plb[start_idx:end_idx]
+
+                    # Fit polynomial (center x at evaluation point for numerical stability)
+                    try:
+                        wl_center = wl[i]
+                        p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
+
+                        if calc_d1:
+                            # First derivative
+                            dp = np.polyder(p)
+                            spec.Specdiff1[i] = np.polyval(dp, 0.0)
+
+                        if calc_d2:
+                            # Second derivative
+                            ddp = np.polyder(np.polyder(p))
+                            spec.Specdiff2[i] = np.polyval(ddp, 0.0)
+
+                    except Exception as e:
+                        # print(f"Derivative fit failed at index {i}: {e}")
+                        pass
+
+        # Normalize derivatives in SpecDataMatrix by the PLB signal
         if hasattr(self, 'SpecDataMatrix') and self.SpecDataMatrix:
             hsi_normalization.normalize_derivatives_by_signal(self.SpecDataMatrix, signal_key='PLB')
         
