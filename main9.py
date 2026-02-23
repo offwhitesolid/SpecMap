@@ -225,6 +225,7 @@ class FileProcessorApp:
         self.multiple_HSIs_save_hsi_dir_entry.grid(row=4, column=1)
         self.Browse_hsiobject_save_dir_button = tk.Button(self.multiple_HSIs_inp_frame, text="Browse", command=lambda: deflib.browse_folder(self.multiple_HSIs_save_hsi_dir_entry)).grid(row=4, column=2)
 
+        # todo: add option to calculate derivatives
         # Cosmic removal
         # add extra frame for cosmic removal onto loadframe
         self.cosmicframe = tk.Frame(self.loadframe, borderwidth=2, relief="sunken")
@@ -280,14 +281,16 @@ class FileProcessorApp:
         # Calculate first and second derivatives but normalize before derivative is calculated.
         self.calc_norm_and_deriveBool = tk.IntVar()
         self.calc_norm_and_deriveBool.set(defaults['calc_norm_and_derive'])
-        self.calc_norm_and_derive_check = tk.Checkbutton(self.load_content_frame, text="normalize on counts, then derive", variable=self.calc_norm_and_deriveBool)
-        self.calc_norm_and_derive_check.grid(row=5, column=0)
+        self.calc_norm_and_derive_check = tk.Checkbutton(self.cosmicframe, text="normalize on counts, then derive", variable=self.calc_norm_and_deriveBool)
+        self.calc_norm_and_derive_check.grid(row=6, column=0)
 
         # Normalize on total intensity
         self.calc_norm_on_intensityBool = tk.IntVar()
         self.calc_norm_on_intensityBool.set(defaults['calc_norm_on_intensity'])
-        self.calc_norm_on_intensity_check = tk.Checkbutton(self.load_content_frame, text="normalize on total intensity, then derive", variable=self.calc_norm_on_intensityBool)
-        self.calc_norm_on_intensity_check.grid(row=6, column=0)
+        self.calc_norm_on_intensity_check = tk.Checkbutton(self.cosmicframe, text="normalize on total intensity, then derive", variable=self.calc_norm_on_intensityBool)
+        self.calc_norm_on_intensity_check.grid(row=6, column=1)
+
+        # 
 
         # Clara load frame (now inside load_content_frame)
         self.claraloadframe = tk.Frame(self.load_content_frame, width=60, height=100, borderwidth=5, relief="ridge")
