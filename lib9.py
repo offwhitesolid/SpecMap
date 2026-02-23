@@ -3227,10 +3227,15 @@ class XYMap:
         print('Powermatrix before removing nans:', powerMatrix)
         maxpower = np.amax(powerMatrix)
         print('Powermatrix before normalization:', powerMatrix)
-        #sys.exit()
-        for i in range(len(powerMatrix)):
-            for j in range(len(powerMatrix[i])):
-                powerMatrix[i][j] = powerMatrix[i][j]/maxpower
+
+        if maxpower < 0.000001:
+            print("Max power is too low ({}), skipping normalization and using unit matrix.".format(maxpower))
+            # Create unit matrix of same shape
+            powerMatrix = np.ones_like(powerMatrix)
+        else:
+            for i in range(len(powerMatrix)):
+                for j in range(len(powerMatrix[i])):
+                    powerMatrix[i][j] = powerMatrix[i][j]/maxpower
         
 		# divide the selected spectra by the powerMatrix
         for i in range(len(self.SpecDataMatrix)):
