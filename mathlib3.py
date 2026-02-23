@@ -1,5 +1,4 @@
 import numpy as np
-import warnings
 from scipy.optimize import curve_fit, minimize
 from scipy.special import wofz
 from scipy.optimize import fminbound
@@ -749,9 +748,7 @@ def extract_phase_evolution(oscillations, wl, maxima_indices, minima_indices):
     # This captures the "chirp" or phase evolution
     if len(freq_centers) > 1:
         freq_center_mean = np.mean(freq_centers)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', np.exceptions.RankWarning)
-            coeffs = np.polyfit(freq_centers - freq_center_mean, instantaneous_freq, 1)
+        coeffs = np.polyfit(freq_centers - freq_center_mean, instantaneous_freq, 1)
         phase_trend_slope = coeffs[0]  # How fast frequency changes with energy
         phase_trend_intercept = coeffs[1] - coeffs[0] * freq_center_mean  # Initial frequency
     else:
@@ -1030,9 +1027,7 @@ def calculate_flank_slopes(energy, intensity, peak_fraction=0.5, smooth=False):
         x_left = energy[left_base_idx:left_flank_end+1]
         y_left = intensity[left_base_idx:left_flank_end+1]
         if len(x_left) > 1:
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore', np.exceptions.RankWarning)
-                poly_coeffs = np.polyfit(x_left - np.mean(x_left), y_left, 1)
+            poly_coeffs = np.polyfit(x_left - np.mean(x_left), y_left, 1)
             a_L = float(poly_coeffs[0])
         else:
             a_L = 0.0
@@ -1044,9 +1039,7 @@ def calculate_flank_slopes(energy, intensity, peak_fraction=0.5, smooth=False):
         x_right = energy[right_flank_start:right_base_idx+1]
         y_right = intensity[right_flank_start:right_base_idx+1]
         if len(x_right) > 1:
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore', np.exceptions.RankWarning)
-                poly_coeffs = np.polyfit(x_right - np.mean(x_right), y_right, 1)
+            poly_coeffs = np.polyfit(x_right - np.mean(x_right), y_right, 1)
             a_R = float(poly_coeffs[0])
         else:
             a_R = 0.0
@@ -1098,9 +1091,7 @@ def calculate_peak_curvature(energy, intensity, window_fraction=0.1):
     if len(x_window) >= 3:
         # Shift to center at E_max for better numerical stability
         x_shifted = x_window - E_max
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', np.exceptions.RankWarning)
-            coeffs = np.polyfit(x_shifted, y_window, 2)
+        coeffs = np.polyfit(x_shifted, y_window, 2)
         curvature = float(coeffs[0])  # c_2 coefficient (second derivative / 2)
     else:
         curvature = 0.0

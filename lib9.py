@@ -1,5 +1,4 @@
 import numpy as np
-import warnings
 from PIL import Image
 from matplotlib.figure import Figure
 import sys, pickle, copy
@@ -2995,9 +2994,7 @@ class XYMap:
                         # Fit polynomial (center x at evaluation point for numerical stability)
                         try:
                             wl_center = wl[k]
-                            with warnings.catch_warnings():
-                                warnings.simplefilter('ignore', np.exceptions.RankWarning)
-                                p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
+                            p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
                             
                             if calc_d1:
                                 dp = np.polyder(p)
