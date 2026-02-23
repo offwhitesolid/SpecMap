@@ -12,3 +12,5 @@ savefiles/
 logs/
 benchmarks/*.png
 benchmarks/*.txt
+testingscripts/derivatives/*.png
+testingscripts/derivativest2/*.png
