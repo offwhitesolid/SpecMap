@@ -1,6 +1,7 @@
 *.pyc
 *.csv
 *.log
+*_test.png
 .qudo/
 .venv/
 oldfiles/
