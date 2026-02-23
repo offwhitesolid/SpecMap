@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 from matplotlib.figure import Figure
-import sys, pickle, copy
+import sys, pickle, copy, warnings
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import ttk
@@ -2811,7 +2811,9 @@ class XYMap:
                     # Fit polynomial (center x at evaluation point for numerical stability)
                     try:
                         wl_center = wl[i]
-                        p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
+                        with warnings.catch_warnings():
+                            warnings.simplefilter('error', np.exceptions.RankWarning)
+                            p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
 
                         if calc_d1:
                             # First derivative
@@ -2925,7 +2927,9 @@ class XYMap:
                 # Fit polynomial (center x at evaluation point for numerical stability)
                 try:
                     wl_center = wl[i]
-                    p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
+                    with warnings.catch_warnings():
+                        warnings.simplefilter('error', np.exceptions.RankWarning)
+                        p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
                     
                     if calc_d1:
                         # First derivative
@@ -2994,7 +2998,9 @@ class XYMap:
                         # Fit polynomial (center x at evaluation point for numerical stability)
                         try:
                             wl_center = wl[k]
-                            p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
+                            with warnings.catch_warnings():
+                                warnings.simplefilter('error', np.exceptions.RankWarning)
+                                p = np.polyfit(wl_window - wl_center, plb_window, poly_order)
                             
                             if calc_d1:
                                 dp = np.polyder(p)
