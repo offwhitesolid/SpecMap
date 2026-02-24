@@ -2781,7 +2781,8 @@ class XYMap:
             for row in self.SpecDataMatrix:
                 if row:
                     for spec in row:
-                        if spec is not None:
+                        # Check if spec is a valid SpectrumData object (and not np.nan/float)
+                        if spec is not None and isinstance(spec, SpectrumData):
                             all_specs.append(spec)
         elif hasattr(self, 'specs') and self.specs:
             all_specs = [s for s in self.specs if s is not None]
@@ -2902,7 +2903,8 @@ class XYMap:
                 for row in self.SpecDataMatrix:
                     if row:
                         for spec in row:
-                            if spec is not None:
+                            # Check if spec is a valid SpectrumData object (and not np.nan/float)
+                            if spec is not None and isinstance(spec, SpectrumData):
                                 all_specs.append(spec)
             elif hasattr(self, 'specs') and self.specs:
                 all_specs = [s for s in self.specs if s is not None]
