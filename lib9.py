@@ -2507,7 +2507,6 @@ class XYMap:
                                 PixMatrix[i][j] = self.SpecDataMatrix[i][j].fitmaxX
                     except Exception as e:
                         print('Error in getPLpixelSpecMax', str(e))
-                        sys.exit()
                 else:
                     PixMatrix[i][j] = np.nan
 
