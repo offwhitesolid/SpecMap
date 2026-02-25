@@ -484,7 +484,7 @@ class FastestUpApp:
         try:
             return float(var.get())
         except ValueError:
-            messagebox.showwarning(
+            print(
                 'Warning',
                 f'Invalid value for {name}, using default ({default}).')
             return default
@@ -493,7 +493,7 @@ class FastestUpApp:
         try:
             return int(var.get())
         except ValueError:
-            messagebox.showwarning(
+            print(
                 'Warning',
                 f'Invalid value for {name}, using default ({default}).')
             return default
@@ -501,7 +501,7 @@ class FastestUpApp:
     def _create_hsi(self):
         files = self._collect_files()
         if not files:
-            messagebox.showinfo(
+            print(
                 'No files',
                 'No matching files found.\n'
                 'Check the folder, filename pattern and extension.')
