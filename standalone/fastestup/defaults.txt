@@ -1,0 +1,12 @@
+data_folder = 
+filename = spectrum
+file_extension = .txt
+linear_bg = True
+remove_cosmics = True
+cosmic_method = Linear + Neighbor (Combined)
+cosmic_threshold = 100
+cosmic_width = 10
+wl_start = 500.0
+wl_end = 700.0
+count_threshold = 0
+colormap = hot
