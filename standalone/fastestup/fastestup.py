@@ -41,6 +41,8 @@ except ImportError:
     _DEFLIB_AVAILABLE = False
 
 # ── defaults ────────────────────────────────────────────────────────────────
+DEFAULTS_FILE = os.path.join(SCRIPT_DIR, 'defaults.txt')
+
 DEFAULTS = {
     'data_folder':      '',
     'filename':         'spectrum',
@@ -55,6 +57,69 @@ DEFAULTS = {
     'count_threshold':  0,
     'colormap':         'hot',
 }
+
+_DEFAULTTYPES = {
+    'data_folder':      str,
+    'filename':         str,
+    'file_extension':   str,
+    'linear_bg':        bool,
+    'remove_cosmics':   bool,
+    'cosmic_method':    str,
+    'cosmic_threshold': int,
+    'cosmic_width':     int,
+    'wl_start':         float,
+    'wl_end':           float,
+    'count_threshold':  float,
+    'colormap':         str,
+}
+
+
+def load_defaults():
+    """Load default values from defaults.txt."""
+    variables = {}
+    if os.path.exists(DEFAULTS_FILE):
+        with open(DEFAULTS_FILE, 'r') as file:
+            for line in file:
+                if '=' in line:
+                    name, value = line.split('=', 1)
+                    name = name.strip()
+                    value = value.strip()
+                    if value.isdigit():
+                        value = int(value)
+                    elif value.replace('.', '', 1).isdigit():
+                        value = float(value)
+                    elif value.lower() in ('true', 'false'):
+                        value = value.lower() == 'true'
+                    variables[name] = value
+    return variables
+
+
+def save_defaults(variables):
+    """Save default values to defaults.txt."""
+    with open(DEFAULTS_FILE, 'w') as file:
+        for name, value in variables.items():
+            file.write(f'{name} = {value}\n')
+
+
+def initdefaults():
+    """Load defaults from file, falling back to hardcoded values."""
+    loadeddefaults = load_defaults()
+    reqdefaults = DEFAULTS.copy()
+    for i in loadeddefaults.keys():
+        if i not in _DEFAULTTYPES:
+            continue
+        try:
+            reqdefaults[i] = _DEFAULTTYPES[i](loadeddefaults[i])
+        except Exception as error:
+            if loadeddefaults[i] == 'None':
+                pass
+            else:
+                print(f'[FastestUp] Error: {error} while loading entry '
+                      f'{i!r}. Using default: {reqdefaults[i]}')
+    return reqdefaults
+
+
+DEFAULTS = initdefaults()
 
 # Metadata keys whose values should be converted to float
 _FLOAT_KEYS = {
