@@ -32,10 +32,7 @@ if SPECMAP_DIR not in sys.path:
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 try:
     import deflib1 as deflib
@@ -425,27 +422,11 @@ class FastestUpApp:
                   bg='#4CAF50', fg='white',
                   command=self._create_hsi).pack(side=tk.LEFT, padx=(0, 10))
 
-        tk.Button(btn_frame, text='Clear Plot',
-                  command=self._clear_plot).pack(side=tk.LEFT)
-
         # ---------- Status bar ----------------------------------------------
         self._status_var = tk.StringVar(value='Ready.')
         tk.Label(main, textvariable=self._status_var,
                  anchor='w', relief='sunken').pack(
             fill=tk.X, side=tk.BOTTOM, pady=(4, 0))
-
-        # ---------- Matplotlib canvas area ----------------------------------
-        plot_frame = tk.LabelFrame(main, text='HSI Preview', padx=4, pady=4)
-        plot_frame.pack(fill=tk.BOTH, expand=True)
-
-        self._fig, self._ax = plt.subplots(figsize=(6, 5))
-        self._ax.set_visible(False)
-
-        self._canvas = FigureCanvasTkAgg(self._fig, master=plot_frame)
-        self._canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-        toolbar = NavigationToolbar2Tk(self._canvas, plot_frame)
-        toolbar.update()
 
     # ── callbacks ───────────────────────────────────────────────────────────
 
@@ -457,12 +438,6 @@ class FastestUpApp:
     def _set_status(self, msg: str):
         self._status_var.set(msg)
         self.root.update_idletasks()
-
-    def _clear_plot(self):
-        self._ax.cla()
-        self._ax.set_visible(False)
-        self._canvas.draw()
-        self._set_status('Plot cleared.')
 
     def _collect_files(self):
         """Walk folder, return sorted list of matching files."""
@@ -551,10 +526,9 @@ class FastestUpApp:
             return
 
         # ── plot ─────────────────────────────────────────────────────────────
-        self._ax.cla()
-        self._ax.set_visible(True)
+        fig, ax = plt.subplots(figsize=(6, 5))
 
-        im = self._ax.imshow(
+        im = ax.imshow(
             pixel_matrix,
             cmap=colormap,
             aspect='auto',
@@ -565,18 +539,18 @@ class FastestUpApp:
             else None,
         )
 
-        cbar = self._fig.colorbar(im, ax=self._ax)
+        cbar = fig.colorbar(im, ax=ax)
         cbar.set_label('Integrated counts', fontsize=10)
 
-        self._ax.set_title(
+        ax.set_title(
             f'HSI: {wl_start_used:.1f} – {wl_end_used:.1f} nm'
             f'  ({len(files)} pixels)',
             fontsize=10)
-        self._ax.set_xlabel('X position (µm)', fontsize=9)
-        self._ax.set_ylabel('Y position (µm)', fontsize=9)
+        ax.set_xlabel('X position (µm)', fontsize=9)
+        ax.set_ylabel('Y position (µm)', fontsize=9)
 
-        self._fig.tight_layout()
-        self._canvas.draw()
+        fig.tight_layout()
+        plt.show()
 
         self._set_status(
             f'HSI created: {pixel_matrix.shape[1]}×{pixel_matrix.shape[0]}'
@@ -588,8 +562,9 @@ class FastestUpApp:
 
 def main():
     root = tk.Tk()
-    root.geometry('900x750')
+    root.geometry('900x600')
     FastestUpApp(root)
+    root.protocol('WM_DELETE_WINDOW', root.destroy)
     root.mainloop()
 
 
