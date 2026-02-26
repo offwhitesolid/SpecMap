@@ -30,7 +30,7 @@ if SPECMAP_DIR not in sys.path:
     sys.path.insert(0, SPECMAP_DIR)
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -510,7 +510,7 @@ class FastestUpApp:
         pattern  = self._fname_var.get().strip()
         ext      = self._fext_var.get().strip()
         if not folder:
-            messagebox.showerror('Error', 'Please select a data folder.')
+            print('Error', 'Please select a data folder.')
             return []
         files = []
         for root_dir, _, filenames in os.walk(folder):
@@ -586,7 +586,7 @@ class FastestUpApp:
                 status_cb=self._set_status,
             )
         except Exception as exc:
-            messagebox.showerror('Processing error', str(exc))
+            print('Processing error', str(exc))
             self._set_status(f'Error: {exc}')
             return
 
