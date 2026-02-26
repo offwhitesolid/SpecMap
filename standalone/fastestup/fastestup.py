@@ -56,6 +56,8 @@ DEFAULTS = {
     'wl_end':           700.0,
     'count_threshold':  0,
     'colormap':         'hot',
+    'selected_pixel_x': 0,
+    'selected_pixel_y': 0,
 }
 
 _DEFAULTTYPES = {
@@ -71,6 +73,8 @@ _DEFAULTTYPES = {
     'wl_end':           float,
     'count_threshold':  float,
     'colormap':         str,
+    'selected_pixel_x': int,
+    'selected_pixel_y': int,
 }
 
 
@@ -270,6 +274,7 @@ def build_hsi(files, linear_bg, remove_cosmics, cosmic_method,
     y_axis       : 1-D numpy array  unique sorted Y positions
     wl_start_used: float
     wl_end_used  : float
+    spectra_dict : dict  maps (x_index, y_index) -> 1-D PLB numpy array
     """
     if not files:
         raise ValueError('No files provided.')
@@ -306,7 +311,7 @@ def build_hsi(files, linear_bg, remove_cosmics, cosmic_method,
 
     # ── 3. read & process every spectrum ────────────────────────────────────
     _status(f'Loading {len(files)} spectra …')
-    pixel_data = []          # list of (x, y, intensity)
+    pixel_data = []          # list of (x, y, intensity, plb)
 
     for idx, fpath in enumerate(files):
         rec = _read_spectrum(fpath, len(WL))
@@ -320,7 +325,7 @@ def build_hsi(files, linear_bg, remove_cosmics, cosmic_method,
                 PLB, cosmic_method, cosmic_threshold, cosmic_width)
 
         intensity = float(np.sum(PLB[aq_start:aq_end]))
-        pixel_data.append((rec['x'], rec['y'], intensity))
+        pixel_data.append((rec['x'], rec['y'], intensity, PLB))
 
         if (idx + 1) % max(1, len(files) // 10) == 0:
             _status(f'  processed {idx + 1}/{len(files)} spectra …')
@@ -337,8 +342,12 @@ def build_hsi(files, linear_bg, remove_cosmics, cosmic_method,
     y_idx = {v: i for i, v in enumerate(ys)}
 
     pixel_matrix = np.full((len(ys), len(xs)), np.nan, dtype=np.float64)
-    for x, y, val in pixel_data:
-        pixel_matrix[y_idx[y], x_idx[x]] = val
+    spectra_dict = {}
+    for x, y, val, plb in pixel_data:
+        xi = x_idx[x]
+        yi = y_idx[y]
+        pixel_matrix[yi, xi] = val
+        spectra_dict[(xi, yi)] = plb
 
     # apply count threshold
     if count_threshold > 0:
@@ -350,7 +359,8 @@ def build_hsi(files, linear_bg, remove_cosmics, cosmic_method,
             np.array(xs, dtype=np.float64),
             np.array(ys, dtype=np.float64),
             wl_start_used,
-            wl_end_used)
+            wl_end_used,
+            spectra_dict)
 
 
 # ── GUI ──────────────────────────────────────────────────────────────────────
@@ -362,6 +372,12 @@ class FastestUpApp:
         self.root = root
         self.root.title('FastestUp – Lightweight HSI Creator')
         self.root.resizable(True, True)
+
+        # data stored after HSI creation
+        self._spectra_dict = None   # (xi, yi) -> PLB array
+        self._WL           = None   # wavelength axis
+        self._x_axis       = None   # unique sorted X positions
+        self._y_axis       = None   # unique sorted Y positions
 
         self._build_gui()
 
@@ -478,6 +494,24 @@ class FastestUpApp:
             width=12, state='readonly')
         cmap_combo.grid(row=1, column=3, sticky='w', padx=(4, 0))
 
+        # ---------- Selected Pixel frame ------------------------------------
+        pix_frame = tk.LabelFrame(main, text='Selected Pixel', padx=6, pady=6)
+        pix_frame.pack(fill=tk.X, pady=(0, 6))
+
+        tk.Label(pix_frame, text='X:').grid(row=0, column=0, sticky='w')
+        self._sel_x_var = tk.StringVar(value=str(DEFAULTS['selected_pixel_x']))
+        tk.Entry(pix_frame, textvariable=self._sel_x_var,
+                 width=8).grid(row=0, column=1, sticky='w', padx=(4, 20))
+
+        tk.Label(pix_frame, text='Y:').grid(row=0, column=2, sticky='w')
+        self._sel_y_var = tk.StringVar(value=str(DEFAULTS['selected_pixel_y']))
+        tk.Entry(pix_frame, textvariable=self._sel_y_var,
+                 width=8).grid(row=0, column=3, sticky='w', padx=(4, 0))
+
+        tk.Label(pix_frame,
+                 text='(click on HSI image to select a pixel)',
+                 fg='gray').grid(row=0, column=4, sticky='w', padx=(12, 0))
+
         # ---------- Action buttons ------------------------------------------
         btn_frame = tk.Frame(main)
         btn_frame.pack(fill=tk.X, pady=(0, 4))
@@ -486,6 +520,14 @@ class FastestUpApp:
                   font=('Arial', 10, 'bold'),
                   bg='#4CAF50', fg='white',
                   command=self._create_hsi).pack(side=tk.LEFT, padx=(0, 10))
+
+        tk.Button(btn_frame, text='Plot Spectrum at Pixel',
+                  command=self._plot_pixel_spectrum).pack(
+            side=tk.LEFT, padx=(0, 10))
+
+        tk.Button(btn_frame, text='Plot Average Spectrum',
+                  command=self._plot_average_spectrum).pack(
+            side=tk.LEFT, padx=(0, 10))
 
         # ---------- Status bar ----------------------------------------------
         self._status_var = tk.StringVar(value='Ready.')
@@ -573,7 +615,8 @@ class FastestUpApp:
              x_axis,
              y_axis,
              wl_start_used,
-             wl_end_used) = build_hsi(
+             wl_end_used,
+             spectra_dict) = build_hsi(
                 files=files,
                 linear_bg=linear_bg,
                 remove_cosmics=remove_cosmics,
@@ -589,6 +632,12 @@ class FastestUpApp:
             print('Processing error', str(exc))
             self._set_status(f'Error: {exc}')
             return
+
+        # store data for spectrum plotting
+        self._spectra_dict = spectra_dict
+        self._WL           = WL
+        self._x_axis       = x_axis
+        self._y_axis       = y_axis
 
         # ── plot ─────────────────────────────────────────────────────────────
         fig, ax = plt.subplots(figsize=(6, 5))
@@ -615,12 +664,82 @@ class FastestUpApp:
         ax.set_ylabel('Y position (µm)', fontsize=9)
 
         fig.tight_layout()
+        fig.canvas.mpl_connect('button_press_event', self._on_hsi_click)
         plt.show()
 
         self._set_status(
             f'HSI created: {pixel_matrix.shape[1]}×{pixel_matrix.shape[0]}'
             f' pixels  |  {wl_start_used:.1f}–{wl_end_used:.1f} nm  '
             f'|  use the toolbar to save the image.')
+
+    # ── HSI click handler ────────────────────────────────────────────────────
+
+    def _on_hsi_click(self, event):
+        """Update selected pixel when the user clicks on the HSI image."""
+        if event.inaxes is None:
+            return
+        if self._x_axis is None or self._y_axis is None:
+            return
+        if len(self._x_axis) > 1:
+            xi = int(np.argmin(np.abs(self._x_axis - event.xdata)))
+        else:
+            xi = 0
+        if len(self._y_axis) > 1:
+            yi = int(np.argmin(np.abs(self._y_axis - event.ydata)))
+        else:
+            yi = 0
+        self._sel_x_var.set(str(xi))
+        self._sel_y_var.set(str(yi))
+        self._set_status(f'Selected pixel: ({xi}, {yi})')
+
+    # ── spectrum plotting ────────────────────────────────────────────────────
+
+    def _plot_pixel_spectrum(self):
+        """Plot the PLB spectrum at the selected pixel position."""
+        if self._spectra_dict is None:
+            print('[FastestUp] No HSI data available – create an HSI first.')
+            self._set_status('No HSI data. Create HSI first.')
+            return
+        try:
+            xi = int(self._sel_x_var.get())
+            yi = int(self._sel_y_var.get())
+        except ValueError:
+            print('[FastestUp] Invalid pixel coordinates.')
+            self._set_status('Invalid pixel coordinates.')
+            return
+        key = (xi, yi)
+        if key not in self._spectra_dict:
+            print(f'[FastestUp] No spectrum at pixel ({xi}, {yi}).')
+            self._set_status(f'No spectrum at pixel ({xi}, {yi}).')
+            return
+        plb = self._spectra_dict[key]
+        plt.figure()
+        plt.plot(self._WL, plb, label=f'Pixel ({xi}, {yi})')
+        plt.xlabel('Wavelength (nm)')
+        plt.ylabel('Intensity (counts)')
+        plt.title(f'Spectrum at pixel ({xi}, {yi})')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    def _plot_average_spectrum(self):
+        """Average all spectra and plot the result."""
+        if self._spectra_dict is None or not self._spectra_dict:
+            print('[FastestUp] No HSI data available – create an HSI first.')
+            self._set_status('No HSI data. Create HSI first.')
+            return
+        spectra = list(self._spectra_dict.values())
+        avg_spec = np.mean(np.stack(spectra, axis=0), axis=0)
+        plt.figure()
+        plt.plot(self._WL, avg_spec, label=f'Average ({len(spectra)} pixels)')
+        plt.xlabel('Wavelength (nm)')
+        plt.ylabel('Intensity (counts)')
+        plt.title('Average Spectrum')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
