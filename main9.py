@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import filedialog, messagebox
 from matplotlib.figure import Figure
 #from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
-import os, sys, pickle
+import os, sys, pickle, re
 from PIL import Image, ImageTk
 import lib9 as lib # type: ignore
 import numpy as np
@@ -1064,40 +1064,78 @@ class specfilesorter:
                         pass
                 # placeholder for further processing per folder
                 # pass
-            # after the loop, enforce merge consecutive days if the option is selected (not implemented yet)
+
+            # after the loop, enforce merge consecutive days if the option is selected
             if self.merge_var.get() == 1:
-                folderlist = os.listdir(self._savedir)
+                folderlist = [f for f in os.listdir(self._savedir) if os.path.isdir(os.path.join(self._savedir, f))]
+                
+                # Group folders by (prefix, suffix) key to identify measurements split across days
+                groups = {}
+                for folder in folderlist:
+                    # Regex to find 8-digit date (starting with 19 or 20) in the folder name
+                    # Pattern matches: Prefix + YYYYMMDD + Suffix
+                    match = re.search(r'^(.*?)((?:19|20)\d{6})(.*)$', folder)
+                    if match:
+                        prefix, date_str, suffix = match.groups()
+                        try:
+                            # Use datet alias as typically imported in this file
+                            date_obj = datet.datetime.strptime(date_str, "%Y%m%d").date()
+                            
+                            # The key is the identifier (Name + Info) without the date
+                            key = (prefix, suffix)
+                            if key not in groups:
+                                groups[key] = []
+                            groups[key].append({'date': date_obj, 'folder': folder, 'path': os.path.join(self._savedir, folder)})
+                        except ValueError:
+                            continue # Skip if date parsing fails
 
-                # loop over the created folders names
-                for i in range(len(folderlist)-1):
-                    # in folderlist[i] open the first file and get the date of the measurement (or alternatively split the folder name if it contains the date and number info)
-                    firstfile = os.listdir(os.path.join(self._savedir, folderlist[i]))[0]
-                    stat = os.stat(os.path.join(self._savedir, folderlist[i], firstfile))
-                    date = datet.datetime.fromtimestamp(stat.st_mtime) # get modification time as a proxy for measurement date
-                    # dayplusone = date + datet.timedelta(days=1)
-                    dayplusone = date + datet.timedelta(days=1)
-                    filedateplusone = [dayplusone.year, dayplusone.month, dayplusone.day]
-                    # filedatenameplusone is the string representation of filedateplusone in the format YYYYMMDD
-                    filedatenameplusone = f"{filedateplusone[0]:04d}{filedateplusone[1]:02d}{filedateplusone[2]:02d}"
-                    for j in range(len(folderlist)-1):
-                        if filedatenameplusone in folderlist[j]:
-                            # if the date of the next folder matches filedateplusone, merge the two folders (move all files from folderlist[i] into folderlist[j] and delete folderlist[i])
-                            # befor merging, check if dateprifix_measurement_info, check if measurement is the same, if not, skip merging
-                            if folderlist[i].split("_")[1] == folderlist[j].split("_")[1]: # check if measurement info matches (assuming it's the second part of the folder name when split by "_")
-                                src = os.path.join(self._savedir, folderlist[i])
-                                dst = os.path.join(self._savedir, folderlist[j])
-                                for f in os.listdir(src):
-                                    shutil.move(os.path.join(src, f), os.path.join(dst, f))
-                                os.rmdir(src)
-                                break
-
-
+                # Process each group to find and merge consecutive sequences
+                for key, items in groups.items():
+                    # Sort folders by date so we can find sequences naturally
+                    items.sort(key=lambda x: x['date'])
                     
-
+                    if not items:
+                        continue
+                        
+                    # 'base_idx' points to the folder that starts the current chain (earliest day)
+                    base_idx = 0
                     
-
-                    
-                    
+                    # Iterate starting from the second item to check consecutiveness
+                    for i in range(1, len(items)):
+                        curr_item = items[i]
+                        prev_item = items[i-1]
+                        
+                        # Check strictly for consecutive days (current day == previous day + 1)
+                        if curr_item['date'] - prev_item['date'] == datet.timedelta(days=1):
+                            # It is consecutive, merge 'curr' into the 'base' folder
+                            base_folder = items[base_idx]['path']
+                            src_folder = curr_item['path']
+                            
+                            try:
+                                # Move all contents from the later day to the first day
+                                for item_name in os.listdir(src_folder):
+                                    src_path = os.path.join(src_folder, item_name)
+                                    dst_path = os.path.join(base_folder, item_name)
+                                    
+                                    # Handle filename collisions: if file exists, append date to new filename
+                                    if os.path.exists(dst_path):
+                                        f_name, f_ext = os.path.splitext(item_name)
+                                        # e.g., image.png -> image_20250102.png
+                                        new_name = f"{f_name}_{curr_item['date'].strftime('%Y%m%d')}{f_ext}"
+                                        dst_path = os.path.join(base_folder, new_name)
+                                    
+                                    shutil.move(src_path, dst_path)
+                                
+                                # Remove the now empty source directory (the later day)
+                                os.rmdir(src_folder)
+                                print(f"Merged consecutive day: {src_folder} -> {base_folder}")
+                                
+                            except Exception as e:
+                                print(f"Error merging {src_folder} into {base_folder}: {e}")
+                                
+                        else:
+                            # Sequence broken (gap in days), current becomes the new base for subsequent checks
+                            base_idx = i
 
         finally:
             # schedule finalizer on main thread
