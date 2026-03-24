@@ -17,6 +17,7 @@ import HSI_debugger as DBG
 import TCSPClib as tcspclib
 import shutil, gc
 import error_handler  # Centralized error handling and logging
+import datetime as datet
 
 
 class FileProcessorApp:
@@ -1063,6 +1064,41 @@ class specfilesorter:
                         pass
                 # placeholder for further processing per folder
                 # pass
+            # after the loop, enforce merge consecutive days if the option is selected (not implemented yet)
+            if self.merge_var.get() == 1:
+                folderlist = os.listdir(self._savedir)
+
+                # loop over the created folders names
+                for i in range(len(folderlist)-1):
+                    # in folderlist[i] open the first file and get the date of the measurement (or alternatively split the folder name if it contains the date and number info)
+                    firstfile = os.listdir(os.path.join(self._savedir, folderlist[i]))[0]
+                    stat = os.stat(os.path.join(self._savedir, folderlist[i], firstfile))
+                    date = datet.datetime.fromtimestamp(stat.st_mtime) # get modification time as a proxy for measurement date
+                    # dayplusone = date + datet.timedelta(days=1)
+                    dayplusone = date + datet.timedelta(days=1)
+                    filedateplusone = [dayplusone.year, dayplusone.month, dayplusone.day]
+                    # filedatenameplusone is the string representation of filedateplusone in the format YYYYMMDD
+                    filedatenameplusone = f"{filedateplusone[0]:04d}{filedateplusone[1]:02d}{filedateplusone[2]:02d}"
+                    for j in range(len(folderlist)-1):
+                        if filedatenameplusone in folderlist[j]:
+                            # if the date of the next folder matches filedateplusone, merge the two folders (move all files from folderlist[i] into folderlist[j] and delete folderlist[i])
+                            # befor merging, check if dateprifix_measurement_info, check if measurement is the same, if not, skip merging
+                            if folderlist[i].split("_")[1] == folderlist[j].split("_")[1]: # check if measurement info matches (assuming it's the second part of the folder name when split by "_")
+                                src = os.path.join(self._savedir, folderlist[i])
+                                dst = os.path.join(self._savedir, folderlist[j])
+                                for f in os.listdir(src):
+                                    shutil.move(os.path.join(src, f), os.path.join(dst, f))
+                                os.rmdir(src)
+                                break
+
+
+                    
+
+                    
+
+                    
+                    
+
         finally:
             # schedule finalizer on main thread
             self.sortframe.after(0, self._copy_finished)
