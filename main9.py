@@ -1035,6 +1035,87 @@ class specfilesorter:
                     # launch background thread (daemon so it won't block exit)
                     self._copy_thread = thr.Thread(target=self._copy_worker, daemon=True)
                     self._copy_thread.start()
+                    return
+
+        # enforce merge consecutive days if the option is selected (synchronous copy path)
+        if self.merge_var.get() == 1:
+            self._merge_consecutive_days(savedir)
+
+    def _merge_consecutive_days(self, savedir):
+        """Merge folders that represent the same measurement split across consecutive days.
+        
+        Folders are identified as belonging to the same measurement if they share the same
+        name except for the 8-digit date portion (YYYYMMDD).  All files from a later-day
+        folder are moved into the earliest-day folder, and the now-empty later-day folder
+        is removed.
+        """
+        folderlist = [f for f in os.listdir(savedir) if os.path.isdir(os.path.join(savedir, f))]
+
+        # Group folders by (prefix, suffix) key to identify measurements split across days
+        groups = {}
+        for folder in folderlist:
+            # Regex to find 8-digit date (starting with 19 or 20) in the folder name
+            # Pattern matches: Prefix + YYYYMMDD + Suffix
+            match = re.search(r'^(.*?)((?:19|20)\d{6})(.*)$', folder)
+            if match:
+                prefix, date_str, suffix = match.groups()
+                try:
+                    date_obj = datet.datetime.strptime(date_str, "%Y%m%d").date()
+                    # The key is the identifier (Name + Info) without the date
+                    key = (prefix, suffix)
+                    if key not in groups:
+                        groups[key] = []
+                    groups[key].append({'date': date_obj, 'folder': folder, 'path': os.path.join(savedir, folder)})
+                except ValueError:
+                    continue  # Skip if date parsing fails
+
+        # Process each group to find and merge consecutive sequences
+        for key, items in groups.items():
+            # Sort folders by date so we can find sequences naturally
+            items.sort(key=lambda x: x['date'])
+
+            if len(items) < 2:
+                continue
+
+            # 'base_idx' points to the folder that starts the current chain (earliest day)
+            base_idx = 0
+
+            # Iterate starting from the second item to check consecutiveness
+            for i in range(1, len(items)):
+                curr_item = items[i]
+                prev_item = items[i - 1]
+
+                # Check strictly for consecutive days (current day == previous day + 1)
+                if curr_item['date'] - prev_item['date'] == datet.timedelta(days=1):
+                    # It is consecutive; merge 'curr' into the 'base' folder
+                    base_folder = items[base_idx]['path']
+                    src_folder = curr_item['path']
+
+                    try:
+                        # Move all contents from the later day to the first day
+                        for item_name in os.listdir(src_folder):
+                            src_path = os.path.join(src_folder, item_name)
+                            dst_path = os.path.join(base_folder, item_name)
+
+                            # Handle filename collisions: append date to avoid overwriting
+                            if os.path.exists(dst_path):
+                                f_name, f_ext = os.path.splitext(item_name)
+                                # e.g., image.png -> image_20250102.png
+                                new_name = f"{f_name}_{curr_item['date'].strftime('%Y%m%d')}{f_ext}"
+                                dst_path = os.path.join(base_folder, new_name)
+
+                            shutil.move(src_path, dst_path)
+
+                        # Remove the now-empty source directory (the later day)
+                        os.rmdir(src_folder)
+                        print(f"Merged consecutive day: {src_folder} -> {base_folder}")
+
+                    except Exception as e:
+                        print(f"Error merging {src_folder} into {base_folder}: {e}")
+
+                else:
+                    # Sequence broken (gap in days); current becomes the new base
+                    base_idx = i
 
     def _copy_worker(self):
         """Background worker that copies files and updates progress via the main thread."""
@@ -1067,75 +1148,7 @@ class specfilesorter:
 
             # after the loop, enforce merge consecutive days if the option is selected
             if self.merge_var.get() == 1:
-                folderlist = [f for f in os.listdir(self._savedir) if os.path.isdir(os.path.join(self._savedir, f))]
-                
-                # Group folders by (prefix, suffix) key to identify measurements split across days
-                groups = {}
-                for folder in folderlist:
-                    # Regex to find 8-digit date (starting with 19 or 20) in the folder name
-                    # Pattern matches: Prefix + YYYYMMDD + Suffix
-                    match = re.search(r'^(.*?)((?:19|20)\d{6})(.*)$', folder)
-                    if match:
-                        prefix, date_str, suffix = match.groups()
-                        try:
-                            # Use datet alias as typically imported in this file
-                            date_obj = datet.datetime.strptime(date_str, "%Y%m%d").date()
-                            
-                            # The key is the identifier (Name + Info) without the date
-                            key = (prefix, suffix)
-                            if key not in groups:
-                                groups[key] = []
-                            groups[key].append({'date': date_obj, 'folder': folder, 'path': os.path.join(self._savedir, folder)})
-                        except ValueError:
-                            continue # Skip if date parsing fails
-
-                # Process each group to find and merge consecutive sequences
-                for key, items in groups.items():
-                    # Sort folders by date so we can find sequences naturally
-                    items.sort(key=lambda x: x['date'])
-                    
-                    if not items:
-                        continue
-                        
-                    # 'base_idx' points to the folder that starts the current chain (earliest day)
-                    base_idx = 0
-                    
-                    # Iterate starting from the second item to check consecutiveness
-                    for i in range(1, len(items)):
-                        curr_item = items[i]
-                        prev_item = items[i-1]
-                        
-                        # Check strictly for consecutive days (current day == previous day + 1)
-                        if curr_item['date'] - prev_item['date'] == datet.timedelta(days=1):
-                            # It is consecutive, merge 'curr' into the 'base' folder
-                            base_folder = items[base_idx]['path']
-                            src_folder = curr_item['path']
-                            
-                            try:
-                                # Move all contents from the later day to the first day
-                                for item_name in os.listdir(src_folder):
-                                    src_path = os.path.join(src_folder, item_name)
-                                    dst_path = os.path.join(base_folder, item_name)
-                                    
-                                    # Handle filename collisions: if file exists, append date to new filename
-                                    if os.path.exists(dst_path):
-                                        f_name, f_ext = os.path.splitext(item_name)
-                                        # e.g., image.png -> image_20250102.png
-                                        new_name = f"{f_name}_{curr_item['date'].strftime('%Y%m%d')}{f_ext}"
-                                        dst_path = os.path.join(base_folder, new_name)
-                                    
-                                    shutil.move(src_path, dst_path)
-                                
-                                # Remove the now empty source directory (the later day)
-                                os.rmdir(src_folder)
-                                print(f"Merged consecutive day: {src_folder} -> {base_folder}")
-                                
-                            except Exception as e:
-                                print(f"Error merging {src_folder} into {base_folder}: {e}")
-                                
-                        else:
-                            # Sequence broken (gap in days), current becomes the new base for subsequent checks
-                            base_idx = i
+                self._merge_consecutive_days(self._savedir)
 
         finally:
             # schedule finalizer on main thread
