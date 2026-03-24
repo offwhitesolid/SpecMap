@@ -221,9 +221,9 @@ class FileProcessorApp:
         self.Browse_multiple_HSIs_save_dir_button.grid(row=3, column=2)
         # save directory for multiple HSI objects if save multiple HSIs checkbox is selected
         tk.Label(self.multiple_HSIs_inp_frame, text="Save HSI objects Directory:").grid(row=4, column=0)
-        self.multiple_HSIs_save_hsi_dir_entry = tk.Entry(self.multiple_HSIs_inp_frame, width=80)
-        self.multiple_HSIs_save_hsi_dir_entry.grid(row=4, column=1)
-        self.Browse_hsiobject_save_dir_button = tk.Button(self.multiple_HSIs_inp_frame, text="Browse", command=lambda: deflib.browse_folder(self.multiple_HSIs_save_hsi_dir_entry)).grid(row=4, column=2)
+        self.multiple_HSIs_save_pkl_dir_entry = tk.Entry(self.multiple_HSIs_inp_frame, width=80)
+        self.multiple_HSIs_save_pkl_dir_entry.grid(row=4, column=1)
+        self.Browse_hsiobject_save_dir_button = tk.Button(self.multiple_HSIs_inp_frame, text="Browse", command=lambda: deflib.browse_folder(self.multiple_HSIs_save_pkl_dir_entry)).grid(row=4, column=2)
 
         # Cosmic removal
         # add extra frame for cosmic removal onto loadframe
@@ -515,6 +515,7 @@ class FileProcessorApp:
             # try to get File main directory
             filemaindir = self.multiple_HSIs_dir_entry.get()
             savedir = self.multiple_HSIs_save_dir_entry.get()
+            pklsavedir = self.multiple_HSIs_save_pkl_dir_entry.get()
 
             if not filemaindir:
                 print("Error while loading HSI data, please select a main directory for multiple HSIs")
@@ -544,7 +545,7 @@ class FileProcessorApp:
 
                         # save the HSI object if the checkbox is selected
                         if self.save_multiple_HSIs_bool.get() == True:
-                            hsi_object_save_path = os.path.join(savedir, folder+"_HSI_object.pkl")
+                            hsi_object_save_path = os.path.join(pklsavedir, folder+"_HSI_object.pkl")
                             self.saveNanomap(hsi_object_save_path)
                     except:
                         print("Error processing folder:", fullfolderpath)
