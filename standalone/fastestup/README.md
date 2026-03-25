@@ -12,17 +12,17 @@ pipeline (`main9.py` / `lib9.py`).  It focuses **only** on:
 
 | Feature | Included |
 |---------|----------|
-| Load spectra from folder | ✅ |
-| Background (BG) subtraction | ✅ |
-| Linear BG averaging | ✅ |
-| Cosmic-ray removal | ✅ |
-| Wavelength-range integration (HSI) | ✅ |
-| Display HSI via matplotlib | ✅ |
-| Save image via matplotlib toolbar | ✅ |
-| Derivative calculation | ❌ intentionally omitted |
-| Spectrum averaging / export | ❌ intentionally omitted |
-| Pickle save / load of HSI objects | ❌ intentionally omitted |
-| ROI selection / fitting | ❌ intentionally omitted |
+| Load spectra from folder |  |
+| Background (BG) subtraction |  |
+| Linear BG averaging |  |
+| Cosmic-ray removal |  |
+| Wavelength-range integration (HSI) |  |
+| Display HSI via matplotlib |  |
+| Save image via matplotlib toolbar |  |
+| Derivative calculation |  intentionally omitted |
+| Spectrum averaging / export |  intentionally omitted |
+| Pickle save / load of HSI objects |  intentionally omitted |
+| ROI selection / fitting |  intentionally omitted |
 
 ---
 
@@ -113,13 +113,13 @@ python fastestup.py
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| **Linear Background** | When checked, the BG column read from the first file is **averaged** to a single constant value before subtraction.  This removes pixel-to-pixel variation in the detector dark current and results in a uniform background level across the whole map. | ✅ |
+| **Linear Background** | When checked, the BG column read from the first file is **averaged** to a single constant value before subtraction.  This removes pixel-to-pixel variation in the detector dark current and results in a uniform background level across the whole map. |  |
 
 ### Cosmic Ray Removal
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| **Remove Cosmic Rays** | Enable/disable cosmic-ray removal. | ✅ |
+| **Remove Cosmic Rays** | Enable/disable cosmic-ray removal. |  |
 | **Method** | Algorithm used for removal (see table below). | `Linear + Neighbor (Combined)` |
 | **Threshold** | Minimum spike height (in counts) to be considered a cosmic. | `100` |
 | **Width** | Pixel window width used by the removal algorithm. | `10` |

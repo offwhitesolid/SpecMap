@@ -175,7 +175,7 @@ Example Box Diagram:
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 ```
 
-### 🎯 Directional Analysis
+###  Directional Analysis
 
 **Error Handling:** ⬆ UPWARD
 ```
@@ -197,7 +197,7 @@ notebook
 All child widgets
 ```
 
-### 📊 Comprehensive Coverage
+###  Comprehensive Coverage
 
 | Aspect | PROGRAM_STRUCTURE.md | GUI_HIERARCHY.md | Combined |
 |--------|---------------------|------------------|----------|

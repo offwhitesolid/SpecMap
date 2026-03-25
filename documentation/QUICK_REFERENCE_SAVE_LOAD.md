@@ -1,6 +1,6 @@
 # Quick Reference: ROI and Averaged Spectra Save/Load
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Saving Your Work
 1. Go to **Load Data** tab
@@ -16,7 +16,7 @@
 
 ---
 
-## 📋 What Gets Saved
+##  What Gets Saved
 
 When you save HSI state:
 
@@ -30,7 +30,7 @@ GUI configuration
 
 ---
 
-## 🎯 ROI Workflow
+##  ROI Workflow
 
 ### Creating ROIs
 
@@ -50,7 +50,7 @@ After loading a `.pkl` file:
 
 ---
 
-## 📊 Averaged Spectra Workflow
+##  Averaged Spectra Workflow
 
 ### Creating Averaged Spectra
 
@@ -123,7 +123,7 @@ Successfully loaded XYMap state from: filename.pkl
 
 ---
 
-## 🔄 Data Types Available
+##  Data Types Available
 
 ### Averaged Spectra Types
 
@@ -220,7 +220,7 @@ Warning: ROI dimensions don't match HSI
 
 ---
 
-## 📚 More Information
+##  More Information
 
 Detailed documentation:
 - `GUI_SAVE_LOAD_WORKFLOW.md` - Complete GUI guide

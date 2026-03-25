@@ -884,7 +884,7 @@ SPECIAL CASE: Frames passed to external classes
    - User notified via messageboxes
    - Console logging for developer debugging
 
-### 🔧 Recommended Improvements
+###  Recommended Improvements
 
 ```python
 # IMPROVEMENT 1: Add widget existence checks
@@ -959,7 +959,7 @@ class XYMap:
         return frame
 ```
 
-### 📋 Cleanup Checklist
+###  Cleanup Checklist
 
 Use this checklist when modifying the code:
 

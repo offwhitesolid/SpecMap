@@ -10,7 +10,7 @@ This document summarizes the performance and memory optimizations implemented in
 
 ## Implemented Optimizations
 
-### 1. Derivative Calculation Optimization ⚡ **MAJOR IMPACT**
+### 1. Derivative Calculation Optimization  **MAJOR IMPACT**
 
 **Problem:** Original implementation used per-point polynomial fitting in a Python loop
 - For each of N points, fit polynomial to window of M points
@@ -31,7 +31,7 @@ This document summarizes the performance and memory optimizations implemented in
 - `PMclasslib1.py`: `calc_derivative()` function
 - `lib9.py`: `averageHSItoSpecData()` - now uses optimized function
 
-### 2. Eliminated Unnecessary deepcopy Operations 💾 **MAJOR IMPACT**
+### 2. Eliminated Unnecessary deepcopy Operations  **MAJOR IMPACT**
 
 **Problem:** Multiple locations used `copy.deepcopy()` on large PixMatrix and Spectra objects
 - Each deepcopy traverses entire object graph
@@ -55,7 +55,7 @@ This document summarizes the performance and memory optimizations implemented in
 - **2-5x speedup** for operations that previously used deepcopy
 - Instant for operations that no longer need to traverse object graph
 
-### 3. Vectorized Spectrum Averaging ⚡ **MAJOR IMPACT**
+### 3. Vectorized Spectrum Averaging  **MAJOR IMPACT**
 
 **Problem:** Triple-nested loop for averaging spectra
 ```python
@@ -79,7 +79,7 @@ for i in range(len(matrix)):
 **Files Modified:**
 - `lib9.py`: `averageHSItoSpecData()`
 
-### 4. Optimized Array Initialization 🔧 **MINOR IMPACT**
+### 4. Optimized Array Initialization  **MINOR IMPACT**
 
 **Problem:** Using `WL.copy()` to initialize array that will be filled with different data
 

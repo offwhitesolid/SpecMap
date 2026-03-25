@@ -39,18 +39,18 @@ This test plan verifies that the fix for the repeated data loading issue works c
 8. Wait for reload to complete
 
 **Expected Results:**
-- ✅ First load completes successfully
-- ✅ Second load completes successfully
-- ✅ NO "RuntimeError: main thread is not in main loop" error
-- ✅ NO error dialog appears
-- ✅ GUI remains responsive
-- ✅ New data is displayed in Hyperspectra tab
+-  First load completes successfully
+-  Second load completes successfully
+-  NO "RuntimeError: main thread is not in main loop" error
+-  NO error dialog appears
+-  GUI remains responsive
+-  New data is displayed in Hyperspectra tab
 
 **Failure Indicators:**
-- ❌ Error message in console
-- ❌ Application crash
-- ❌ Frozen GUI
-- ❌ Error dialog appears
+-  Error message in console
+-  Application crash
+-  Frozen GUI
+-  Error dialog appears
 
 ---
 
@@ -67,11 +67,11 @@ This test plan verifies that the fix for the repeated data loading issue works c
 7. Verify new data loaded
 
 **Expected Results:**
-- ✅ Both datasets load successfully
-- ✅ Old data is replaced by new data
-- ✅ No memory leaks or hung frames
-- ✅ GUI updates correctly
-- ✅ No errors in console
+-  Both datasets load successfully
+-  Old data is replaced by new data
+-  No memory leaks or hung frames
+-  GUI updates correctly
+-  No errors in console
 
 ---
 
@@ -86,10 +86,10 @@ This test plan verifies that the fix for the repeated data loading issue works c
 5. Let final load complete
 
 **Expected Results:**
-- ✅ Application handles rapid clicks gracefully
-- ✅ Final load completes successfully
-- ✅ No crash or freeze
-- ✅ No error accumulation
+-  Application handles rapid clicks gracefully
+-  Final load completes successfully
+-  No crash or freeze
+-  No error accumulation
 
 **Note:** Application may queue loads or ignore duplicate clicks - both are acceptable behaviors
 
@@ -108,11 +108,11 @@ This test plan verifies that the fix for the repeated data loading issue works c
 7. Wait for all folders to process
 
 **Expected Results:**
-- ✅ All folders process without errors
-- ✅ No "main thread is not in main loop" error
-- ✅ HSI images saved to output directory
-- ✅ Console shows progress for each folder
-- ✅ Application remains responsive after completion
+-  All folders process without errors
+-  No "main thread is not in main loop" error
+-  HSI images saved to output directory
+-  Console shows progress for each folder
+-  Application remains responsive after completion
 
 ---
 
@@ -127,10 +127,10 @@ This test plan verifies that the fix for the repeated data loading issue works c
 3. Click window close button [X]
 
 **Expected Results:**
-- ✅ Application closes cleanly
-- ✅ No error dialog on close
-- ✅ No hung processes
-- ✅ No matplotlib windows left open
+-  Application closes cleanly
+-  No error dialog on close
+-  No hung processes
+-  No matplotlib windows left open
 
 ---
 
@@ -150,10 +150,10 @@ This test plan verifies that the fix for the repeated data loading issue works c
 10. Click "Load" button
 
 **Expected Results:**
-- ✅ Save completes without errors
-- ✅ Load restores data correctly
-- ✅ Hyperspectra tab shows loaded data
-- ✅ All HSI images restored
+-  Save completes without errors
+-  Load restores data correctly
+-  Hyperspectra tab shows loaded data
+-  All HSI images restored
 
 ---
 
@@ -174,10 +174,10 @@ This test plan verifies that the fix for the repeated data loading issue works c
 6. Verify same GUI elements still present and functional
 
 **Expected Results:**
-- ✅ All GUI elements present after first load
-- ✅ All GUI elements present after second load
-- ✅ Elements are interactive (not greyed out)
-- ✅ No duplicate widgets
+-  All GUI elements present after first load
+-  All GUI elements present after second load
+-  Elements are interactive (not greyed out)
+-  No duplicate widgets
 
 ---
 
@@ -200,10 +200,10 @@ This test plan verifies that the fix for the repeated data loading issue works c
 8. Check final memory usage
 
 **Expected Results:**
-- ✅ Memory usage increases on first load
-- ✅ Memory usage stays relatively stable on subsequent loads
-- ✅ No continuously growing memory (no major leaks)
-- ✅ Garbage collection runs successfully
+-  Memory usage increases on first load
+-  Memory usage stays relatively stable on subsequent loads
+-  No continuously growing memory (no major leaks)
+-  Garbage collection runs successfully
 
 ---
 
@@ -218,9 +218,9 @@ This test plan verifies that the fix for the repeated data loading issue works c
 3. Click "Load HSI data"
 
 **Expected Results:**
-- ✅ Error message: "No files found with the specified name."
-- ✅ Application remains stable
-- ✅ Can load valid data afterwards
+-  Error message: "No files found with the specified name."
+-  Application remains stable
+-  Can load valid data afterwards
 
 ---
 
@@ -238,9 +238,9 @@ This test plan verifies that the fix for the repeated data loading issue works c
 8. Verify Newton spectrum displays
 
 **Expected Results:**
-- ✅ All loaders work independently
-- ✅ No interference between different data types
-- ✅ No errors when switching between loaders
+-  All loaders work independently
+-  No interference between different data types
+-  No errors when switching between loaders
 
 ---
 
@@ -281,10 +281,10 @@ Copy this template for each test run:
 ## Success Criteria
 
 The fix is considered successful if:
-- ✅ **Test 1-4** (Critical Tests) all pass
-- ✅ **Test 5-8** (Regression Tests) all pass
-- ✅ No new errors introduced
-- ✅ No performance degradation observed
+-  **Test 1-4** (Critical Tests) all pass
+-  **Test 5-8** (Regression Tests) all pass
+-  No new errors introduced
+-  No performance degradation observed
 
 ## Debugging Tips
 

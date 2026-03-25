@@ -177,7 +177,7 @@ class MemoryTracker:
         
         # Check if we should warn
         if mem['rss_gb'] >= self.warning_threshold_gb:
-            self.logger.warning(f"⚠️  HIGH MEMORY: {log_message}")
+            self.logger.warning(f"  HIGH MEMORY: {log_message}")
         else:
             self.logger.info(log_message)
         
@@ -212,9 +212,9 @@ class MemoryTracker:
             msg += f" | Context: {context}"
         
         if delta_gb >= 1.0:
-            self.logger.warning(f"⚠️  LARGE INCREASE: {msg}")
+            self.logger.warning(f"  LARGE INCREASE: {msg}")
         elif mem_after['rss_gb'] >= self.warning_threshold_gb:
-            self.logger.warning(f"⚠️  HIGH MEMORY: {msg}")
+            self.logger.warning(f"  HIGH MEMORY: {msg}")
         else:
             self.logger.info(msg)
         

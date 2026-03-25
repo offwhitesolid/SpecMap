@@ -20,7 +20,7 @@ python memory_profile.py           # Memory profiling
 
 ### Critical Improvements (High Impact)
 
-#### 1. Derivative Calculation - 10-50x Speedup ⚡
+#### 1. Derivative Calculation - 10-50x Speedup 
 **Problem:** Original implementation used per-point polynomial fitting in Python loop
 - For each point, fit polynomial to window of neighbors
 - Extremely slow for large spectra (1000+ points)
@@ -34,7 +34,7 @@ python memory_profile.py           # Memory profiling
 - `PMclasslib1.py` - `calc_derivative()` function
 - `lib9.py` - `averageHSItoSpecData()` now uses optimized version
 
-#### 2. Eliminated Unnecessary Deepcopy - 20-40% Memory Reduction 💾
+#### 2. Eliminated Unnecessary Deepcopy - 20-40% Memory Reduction 
 **Problem:** Multiple deepcopy operations on large PixMatrix objects
 - Each deepcopy traverses entire object graph
 - For GB-sized datasets, this is extremely expensive
@@ -55,7 +55,7 @@ python memory_profile.py           # Memory profiling
 4. `lib9.py:867` - `correctSpectrum()`
 5. `lib9.py:2394` - `multiroitopixmatrix()`
 
-#### 3. Vectorized Spectrum Averaging - 200-300x Speedup ⚡
+#### 3. Vectorized Spectrum Averaging - 200-300x Speedup 
 **Problem:** Triple-nested loop for averaging spectra
 ```python
 for i in range(rows):
@@ -119,7 +119,7 @@ For a typical workflow (50x50 pixels, 1024 wavelengths):
 - Memory usage: 600MB instead of 1GB
 - **Total: ~30 seconds**
 
-**Overall: 30x faster, 40% less memory** 🎉
+**Overall: 30x faster, 40% less memory** 
 
 ## How to Verify
 
@@ -207,4 +207,4 @@ For questions about optimizations:
 **Total Impact:** 30x faster, 40% less memory  
 **Lines Changed:** ~150 across 3 files  
 **Time Invested:** 2 hours  
-**Status:** Phase 1 Complete ✅
+**Status:** Phase 1 Complete 

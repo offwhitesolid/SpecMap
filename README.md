@@ -25,7 +25,7 @@ SpecMap is a comprehensive Python application for hyperspectral data analysis an
 - **Hyperspectral Standards Interface**: Convert SpecMap data to ENVI format and interface with industry-standard libraries (SPy, PySptools)
 
 
-### Performance Optimizations ⚡
+### Performance Optimizations 
 SpecMap has been optimized for high-performance processing of large hyperspectral datasets:
 - **30x faster** for typical workflows (Load → Process → Fit → Export)
 - **40% less memory** usage for large datasets

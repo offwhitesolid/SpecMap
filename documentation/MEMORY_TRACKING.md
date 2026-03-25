@@ -151,7 +151,7 @@ For a dataset with:
 
 If you see warnings like:
 ```
-⚠️  HIGH MEMORY: [Operation] Memory: 8.500 GB ...
+  HIGH MEMORY: [Operation] Memory: 8.500 GB ...
 ```
 
 **Actions to take:**

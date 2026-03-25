@@ -92,9 +92,9 @@ SpecMap1/
 ```
 📂 Input Data Files
     ↓
-🔄 File Loading (main9.py)
+ File Loading (main9.py)
     ↓
-📊 SpectrumData Objects (lib9.py)
+ SpectrumData Objects (lib9.py)
     ↓
 🗂️ XYMap Organization
     ↓
@@ -103,13 +103,13 @@ SpecMap1/
     ├── Cosmic Ray Removal (deflib1.py)
     └── Power Correction (lib9.py)
     ↓
-📈 Interactive Analysis
+ Interactive Analysis
     ├── Pixel Selection (lib9.py)
     ├── Spectral Fitting (mathlib3.py)
     ├── ROI Analysis (lib9.py)
     └── Clara Processing (claralib1.py)
     ↓
-💾 Export Results (export1.py)
+ Export Results (export1.py)
 ```
 
 ## Module Dependencies
