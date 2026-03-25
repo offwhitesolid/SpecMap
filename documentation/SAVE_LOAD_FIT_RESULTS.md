@@ -11,13 +11,13 @@ The current `save_state()` and `load_state()` functions in `lib9.py` do not prop
 ### What IS Currently Saved
 
 The `save_state()` function (lines 2644-2728 in lib9.py) saves:
-- ✅ `specs` - List of spectrum objects
-- ✅ `SpecDataMatrix` - 2D matrix of SpectrumData objects
-- ✅ `PMdict` - Dictionary of HSI images (PixMatrix/PMclass objects)
-- ✅ `roilist` - ROI masks from roihandler
-- ✅ Processing parameters (wlstart, wlend, aqpixstart, aqpixend, etc.)
-- ✅ Grid parameters (mxcoords, mycoords, PixAxX, PixAxY, gdx, gdy)
-- ✅ Configuration settings (colormap, linearbg, removecosmics, etc.)
+- `specs` - List of spectrum objects
+- `SpecDataMatrix` - 2D matrix of SpectrumData objects
+- `PMdict` - Dictionary of HSI images (PixMatrix/PMclass objects)
+- `roilist` - ROI masks from roihandler
+- Processing parameters (wlstart, wlend, aqpixstart, aqpixend, etc.)
+- Grid parameters (mxcoords, mycoords, PixAxX, PixAxY, gdx, gdy)
+- Configuration settings (colormap, linearbg, removecosmics, etc.)
 
 ### What IS MISSING
 

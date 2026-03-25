@@ -209,10 +209,10 @@ def main():
     print("  3. Main memory usage is in the spectral data cubes")
     print("  4. Derivative storage doubles memory usage (store 2 extra cubes)")
     print("\nRecommendations:")
-    print("  ✓ Use direct construction instead of deepcopy (already implemented)")
-    print("  ✓ Keep data as numpy arrays, not lists")
-    print("  ✓ Consider lazy derivative computation (compute on-demand)")
-    print("  ✓ Use memory-mapped arrays for very large datasets (>10GB)")
+    print("  Use direct construction instead of deepcopy (already implemented)")
+    print("  Keep data as numpy arrays, not lists")
+    print("  Consider lazy derivative computation (compute on-demand)")
+    print("  Use memory-mapped arrays for very large datasets (>10GB)")
     print("\n" + "="*60 + "\n")
 
 if __name__ == '__main__':

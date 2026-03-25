@@ -6,13 +6,13 @@
 1. Go to **Load Data** tab
 2. Enter filename in "Save HSI State" field
 3. Click **"Save HSI State"** button
-4. ✅ Done! ROIs and spectra are saved.
+4. Done! ROIs and spectra are saved.
 
 ### Loading Your Work
 1. Go to **Load Data** tab
 2. Click **"Load HSI State"** or use file browser
 3. Select your `.pkl` file
-4. ✅ Done! Everything is restored.
+4. Done! Everything is restored.
 
 ---
 
@@ -20,13 +20,13 @@
 
 When you save HSI state:
 
-✅ All spectral data  
-✅ All HSI images  
-✅ **All ROI masks** (with names)  
-✅ **All averaged spectra** (all types)  
-✅ Fit results and parameters  
-✅ Processing settings  
-✅ GUI configuration  
+All spectral data  
+All HSI images  
+**All ROI masks** (with names)  
+**All averaged spectra** (all types)  
+Fit results and parameters  
+Processing settings  
+GUI configuration  
 
 ---
 
@@ -94,7 +94,7 @@ Avoid:
 
 ---
 
-## ✅ Verification Checklist
+## Verification Checklist
 
 ### After Saving
 Check console for:
@@ -116,7 +116,7 @@ Successfully loaded XYMap state from: filename.pkl
   - Loaded Y HSI images
   - Loaded Z ROI masks
     ROI names: [...]
-  ✓ ROI dimensions validated
+  ROI dimensions validated
   - Loaded N averaged spectra
     Averaged spectra names: [...]
 ```
@@ -177,11 +177,11 @@ All types are generated with **"Export All Averaged Spectra"**
 
 ---
 
-## ⚠️ Important Notes
+##  Important Notes
 
 ### ROI Names
-- ✅ Use descriptive names: `bright_spot_center`
-- ❌ Avoid generic: `roi1`, `test`
+- Use descriptive names: `bright_spot_center`
+- Avoid generic: `roi1`, `test`
 - Names are preserved exactly
 
 ### Save Frequency
@@ -201,18 +201,18 @@ All types are generated with **"Export All Averaged Spectra"**
 ## 🐛 Troubleshooting
 
 ### ROIs Not Visible After Load
-- ✅ Check console - were they loaded?
-- ✅ Switch to Hyperspectra tab
-- ✅ Look in ROI dropdown
+- Check console - were they loaded?
+- Switch to Hyperspectra tab
+- Look in ROI dropdown
 
 ### Spectra Not in Dropdown
-- ✅ Check console - were they loaded?
-- ✅ Were they generated before saving?
-- ✅ Click dropdown to refresh
+- Check console - were they loaded?
+- Were they generated before saving?
+- Click dropdown to refresh
 
 ### Dimension Mismatch Warning
 ```
-⚠ Warning: ROI dimensions don't match HSI
+Warning: ROI dimensions don't match HSI
 ```
 - ROI from different HSI size
 - Can still load but may not work
@@ -229,7 +229,7 @@ Detailed documentation:
 
 ---
 
-## 💡 Pro Tips
+## Pro Tips
 
 1. **Name things well** - Future you will thank you
 2. **Save often** - After each major step

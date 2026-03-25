@@ -49,7 +49,7 @@ def test_counter_initialization():
     assert hasattr(xymap, '_hsi_counter'), "HSI counter not initialized"
     assert xymap._hsi_counter == 0, f"Counter should be 0, got {xymap._hsi_counter}"
     
-    print("✅ Counter initialized correctly\n")
+    print("Counter initialized correctly\n")
     root.destroy()
     return True
 
@@ -78,7 +78,7 @@ def test_writetopixmatrix_increments():
     
     print(f"  Created HSIs: {name1}, {name2}, {name3}")
     print(f"  Counter value: {xymap._hsi_counter}")
-    print("✅ Counter increments correctly\n")
+    print("Counter increments correctly\n")
     root.destroy()
     return True
 
@@ -109,7 +109,7 @@ def test_deletion_doesnt_reuse_names():
     assert name4 == 'HSI3', f"New HSI should be HSI3, got {name4}"
     assert 'HSI1' not in xymap.PMdict or name4 != 'HSI1', "Name HSI1 should not be reused"
     
-    print("✅ Names not reused after deletion\n")
+    print("Names not reused after deletion\n")
     root.destroy()
     return True
 
@@ -151,7 +151,7 @@ def test_save_load_preserves_counter():
         # Verify no duplicates
         assert name3 not in [name1, name2], f"New HSI {name3} duplicates existing names"
         
-        print("✅ Counter preserved across save/load\n")
+        print("Counter preserved across save/load\n")
         root2.destroy()
         
     finally:
@@ -195,7 +195,7 @@ def test_load_with_high_numbered_hsis():
         # Verify it doesn't conflict
         assert name_new not in ['HSI10', 'HSI20'], f"New HSI {name_new} conflicts with existing"
         
-        print("✅ Counter correctly updated for high-numbered HSIs\n")
+        print("Counter correctly updated for high-numbered HSIs\n")
         root2.destroy()
         
     finally:
@@ -237,7 +237,7 @@ def test_all_hsi_names_unique():
     assert len(unique_names) == len(all_names), f"Duplicate names found! {len(all_names)} total, {len(unique_names)} unique"
     
     print(f"  All {len(all_names)} names are unique")
-    print("✅ Complex scenario passed\n")
+    print("Complex scenario passed\n")
     root.destroy()
     return True
 
@@ -266,10 +266,10 @@ def run_all_tests():
                 passed += 1
             else:
                 failed += 1
-                print(f"❌ {test.__name__} failed\n")
+                print(f"{test.__name__} failed\n")
         except Exception as e:
             failed += 1
-            print(f"❌ {test.__name__} raised exception: {e}\n")
+            print(f"{test.__name__} raised exception: {e}\n")
             import traceback
             traceback.print_exc()
     

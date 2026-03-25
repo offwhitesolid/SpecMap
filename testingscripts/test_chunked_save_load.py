@@ -56,7 +56,7 @@ def test_chunked_format_flag():
     os.unlink(temp_file)
     
     assert loaded_state['format_version'] == 2
-    print("✓ Format version flag correctly saved and loaded")
+    print("Format version flag correctly saved and loaded")
     return True
 
 
@@ -85,7 +85,7 @@ def test_chunked_specs_save_load():
             chunk = specs[i:i+chunk_size]
             pickle.dump(chunk, f, protocol=pickle.HIGHEST_PROTOCOL)
     
-    print(f"✓ Saved {num_specs} specs in chunks")
+    print(f"Saved {num_specs} specs in chunks")
     
     # Load in chunked format
     with open(temp_file, 'rb') as f:
@@ -103,7 +103,7 @@ def test_chunked_specs_save_load():
     assert len(loaded_specs) == num_specs
     assert all(loaded_specs[i].idx == i for i in range(num_specs))
     
-    print(f"✓ Loaded {len(loaded_specs)} specs correctly")
+    print(f"Loaded {len(loaded_specs)} specs correctly")
     return True
 
 
@@ -133,7 +133,7 @@ def test_chunked_matrix_save_load():
             chunk = matrix[i:i+chunk_size]
             pickle.dump(chunk, f, protocol=pickle.HIGHEST_PROTOCOL)
     
-    print(f"✓ Saved matrix in chunks")
+    print(f"Saved matrix in chunks")
     
     # Load in chunked format
     with open(temp_file, 'rb') as f:
@@ -154,7 +154,7 @@ def test_chunked_matrix_save_load():
     assert loaded_matrix[0][0] == 0
     assert loaded_matrix[num_rows-1][num_cols-1] == num_rows*num_cols - 1
     
-    print(f"✓ Loaded matrix correctly")
+    print(f"Loaded matrix correctly")
     return True
 
 
@@ -187,7 +187,7 @@ def test_chunked_pmdict_save_load():
             chunk_dict = {k: pmdict[k] for k in chunk_keys}
             pickle.dump(chunk_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
     
-    print(f"✓ Saved PMdict in chunks")
+    print(f"Saved PMdict in chunks")
     
     # Load in chunked format
     with open(temp_file, 'rb') as f:
@@ -209,7 +209,7 @@ def test_chunked_pmdict_save_load():
     assert all(k in loaded_pmdict for k in pmdict.keys())
     assert all(loaded_pmdict[k].name == pmdict[k].name for k in pmdict.keys())
     
-    print(f"✓ Loaded PMdict correctly with {len(loaded_pmdict)} HSI images")
+    print(f"Loaded PMdict correctly with {len(loaded_pmdict)} HSI images")
     return True
 
 
@@ -262,7 +262,7 @@ def test_memory_efficiency():
     print(f"Memory before: {mem_before:.1f} MB")
     print(f"Memory after: {mem_after:.1f} MB")
     print(f"Memory increase: {mem_after - mem_before:.1f} MB")
-    print(f"✓ Loaded {len(loaded)} items with garbage collection")
+    print(f"Loaded {len(loaded)} items with garbage collection")
     
     return True
 
@@ -283,20 +283,20 @@ if __name__ == '__main__':
         try:
             test_memory_efficiency()
         except ImportError:
-            print("\n⚠️  Skipping memory efficiency test (psutil not installed)")
+            print("\n  Skipping memory efficiency test (psutil not installed)")
         
         print("\n" + "="*60)
-        print("✅ ALL TESTS PASSED")
+        print("ALL TESTS PASSED")
         print("="*60)
         sys.exit(0)
         
     except AssertionError as e:
-        print(f"\n❌ TEST FAILED: {e}")
+        print(f"\nTEST FAILED: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ TEST ERROR: {e}")
+        print(f"\nTEST ERROR: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

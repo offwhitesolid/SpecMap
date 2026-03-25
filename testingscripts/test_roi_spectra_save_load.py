@@ -107,7 +107,7 @@ def test_roi_save_load():
         assert roi_array.ndim == 2, f"ROI {roi_name} is not 2D"
     
     print()
-    print("✅ ROI data structure validation passed")
+    print("ROI data structure validation passed")
     
     # Simulate dimension validation (as would happen in load_state)
     hsi_shape = (3, 4)  # Mock HSI shape
@@ -116,12 +116,12 @@ def test_roi_save_load():
     for roi_name, roi_mask in roilist.items():
         roi_array = np.array(roi_mask)
         if roi_array.shape == hsi_shape:
-            print(f"  ✓ ROI '{roi_name}' dimensions validated: {roi_array.shape}")
+            print(f"  ROI '{roi_name}' dimensions validated: {roi_array.shape}")
         else:
-            print(f"  ⚠ Warning: ROI '{roi_name}' dimensions {roi_array.shape} don't match HSI dimensions {hsi_shape}")
+            print(f"  Warning: ROI '{roi_name}' dimensions {roi_array.shape} don't match HSI dimensions {hsi_shape}")
     
     print()
-    print("✅ TEST 1 PASSED: ROI save/load functionality")
+    print("TEST 1 PASSED: ROI save/load functionality")
     print()
     return True
 
@@ -167,7 +167,7 @@ def test_spectra_averaging():
         # Check array lengths match
         assert len(spec_obj.WL) == len(spec_obj.Spec), f"{spec_name} WL and Spec length mismatch"
         
-        print(f"  ✓ {spec_name} structure validated")
+        print(f"  {spec_name} structure validated")
     
     # Test that derivatives have expected properties
     print()
@@ -179,14 +179,14 @@ def test_spectra_averaging():
     
     # First derivative should have different sign regions
     assert np.any(d1_spec > 0) and np.any(d1_spec < 0), "First derivative should have positive and negative values"
-    print("  ✓ First derivative has expected sign changes")
+    print("  First derivative has expected sign changes")
     
     # Second derivative should also have sign changes
     assert np.any(d2_spec > 0) and np.any(d2_spec < 0), "Second derivative should have positive and negative values"
-    print("  ✓ Second derivative has expected sign changes")
+    print("  Second derivative has expected sign changes")
     
     print()
-    print("✅ TEST 2 PASSED: Spectra averaging functionality")
+    print("TEST 2 PASSED: Spectra averaging functionality")
     print()
     return True
 
@@ -242,10 +242,10 @@ def test_spectra_save_load():
         assert np.array_equal(original.Spec, loaded.Spec), f"{spec_name} Spec data changed"
         assert original.metadata == loaded.metadata, f"{spec_name} metadata changed"
         
-        print(f"  ✓ {spec_name} integrity validated")
+        print(f"  {spec_name} integrity validated")
     
     print()
-    print("✅ TEST 3 PASSED: Spectra save/load functionality")
+    print("TEST 3 PASSED: Spectra save/load functionality")
     print()
     return True
 
@@ -278,7 +278,7 @@ def test_backward_compatibility():
     
     print(f"  Loaded disspecs: {disspecs}")
     assert disspecs == {}, "Default disspecs should be empty dictionary"
-    print("  ✓ Default empty dictionary used for missing disspecs")
+    print("  Default empty dictionary used for missing disspecs")
     
     # Simulate old save file without enhanced ROI info
     print()
@@ -286,10 +286,10 @@ def test_backward_compatibility():
     roilist = old_state.get('roilist', {})
     
     assert roilist == {}, "Old file with no ROIs should load empty dictionary"
-    print("  ✓ Old ROI data structure handled correctly")
+    print("  Old ROI data structure handled correctly")
     
     print()
-    print("✅ TEST 4 PASSED: Backward compatibility maintained")
+    print("TEST 4 PASSED: Backward compatibility maintained")
     print()
     return True
 
@@ -317,10 +317,10 @@ def main():
             try:
                 if not test_func():
                     all_passed = False
-                    print(f"❌ {test_func.__name__} FAILED")
+                    print(f"{test_func.__name__} FAILED")
             except Exception as e:
                 all_passed = False
-                print(f"❌ {test_func.__name__} FAILED with exception:")
+                print(f"{test_func.__name__} FAILED with exception:")
                 print(f"   {str(e)}")
                 import traceback
                 traceback.print_exc()
@@ -329,9 +329,9 @@ def main():
         print()
         print("#" * 60)
         if all_passed:
-            print("# ✅ ALL TESTS PASSED!")
+            print("# ALL TESTS PASSED!")
         else:
-            print("# ❌ SOME TESTS FAILED")
+            print("# SOME TESTS FAILED")
         print("#" * 60)
         print()
         
@@ -349,7 +349,7 @@ def main():
         sys.exit(0 if all_passed else 1)
         
     except Exception as e:
-        print(f"❌ Test suite failed with exception: {e}")
+        print(f"Test suite failed with exception: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

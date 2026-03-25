@@ -29,9 +29,9 @@ python verify_fix.py
 ```
 
 The script will demonstrate:
-1. ✓ The bug scenario (produces the exact IndexError)
-2. ✓ The fix (resolves the IndexError)
-3. ✓ The complete logic (works correctly)
+1. The bug scenario (produces the exact IndexError)
+2. The fix (resolves the IndexError)
+3. The complete logic (works correctly)
 
 ## Impact
 Users can now successfully use "Plot HSI from Fit Parameter" with ROI enabled, restoring the ability to visualize fit parameters on specific regions of interest.

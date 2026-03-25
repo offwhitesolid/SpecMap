@@ -105,12 +105,12 @@ if max_hsi_num >= self._hsi_counter:
 
 Created comprehensive test suite (`testingscripts/test_hsi_naming.py`) with 6 tests:
 
-1. ✅ Counter initialization
-2. ✅ Counter increments correctly
-3. ✅ Names not reused after deletion
-4. ✅ Counter preserved across save/load
-5. ✅ Counter correctly updated for high-numbered HSIs
-6. ✅ Complex scenario with deletions and multiple creations
+1. Counter initialization
+2. Counter increments correctly
+3. Names not reused after deletion
+4. Counter preserved across save/load
+5. Counter correctly updated for high-numbered HSIs
+6. Complex scenario with deletions and multiple creations
 
 All tests pass successfully.
 

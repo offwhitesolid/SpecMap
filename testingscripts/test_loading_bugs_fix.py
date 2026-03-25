@@ -248,9 +248,9 @@ def run_all_tests():
 
     print("=" * 60)
     if failed == 0:
-        print(f"✅ ALL {passed} TESTS PASSED!")
+        print(f"ALL {passed} TESTS PASSED!")
     else:
-        print(f"❌ {failed} FAILED, {passed} PASSED")
+        print(f"{failed} FAILED, {passed} PASSED")
     print("=" * 60)
     return failed == 0
 

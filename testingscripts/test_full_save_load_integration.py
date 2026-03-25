@@ -78,8 +78,8 @@ def test_full_integration():
             skip_gui_build=True
         )
         
-        print(f"  ✓ Created XYMap with {len(nanomap.specs)} spectra")
-        print(f"  ✓ WL range: {nanomap.WL[0]:.1f} - {nanomap.WL[-1]:.1f} nm")
+        print(f"  Created XYMap with {len(nanomap.specs)} spectra")
+        print(f"  WL range: {nanomap.WL[0]:.1f} - {nanomap.WL[-1]:.1f} nm")
         
         # ===== CREATE HSI IMAGE =====
         print("\n2. Creating HSI image...")
@@ -91,7 +91,7 @@ def test_full_integration():
         pm = PMlib.PMclass(hsi_matrix, 'Test_HSI', 550.0, nanomap.WL, {'test': 'metadata'})
         nanomap.PMdict['Test_HSI'] = pm
         
-        print(f"  ✓ Created HSI 'Test_HSI' with shape {hsi_matrix.shape}")
+        print(f"  Created HSI 'Test_HSI' with shape {hsi_matrix.shape}")
         
         # ===== CREATE ROIs =====
         print("\n3. Creating ROI masks...")
@@ -111,7 +111,7 @@ def test_full_integration():
         nanomap.roihandler.roilist['bottom_edge'] = roi2
         
         roi_count = len(nanomap.roihandler.roilist)
-        print(f"  ✓ Created {roi_count} ROI masks:")
+        print(f"  Created {roi_count} ROI masks:")
         for roi_name in nanomap.roihandler.roilist.keys():
             print(f"    - {roi_name}")
         
@@ -140,7 +140,7 @@ def test_full_integration():
         nanomap.disspecs['Test_HSI_Specdiff1_avg'] = avg_spec_d1
         
         spec_count = len(nanomap.disspecs)
-        print(f"  ✓ Created {spec_count} averaged spectra:")
+        print(f"  Created {spec_count} averaged spectra:")
         for spec_name in nanomap.disspecs.keys():
             print(f"    - {spec_name}")
         
@@ -150,9 +150,9 @@ def test_full_integration():
         save_success = nanomap.save_state(temp_filename)
         
         if save_success:
-            print("  ✓ Save successful!")
+            print("  Save successful!")
             file_size = os.path.getsize(temp_filename)
-            print(f"  ✓ File size: {file_size / 1024:.1f} KB")
+            print(f"  File size: {file_size / 1024:.1f} KB")
         else:
             print("  ✗ Save FAILED!")
             return False
@@ -180,7 +180,7 @@ def test_full_integration():
         load_success = nanomap2.load_state(temp_filename)
         
         if load_success:
-            print("  ✓ Load successful!")
+            print("  Load successful!")
         else:
             print("  ✗ Load FAILED!")
             return False
@@ -193,13 +193,13 @@ def test_full_integration():
         loaded_roi_names = list(nanomap2.roihandler.roilist.keys()) if hasattr(nanomap2, 'roihandler') else []
         
         if loaded_roi_count == original_roi_count:
-            print(f"  ✓ ROI count matches: {loaded_roi_count}")
+            print(f"  ROI count matches: {loaded_roi_count}")
         else:
             print(f"  ✗ ROI count mismatch: expected {original_roi_count}, got {loaded_roi_count}")
             return False
         
         if set(loaded_roi_names) == set(original_roi_names):
-            print(f"  ✓ ROI names match: {loaded_roi_names}")
+            print(f"  ROI names match: {loaded_roi_names}")
         else:
             print(f"  ✗ ROI names mismatch!")
             print(f"    Expected: {original_roi_names}")
@@ -222,7 +222,7 @@ def test_full_integration():
                                    loaded_roi[~np.isnan(loaded_roi)])
             
             if nan_match.all() and val_match:
-                print(f"  ✓ ROI '{roi_name}' data integrity verified")
+                print(f"  ROI '{roi_name}' data integrity verified")
             else:
                 print(f"  ✗ ROI '{roi_name}' data mismatch!")
                 return False
@@ -232,13 +232,13 @@ def test_full_integration():
         loaded_spec_names = list(nanomap2.disspecs.keys())
         
         if loaded_spec_count == original_spec_count:
-            print(f"  ✓ Averaged spectra count matches: {loaded_spec_count}")
+            print(f"  Averaged spectra count matches: {loaded_spec_count}")
         else:
             print(f"  ✗ Spectra count mismatch: expected {original_spec_count}, got {loaded_spec_count}")
             return False
         
         if set(loaded_spec_names) == set(original_spec_names):
-            print(f"  ✓ Spectra names match: {loaded_spec_names}")
+            print(f"  Spectra names match: {loaded_spec_names}")
         else:
             print(f"  ✗ Spectra names mismatch!")
             print(f"    Expected: {original_spec_names}")
@@ -260,12 +260,12 @@ def test_full_integration():
                 print(f"  ✗ Spectrum '{spec_name}' data mismatch!")
                 return False
             
-            print(f"  ✓ Spectrum '{spec_name}' data integrity verified")
+            print(f"  Spectrum '{spec_name}' data integrity verified")
         
         # Verify HSI data
         loaded_hsi_count = len(nanomap2.PMdict)
         if loaded_hsi_count == original_hsi_count:
-            print(f"  ✓ HSI count matches: {loaded_hsi_count}")
+            print(f"  HSI count matches: {loaded_hsi_count}")
         else:
             print(f"  ✗ HSI count mismatch: expected {original_hsi_count}, got {loaded_hsi_count}")
             return False
@@ -273,14 +273,14 @@ def test_full_integration():
         if 'Test_HSI' in nanomap2.PMdict:
             loaded_hsi_shape = np.array(nanomap2.PMdict['Test_HSI'].PixMatrix).shape
             if loaded_hsi_shape == original_hsi_shape:
-                print(f"  ✓ HSI shape matches: {loaded_hsi_shape}")
+                print(f"  HSI shape matches: {loaded_hsi_shape}")
             else:
                 print(f"  ✗ HSI shape mismatch: expected {original_hsi_shape}, got {loaded_hsi_shape}")
                 return False
         
         # ===== SUCCESS =====
         print("\n" + "=" * 60)
-        print("✅ ALL INTEGRATION TESTS PASSED!")
+        print("ALL INTEGRATION TESTS PASSED!")
         print("=" * 60)
         print("\nSummary:")
         print(f"  - ROIs: {loaded_roi_count} masks saved and loaded correctly")

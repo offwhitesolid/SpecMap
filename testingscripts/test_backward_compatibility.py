@@ -110,7 +110,7 @@ def test_legacy_format_detection():
         temp_file = f.name
         pickle.dump(state, f, protocol=pickle.HIGHEST_PROTOCOL)
     
-    print("✓ Saved legacy format state")
+    print("Saved legacy format state")
     
     # Load and check
     with open(temp_file, 'rb') as f:
@@ -126,9 +126,9 @@ def test_legacy_format_detection():
     assert len(loaded_state['specs']) == 100
     assert len(loaded_state['SpecDataMatrix']) == 10
     
-    print("✓ Legacy format correctly detected (format_version=1)")
-    print(f"✓ Loaded {len(loaded_state['specs'])} specs from legacy format")
-    print(f"✓ Loaded {len(loaded_state['SpecDataMatrix'])}x{len(loaded_state['SpecDataMatrix'][0])} matrix from legacy format")
+    print("Legacy format correctly detected (format_version=1)")
+    print(f"Loaded {len(loaded_state['specs'])} specs from legacy format")
+    print(f"Loaded {len(loaded_state['SpecDataMatrix'])}x{len(loaded_state['SpecDataMatrix'][0])} matrix from legacy format")
     
     return True
 
@@ -159,7 +159,7 @@ def test_chunked_format_detection():
         chunk = [MockSpec(i) for i in range(num_specs)]
         pickle.dump(chunk, f, protocol=pickle.HIGHEST_PROTOCOL)
     
-    print("✓ Saved chunked format state")
+    print("Saved chunked format state")
     
     # Load and check
     with open(temp_file, 'rb') as f:
@@ -171,8 +171,8 @@ def test_chunked_format_detection():
     
     os.unlink(temp_file)
     
-    print("✓ Chunked format correctly detected (format_version=2)")
-    print("✓ Large arrays correctly excluded from main state dict")
+    print("Chunked format correctly detected (format_version=2)")
+    print("Large arrays correctly excluded from main state dict")
     
     return True
 
@@ -212,7 +212,7 @@ def test_format_version_compatibility():
         pickle.dump(0, f)  # PMdict count
         pickle.dump({}, f)  # roilist
     
-    print("✓ Created both legacy and chunked format files")
+    print("Created both legacy and chunked format files")
     
     # Load legacy format
     with open(legacy_file, 'rb') as f:
@@ -242,9 +242,9 @@ def test_format_version_compatibility():
     assert 'specs_loaded' in loaded_chunked_main
     assert len(loaded_chunked_main['specs_loaded']) == 10
     
-    print("✓ Legacy format loaded correctly (100 specs, version 1)")
-    print("✓ Chunked format loaded correctly (10 specs, version 2)")
-    print("✓ Both formats can coexist")
+    print("Legacy format loaded correctly (100 specs, version 1)")
+    print("Chunked format loaded correctly (10 specs, version 2)")
+    print("Both formats can coexist")
     
     return True
 
@@ -277,8 +277,8 @@ def test_memory_cleanup_between_chunks():
     assert items_processed == num_items
     assert gc_calls == expected_chunks
     
-    print(f"✓ Processed {items_processed} items in {gc_calls} chunks")
-    print(f"✓ Called gc.collect() {gc_calls} times (once per chunk)")
+    print(f"Processed {items_processed} items in {gc_calls} chunks")
+    print(f"Called gc.collect() {gc_calls} times (once per chunk)")
     
     return True
 
@@ -296,7 +296,7 @@ if __name__ == '__main__':
         test_memory_cleanup_between_chunks()
         
         print("\n" + "="*60)
-        print("✅ ALL BACKWARD COMPATIBILITY TESTS PASSED")
+        print("ALL BACKWARD COMPATIBILITY TESTS PASSED")
         print("="*60)
         print("\nKey findings:")
         print("  • Legacy format files can still be loaded")
@@ -306,12 +306,12 @@ if __name__ == '__main__':
         sys.exit(0)
         
     except AssertionError as e:
-        print(f"\n❌ TEST FAILED: {e}")
+        print(f"\nTEST FAILED: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ TEST ERROR: {e}")
+        print(f"\nTEST ERROR: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

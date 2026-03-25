@@ -31,7 +31,7 @@ def demonstrate_bug():
         lastpm[newpm][i][j] = np.nan
         print("ERROR: The buggy code should have failed but didn't!")
     except IndexError as e:
-        print(f"✓ Expected IndexError occurred: {e}")
+        print(f"Expected IndexError occurred: {e}")
     except Exception as e:
         print(f"✗ Unexpected error: {type(e).__name__}: {e}")
 
@@ -56,8 +56,8 @@ def demonstrate_fix():
     
     try:
         lastpm[i][j] = np.nan
-        print(f"✓ Assignment successful! lastpm[{i}][{j}] = {lastpm[i][j]}")
-        print(f"✓ The fix works correctly - no IndexError!")
+        print(f"Assignment successful! lastpm[{i}][{j}] = {lastpm[i][j]}")
+        print(f"The fix works correctly - no IndexError!")
     except Exception as e:
         print(f"✗ Unexpected error: {type(e).__name__}: {e}")
 
@@ -87,7 +87,7 @@ def verify_logic():
     nan_count = np.sum(np.isnan(lastpm))
     total_pixels = lastpm.shape[0] * lastpm.shape[1]
     print(f"3. Set {nan_count}/{total_pixels} pixels to NaN (outside ROI)")
-    print(f"✓ Logic works correctly!")
+    print(f"Logic works correctly!")
 
 if __name__ == "__main__":
     demonstrate_bug()

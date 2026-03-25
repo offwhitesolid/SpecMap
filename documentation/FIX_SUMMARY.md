@@ -18,9 +18,9 @@ Two bugs were identified and fixed:
 Initial hypothesis was that fit results and ROIs were not being saved at all. However, investigation revealed:
 
 **What IS Actually Saved:**
-- ✅ Fit results (fitdata, fitparams, fitmaxX, fitmaxY, fwhm) ARE saved because they're attributes of SpectrumData objects in SpecDataMatrix
-- ✅ ROI masks ARE saved via roilist from roihandler
-- ✅ All HSI images in PMdict ARE saved
+- Fit results (fitdata, fitparams, fitmaxX, fitmaxY, fwhm) ARE saved because they're attributes of SpectrumData objects in SpecDataMatrix
+- ROI masks ARE saved via roilist from roihandler
+- All HSI images in PMdict ARE saved
 
 **The Real Problem:**
 - np.nan values in PixMatrix data take excessive space and time when pickling
@@ -84,34 +84,34 @@ Added two helper methods to XYMap class in lib9.py:
 
 ### Unit Tests
 Created `testingscripts/test_save_load_state.py`:
-- ✅ Tests basic nan replacement and restoration
-- ✅ Tests all nan positions are preserved
-- ✅ Tests non-nan values are unchanged
-- ✅ Tests edge cases:
+- Tests basic nan replacement and restoration
+- Tests all nan positions are preserved
+- Tests non-nan values are unchanged
+- Tests edge cases:
   - All-nan matrix (uses fallback value)
   - No-nan matrix (skips optimization)
   - Extreme values (1e10, -1e10)
-- ✅ Verifies unique number selection avoids collisions
+- Verifies unique number selection avoids collisions
 
 ### Security Scan
-- ✅ CodeQL scan: 0 alerts
-- ✅ No security vulnerabilities introduced
+- CodeQL scan: 0 alerts
+- No security vulnerabilities introduced
 
 ## Results
 
 ### Bug 1 Results
-- ✅ All .pyc files removed from git tracking
-- ✅ Future .pyc files will be automatically ignored
-- ✅ Cleaner repository without build artifacts
+- All .pyc files removed from git tracking
+- Future .pyc files will be automatically ignored
+- Cleaner repository without build artifacts
 
 ### Bug 2 Results
-- ✅ Fit results ARE saved (they always were in SpecDataMatrix)
-- ✅ ROI masks ARE saved (they always were in roilist)
-- ✅ np.nan optimization significantly reduces file size
-- ✅ Faster save/load operations (numeric data pickles faster than np.nan objects)
-- ✅ No data corruption (deep copy prevents modification of original)
-- ✅ Backward compatible with old save files
-- ✅ All edge cases handled correctly
+- Fit results ARE saved (they always were in SpecDataMatrix)
+- ROI masks ARE saved (they always were in roilist)
+- np.nan optimization significantly reduces file size
+- Faster save/load operations (numeric data pickles faster than np.nan objects)
+- No data corruption (deep copy prevents modification of original)
+- Backward compatible with old save files
+- All edge cases handled correctly
 
 ## Benefits
 
@@ -149,7 +149,7 @@ The implementation is fully backward compatible:
 ## Conclusion
 
 Both bugs have been successfully fixed:
-1. ✅ .pyc files no longer tracked in git
-2. ✅ Save/load optimized with np.nan handling (fit results and ROIs were always saved, just inefficiently)
+1. .pyc files no longer tracked in git
+2. Save/load optimized with np.nan handling (fit results and ROIs were always saved, just inefficiently)
 
 The implementation is robust, tested, secure, and backward compatible.

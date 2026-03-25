@@ -135,8 +135,8 @@ Located at the bottom of the Load Data tab:
        - Loaded 2 ROI masks
          ROI names: ['bright_region', 'edge_region']
        - Restored nan values in 2 ROI masks
-       ✓ ROI 'bright_region' dimensions validated: (10, 10)
-       ✓ ROI 'edge_region' dimensions validated: (10, 10)
+       ROI 'bright_region' dimensions validated: (10, 10)
+       ROI 'edge_region' dimensions validated: (10, 10)
        - Loaded 3 averaged spectra
          Averaged spectra names: ['HSI0_PLB_avg', 'HSI0_Specdiff1_avg', 'HSI0_Specdiff2_avg']
        - WL axis: 800 points from 400.00 to 800.00 nm
@@ -211,25 +211,25 @@ if success:
 
 When you save HSI state, **everything** is preserved:
 
-✅ **Core Data**
+**Core Data**
 - Individual spectrum objects
 - 2D spectrum data matrix
 - Wavelength axis (nm and eV)
 - Background data
 
-✅ **HSI Images**
+**HSI Images**
 - All hyperspectral images (PMdict)
 - Fit results and parameters
 - Image metadata
 - Pixel matrices with NaN optimization
 
-✅ **ROI Masks** ✨
+**ROI Masks** ✨
 - All defined ROI masks
 - ROI names
 - Mask arrays (with NaN compression)
 - Dimensions validated on load
 
-✅ **Averaged Spectra** ✨
+**Averaged Spectra** ✨
 - All averaged spectra (disspecs)
 - Multiple data types:
   - PL-BG (background-corrected)
@@ -238,14 +238,14 @@ When you save HSI state, **everything** is preserved:
   - Normalized derivatives
 - Spectrum metadata
 
-✅ **Processing Parameters**
+**Processing Parameters**
 - Wavelength range settings
 - Count thresholds
 - Grid parameters
 - Cosmic ray removal settings
 - Background correction settings
 
-✅ **GUI Settings**
+**GUI Settings**
 - Colormap selection
 - Font size
 - Selected wavelength
@@ -292,8 +292,8 @@ With optimization:     50 MB
      - Loaded 2 ROI masks
        ROI names: ['bright_region', 'edge_region']
      - Restored nan values in 2 ROI masks
-     ✓ ROI 'bright_region' dimensions validated: (10, 10)
-     ✓ ROI 'edge_region' dimensions validated: (10, 10)
+     ROI 'bright_region' dimensions validated: (10, 10)
+     ROI 'edge_region' dimensions validated: (10, 10)
      - Loaded 3 averaged spectra
        Averaged spectra names: ['HSI0_PLB_avg', 'HSI0_Specdiff1_avg', 'HSI0_Specdiff2_avg']
      - WL axis: 800 points from 400.00 to 800.00 nm
@@ -324,18 +324,18 @@ The system automatically:
 
 During loading, the system validates:
 
-✅ **File integrity**
+**File integrity**
 - Pickle file can be opened
 - Data structure is valid
 
-✅ **ROI dimensions**
+**ROI dimensions**
 - Each ROI mask matches HSI dimensions
 - Warnings for mismatches:
   ```
-  ⚠ Warning: ROI 'old_roi' dimensions (8, 8) don't match HSI dimensions (10, 10)
+  Warning: ROI 'old_roi' dimensions (8, 8) don't match HSI dimensions (10, 10)
   ```
 
-✅ **Data consistency**
+**Data consistency**
 - Wavelength arrays are consistent
 - Spectral data is complete
 - Metadata is preserved
@@ -399,11 +399,11 @@ Once loaded, you can immediately:
 
 ### ROI Persistence
 
-✅ **Saved automatically** with save_state()
-✅ **Loaded automatically** with load_state()
-✅ **Validated on load** - dimensions checked
-✅ **NaN compressed** - optimized file size
-✅ **Names preserved** - same ROI names after load
+**Saved automatically** with save_state()
+**Loaded automatically** with load_state()
+**Validated on load** - dimensions checked
+**NaN compressed** - optimized file size
+**Names preserved** - same ROI names after load
 
 ### ROI Best Practices
 
@@ -497,11 +497,11 @@ After creating averaged spectra:
 
 ### Averaged Spectra Persistence
 
-✅ **Saved automatically** with save_state()
-✅ **Loaded automatically** with load_state()
-✅ **Names preserved** - same names after load
-✅ **Metadata preserved** - parent HSI, data type
-✅ **Derivatives preserved** - d1, d2 arrays saved
+**Saved automatically** with save_state()
+**Loaded automatically** with load_state()
+**Names preserved** - same names after load
+**Metadata preserved** - parent HSI, data type
+**Derivatives preserved** - d1, d2 arrays saved
 
 When you load a saved state:
 ```
@@ -717,7 +717,7 @@ All averaged spectra are immediately available in the dropdown.
 
 **Symptoms:**
 ```
-⚠ Warning: ROI 'old_roi' dimensions (8, 8) don't match HSI dimensions (10, 10)
+Warning: ROI 'old_roi' dimensions (8, 8) don't match HSI dimensions (10, 10)
 ```
 
 **Causes:**
@@ -791,19 +791,19 @@ All averaged spectra are immediately available in the dropdown.
 
 ### Key Takeaways
 
-✅ **Load Data tab** is your starting point for both new data and saved states
+**Load Data tab** is your starting point for both new data and saved states
 
-✅ **Save frequently** to preserve ROIs and averaged spectra
+**Save frequently** to preserve ROIs and averaged spectra
 
-✅ **ROI masks are automatically saved** with save_state()
+**ROI masks are automatically saved** with save_state()
 
-✅ **Averaged spectra are automatically saved** with save_state()
+**Averaged spectra are automatically saved** with save_state()
 
-✅ **Loading is automatic** - just load the .pkl file and continue working
+**Loading is automatic** - just load the .pkl file and continue working
 
-✅ **File size is optimized** - NaN compression applied automatically
+**File size is optimized** - NaN compression applied automatically
 
-✅ **Everything is preserved** - data, ROIs, spectra, settings, parameters
+**Everything is preserved** - data, ROIs, spectra, settings, parameters
 
 ### Recommended Workflow
 

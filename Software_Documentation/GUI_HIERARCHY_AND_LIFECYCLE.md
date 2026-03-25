@@ -756,8 +756,8 @@ SPECIAL CASE: Frames passed to external classes
 │ │ - gc.collect() forces immediate cleanup                      ││
 │ │                                                              ││
 │ │ Recommendation:                                              ││
-│ │ ✓ Add button disabling during load                           ││
-│ │ ✓ Check if Nanomap.cmapframe.winfo_exists() before use       ││
+│ │ Add button disabling during load                           ││
+│ │ Check if Nanomap.cmapframe.winfo_exists() before use       ││
 │ └──────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
 
@@ -779,8 +779,8 @@ SPECIAL CASE: Frames passed to external classes
 │ │ - try/except around self.sortframe.after()                   ││
 │ │                                                              ││
 │ │ Recommendation:                                              ││
-│ │ ✓ Add widget existence checks before updates                 ││
-│ │ ✓ Implement graceful shutdown with thread.join(timeout)      ││
+│ │ Add widget existence checks before updates                 ││
+│ │ Implement graceful shutdown with thread.join(timeout)      ││
 │ └──────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
 
@@ -802,8 +802,8 @@ SPECIAL CASE: Frames passed to external classes
 │ │ - Roihandler.on_close() calls plt.close('all')               ││
 │ │                                                              ││
 │ │ Recommendation:                                              ││
-│ │ ✓ Already well mitigated                                     ││
-│ │ ✓ Consider using matplotlib.use('TkAgg') backend             ││
+│ │ Already well mitigated                                     ││
+│ │ Consider using matplotlib.use('TkAgg') backend             ││
 │ └──────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
 
@@ -825,8 +825,8 @@ SPECIAL CASE: Frames passed to external classes
 │ │ - Frames destroyed explicitly                                ││
 │ │                                                              ││
 │ │ Recommendation:                                              ││
-│ │ ✓ Use weak references for parent frame storage               ││
-│ │ ✓ Implement proper __del__ method in XYMap                   ││
+│ │ Use weak references for parent frame storage               ││
+│ │ Implement proper __del__ method in XYMap                   ││
 │ └──────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
 
@@ -848,8 +848,8 @@ SPECIAL CASE: Frames passed to external classes
 │ │ - load_state() rebuilds GUI after loading data               ││
 │ │                                                              ││
 │ │ Recommendation:                                              ││
-│ │ ✓ Already well implemented                                   ││
-│ │ ✓ Document which attributes are saved vs transient           ││
+│ │ Already well implemented                                   ││
+│ │ Document which attributes are saved vs transient           ││
 │ └──────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -858,7 +858,7 @@ SPECIAL CASE: Frames passed to external classes
 
 ## Best Practices & Recommendations
 
-### ✅ Current Good Practices
+### Current Good Practices
 
 1. **Frame Ownership Clarity**
    - Frames created at FileProcessorApp level

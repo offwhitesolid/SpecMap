@@ -7,11 +7,11 @@
 ---
 
 ## Legend
-- ✅ **DONE**: Task completed
+- **DONE**: Task completed
 - 🔄 **IN PROGRESS**: Currently being worked on
 - ⏸️ **BLOCKED**: Waiting on dependencies or external factors
 - 📋 **TODO**: Not yet started
-- ❌ **CANCELLED**: Task no longer needed
+- **CANCELLED**: Task no longer needed
 
 **Assignees**:
 - 👤 **User**: Project owner/developer
@@ -39,7 +39,7 @@
   - Log errors to file for debugging
 
 ### 1.2 GUI Improvements
-- [x] ✅ **Build GUI even when no data is loaded** - 🤖 Copilot
+- [x] **Build GUI even when no data is loaded** - 🤖 Copilot
   - Modified build_button_frame() to construct full GUI
   - Added disabled states for data-dependent buttons
   - Completed: November 28, 2025
@@ -81,12 +81,12 @@
 ## 2. Cosmic Ray Removal Enhancements
 
 ### 2.1 Algorithm Development
-- [x] ✅ **Implement Combined Linear-Neighbor method** - 🤖 Copilot
+- [x] **Implement Combined Linear-Neighbor method** - 🤖 Copilot
   - Created two-stage algorithm
   - Added to cosmicfuncts dictionary
   - Completed: November 28, 2025
 
-- [x] ✅ **Document Combined Linear-Neighbor method** - 🤖 Copilot
+- [x] **Document Combined Linear-Neighbor method** - 🤖 Copilot
   - Added mathematical documentation
   - Updated performance comparison tables
   - Updated use case recommendations
@@ -173,7 +173,7 @@
   - File format questions
 
 ### 4.2 Developer Documentation
-- [x] ✅ **Create software architecture documentation** - 🤖 Copilot
+- [x] **Create software architecture documentation** - 🤖 Copilot
   - Created Software_Documentation folder
   - PROGRAM_STRUCTURE.md - Complete program tree from main9.py
   - GUI_HIERARCHY_AND_LIFECYCLE.md - Tkinter hierarchy with error/cleanup flows
@@ -457,7 +457,7 @@
 1. **For Copilot Tasks**: When starting a task marked with 🤖 Copilot, change status to 🔄 IN PROGRESS
 2. **When Completing Tasks**: Change checkbox to [x] and emoji to ✅, add completion date
 3. **For Blocked Tasks**: Change to ⏸️ BLOCKED and explain reason in Notes section
-4. **For Cancelled Tasks**: Change to ❌ CANCELLED and explain reason
+4. **For Cancelled Tasks**: Change to CANCELLED and explain reason
 5. **Adding New Tasks**: Add to appropriate section with assignee and priority
 6. **Regular Updates**: Review and update status weekly
 

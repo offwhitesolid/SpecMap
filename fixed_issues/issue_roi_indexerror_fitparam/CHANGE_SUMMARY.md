@@ -14,10 +14,10 @@
 
 ## Testing
 The verification script confirms:
-1. ✓ The bug scenario reproduces the exact IndexError
-2. ✓ The fix resolves the IndexError
-3. ✓ The logic works correctly for ROI and non-ROI scenarios
-4. ✓ lib9.py compiles without syntax errors
+1. The bug scenario reproduces the exact IndexError
+2. The fix resolves the IndexError
+3. The logic works correctly for ROI and non-ROI scenarios
+4. lib9.py compiles without syntax errors
 
 ## Impact
 This fix restores the "Plot HSI from Fit Parameter" functionality when "Use ROI for parameter plot" is enabled, allowing users to visualize fit parameters on specific regions of interest.

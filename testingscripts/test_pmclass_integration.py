@@ -65,8 +65,8 @@ def test_pmclass_nan_handling():
     
     # We can't actually test the methods without instantiating XYMap
     # But we can verify the PMclass structure is compatible
-    print("✅ PMclass objects created successfully")
-    print("✅ Structure is compatible with optimization methods")
+    print("PMclass objects created successfully")
+    print("Structure is compatible with optimization methods")
     print()
     
     # Simulate what the optimization would do
@@ -106,23 +106,23 @@ def test_pmclass_nan_handling():
                 restored_nan_mask = np.isnan(matrix_restored)
                 
                 if np.array_equal(original_nan_mask, restored_nan_mask):
-                    print("  - ✅ NaN positions preserved correctly")
+                    print("  - NaN positions preserved correctly")
                 else:
-                    print("  - ❌ NaN positions NOT preserved")
+                    print("  - NaN positions NOT preserved")
                     return False
                 
                 original_valid = matrix[~original_nan_mask]
                 restored_valid = matrix_restored[~restored_nan_mask]
                 
                 if np.array_equal(original_valid, restored_valid):
-                    print("  - ✅ Non-NaN values preserved correctly")
+                    print("  - Non-NaN values preserved correctly")
                 else:
-                    print("  - ❌ Non-NaN values NOT preserved")
+                    print("  - Non-NaN values NOT preserved")
                     return False
     
     print()
     print("=" * 60)
-    print("✅ ALL INTEGRATION TESTS PASSED!")
+    print("ALL INTEGRATION TESTS PASSED!")
     print("=" * 60)
     print()
     print("Summary:")
@@ -138,10 +138,10 @@ def test_pmclass_nan_handling():
 if __name__ == "__main__":
     try:
         if not test_pmclass_nan_handling():
-            print("❌ Integration test failed!")
+            print("Integration test failed!")
             sys.exit(1)
     except Exception as e:
-        print(f"❌ Test failed with exception: {e}")
+        print(f"Test failed with exception: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

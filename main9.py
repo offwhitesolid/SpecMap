@@ -253,11 +253,11 @@ class FileProcessorApp:
         # input checkbox: calculate derivatives: first and second
         self.calculate_firstderivativeBool = tk.IntVar()
         self.calculate_firstderivativeBool.set(defaults['calculate_first_derivative'])
-        self.calculate_firstderivative_check = tk.Checkbutton(self.cosmicframe, text="Calculate First Derivative", variable=self.calculate_firstderivativeBool)
+        self.calculate_firstderivative_check = tk.Checkbutton(self.cosmicframe, text="calc 1th derivative", variable=self.calculate_firstderivativeBool)
         self.calculate_firstderivative_check.grid(row=4, column=0)
         self.calculate_secondderivativeBool = tk.IntVar()
         self.calculate_secondderivativeBool.set(defaults['calculate_second_derivative'])
-        self.calculate_secondderivative_check = tk.Checkbutton(self.cosmicframe, text="Calculate Second Derivative", variable=self.calculate_secondderivativeBool)
+        self.calculate_secondderivative_check = tk.Checkbutton(self.cosmicframe, text="calc 2nd derivative", variable=self.calculate_secondderivativeBool)
         self.calculate_secondderivative_check.grid(row=4, column=1)
         # for derivative: select polynomial order
         tk.Label(self.cosmicframe, text="Polynom Order Derivative fit:").grid(row=5, column=0)
@@ -281,14 +281,14 @@ class FileProcessorApp:
         # Calculate first and second derivatives but normalize before derivative is calculated.
         self.calc_norm_and_deriveBool = tk.IntVar()
         self.calc_norm_and_deriveBool.set(defaults['calc_norm_and_derive'])
-        self.calc_norm_and_derive_check = tk.Checkbutton(self.load_content_frame, text="normalize on counts, then derive", variable=self.calc_norm_and_deriveBool)
-        self.calc_norm_and_derive_check.grid(row=5, column=0)
+        self.calc_norm_and_derive_check = tk.Checkbutton(self.cosmicframe, text="norm counts, then derive", variable=self.calc_norm_and_deriveBool)
+        self.calc_norm_and_derive_check.grid(row=4, column=2)
 
         # Normalize on total intensity
         self.calc_norm_on_intensityBool = tk.IntVar()
         self.calc_norm_on_intensityBool.set(defaults['calc_norm_on_intensity'])
-        self.calc_norm_on_intensity_check = tk.Checkbutton(self.load_content_frame, text="normalize on total intensity, then derive", variable=self.calc_norm_on_intensityBool)
-        self.calc_norm_on_intensity_check.grid(row=6, column=0)
+        self.calc_norm_on_intensity_check = tk.Checkbutton(self.cosmicframe, text="norm on I, then derive", variable=self.calc_norm_on_intensityBool)
+        self.calc_norm_on_intensity_check.grid(row=4, column=3)
 
         # Clara load frame (now inside load_content_frame)
         self.claraloadframe = tk.Frame(self.load_content_frame, width=60, height=100, borderwidth=5, relief="ridge")

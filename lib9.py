@@ -3883,9 +3883,9 @@ class XYMap:
                     for roi_name, roi_mask in self.roihandler.roilist.items():
                         roi_array = np.array(roi_mask)
                         if roi_array.shape != hsi_shape:
-                            print(f"  ⚠ Warning: ROI '{roi_name}' dimensions {roi_array.shape} don't match HSI dimensions {hsi_shape}")
+                            print(f"  Warning: ROI '{roi_name}' dimensions {roi_array.shape} don't match HSI dimensions {hsi_shape}")
                         else:
-                            print(f"  ✓ ROI '{roi_name}' dimensions validated: {roi_array.shape}")
+                            print(f"  ROI '{roi_name}' dimensions validated: {roi_array.shape}")
             
             mem_tracker.log_memory("After ROI restoration", context="load_state")
             

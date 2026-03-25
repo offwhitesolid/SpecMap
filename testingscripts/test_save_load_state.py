@@ -54,9 +54,9 @@ def test_nan_optimization():
     restored_nan_mask = np.isnan(matrix_restored)
     
     if np.array_equal(original_nan_mask, restored_nan_mask):
-        print("✅ NaN positions match!")
+        print("NaN positions match!")
     else:
-        print("❌ NaN positions don't match!")
+        print("NaN positions don't match!")
         return False
     
     # Verify non-nan values match
@@ -64,12 +64,12 @@ def test_nan_optimization():
     restored_valid = matrix_restored[~restored_nan_mask]
     
     if np.array_equal(original_valid, restored_valid):
-        print("✅ Non-NaN values match!")
+        print("Non-NaN values match!")
     else:
-        print("❌ Non-NaN values don't match!")
+        print("Non-NaN values don't match!")
         return False
     
-    print("\n✅ All tests passed!\n")
+    print("\nAll tests passed!\n")
     return True
 
 def test_edge_cases():
@@ -88,9 +88,9 @@ def test_edge_cases():
     restored = np.where(replaced == unique_num, np.nan, replaced)
     
     if np.all(np.isnan(restored)):
-        print("✅ All-nan matrix handled correctly")
+        print("All-nan matrix handled correctly")
     else:
-        print("❌ All-nan matrix failed")
+        print("All-nan matrix failed")
         return False
     
     # Test 2: No nan matrix
@@ -99,9 +99,9 @@ def test_edge_cases():
     print(f"Matrix: {no_nan}")
     
     if not np.any(np.isnan(no_nan)):
-        print("✅ No-nan matrix detected correctly (no replacement needed)")
+        print("No-nan matrix detected correctly (no replacement needed)")
     else:
-        print("❌ No-nan matrix detection failed")
+        print("No-nan matrix detection failed")
         return False
     
     # Test 3: Matrix with extreme values
@@ -122,12 +122,12 @@ def test_edge_cases():
     
     # Verify unique number is not in data
     if unique_num not in valid_data:
-        print("✅ Unique number is truly unique")
+        print("Unique number is truly unique")
     else:
-        print("❌ Unique number collision!")
+        print("Unique number collision!")
         return False
     
-    print("\n✅ All edge case tests passed!\n")
+    print("\nAll edge case tests passed!\n")
     return True
 
 def main():
@@ -139,15 +139,15 @@ def main():
     
     try:
         if not test_nan_optimization():
-            print("❌ NaN optimization test failed!")
+            print("NaN optimization test failed!")
             sys.exit(1)
         
         if not test_edge_cases():
-            print("❌ Edge case tests failed!")
+            print("Edge case tests failed!")
             sys.exit(1)
         
         print("=" * 60)
-        print("✅ ALL TESTS PASSED!")
+        print("ALL TESTS PASSED!")
         print("=" * 60)
         print()
         print("Summary:")
@@ -160,7 +160,7 @@ def main():
         print("Actual save/load with XYMap requires real HSI data.")
         
     except Exception as e:
-        print(f"❌ Test failed with exception: {e}")
+        print(f"Test failed with exception: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

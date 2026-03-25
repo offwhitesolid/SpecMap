@@ -37,7 +37,7 @@ def test_normalize_none():
     
     # Check that all values are 1
     assert np.all(norm_matrix == 1.0), "normalize_none should return all 1s"
-    print("✓ normalize_none passed")
+    print("normalize_none passed")
 
 def test_normalize_integrated_counts():
     """Test normalization by integrated counts"""
@@ -62,7 +62,7 @@ def test_normalize_integrated_counts():
     expected_value = 1.0 / 1000.0
     
     assert np.allclose(norm_matrix, expected_value), f"Expected {expected_value}, got {norm_matrix[0][0]}"
-    print(f"✓ normalize_integrated_counts passed (norm value: {norm_matrix[0][0]})")
+    print(f"normalize_integrated_counts passed (norm value: {norm_matrix[0][0]})")
 
 def test_normalize_max_intensity():
     """Test normalization by max intensity"""
@@ -88,7 +88,7 @@ def test_normalize_max_intensity():
     expected_value = 1.0 / 100.0
     
     assert np.allclose(norm_matrix, expected_value), f"Expected {expected_value}, got {norm_matrix[0][0]}"
-    print(f"✓ normalize_max_intensity passed (norm value: {norm_matrix[0][0]})")
+    print(f"normalize_max_intensity passed (norm value: {norm_matrix[0][0]})")
 
 def test_normalize_counts_at_wavelength():
     """Test normalization by counts at specific wavelength"""
@@ -116,7 +116,7 @@ def test_normalize_counts_at_wavelength():
     expected_value = 1.0 / 50.0
     
     assert np.allclose(norm_matrix, expected_value), f"Expected {expected_value}, got {norm_matrix[0][0]}"
-    print(f"✓ normalize_counts_at_wavelength passed (norm value: {norm_matrix[0][0]})")
+    print(f"normalize_counts_at_wavelength passed (norm value: {norm_matrix[0][0]})")
 
 def test_apply_normalization():
     """Test applying normalization to pixel matrix"""
@@ -135,7 +135,7 @@ def test_apply_normalization():
     expected = np.array([[1.0, 2.0], [3.0, 4.0]])
     
     assert np.allclose(normalized, expected), f"Expected {expected}, got {normalized}"
-    print("✓ apply_normalization passed")
+    print("apply_normalization passed")
 
 def test_none_normalization():
     """Test that None normalization matrix returns original data"""
@@ -149,7 +149,7 @@ def test_none_normalization():
     
     # Check that original is returned
     assert np.array_equal(normalized, pixel_matrix), "None normalization should return original"
-    print("✓ None normalization passed")
+    print("None normalization passed")
 
 def test_normalize_with_different_dataset():
     """Test normalization using a different dataset than the one being plotted.
@@ -193,7 +193,7 @@ def test_normalize_with_different_dataset():
     expected_diff = 1.0 / 10.0
     assert np.allclose(norm_matrix_diff, expected_diff), f"Expected {expected_diff}, got {norm_matrix_diff[0][0]}"
     
-    print(f"✓ normalization with different dataset passed")
+    print(f"normalization with different dataset passed")
     print(f"  - PLB normalization value: {norm_matrix_plb[0][0]} (expected {expected_plb})")
     print(f"  - Specdiff1 normalization value: {norm_matrix_diff[0][0]} (expected {expected_diff})")
 
@@ -253,7 +253,7 @@ def test_normalize_derivatives_by_signal():
             assert np.isclose(spec.Specdiff2_norm[99], expected_d2_99), \
                 f"Expected Specdiff2_norm[99]={expected_d2_99}, got {spec.Specdiff2_norm[99]}"
     
-    print("✓ normalize_derivatives_by_signal passed")
+    print("normalize_derivatives_by_signal passed")
     print(f"  - Specdiff1_norm[0] = {spec_matrix[0][0].Specdiff1_norm[0]} (expected {expected_d1_0})")
     print(f"  - Specdiff1_norm[99] = {spec_matrix[0][0].Specdiff1_norm[99]} (expected {expected_d1_99})")
     print(f"  - Specdiff2_norm[0] = {spec_matrix[0][0].Specdiff2_norm[0]} (expected {expected_d2_0})")
@@ -290,7 +290,7 @@ def test_normalize_derivatives_with_zero_signal():
     assert np.isclose(spec.Specdiff1_norm[99], expected), \
         f"Expected Specdiff1_norm[99]={expected}, got {spec.Specdiff1_norm[99]}"
     
-    print("✓ normalize_derivatives_by_signal with zero signal passed")
+    print("normalize_derivatives_by_signal with zero signal passed")
 
 if __name__ == '__main__':
     print("Running HSI Normalization Tests...\n")
@@ -306,7 +306,7 @@ if __name__ == '__main__':
         test_normalize_derivatives_by_signal()
         test_normalize_derivatives_with_zero_signal()
         
-        print("\n✓ All tests passed!")
+        print("\nAll tests passed!")
         sys.exit(0)
     except Exception as e:
         print(f"\n✗ Test failed: {e}")

@@ -194,10 +194,10 @@ else:
 
 | Save Format | Load Format | Result |
 |-------------|-------------|--------|
-| Old (no compression) | Old reader | ✅ Works (legacy) |
-| Old (no compression) | New reader | ✅ Works (backward compatible) |
-| New (with compression) | New reader | ✅ Works (optimal) |
-| New (with compression) | Old reader | ❌ Would fail (expected) |
+| Old (no compression) | Old reader | Works (legacy) |
+| Old (no compression) | New reader | Works (backward compatible) |
+| New (with compression) | New reader | Works (optimal) |
+| New (with compression) | Old reader | Would fail (expected) |
 
 ## Performance Impact
 
@@ -238,7 +238,7 @@ The existing test suite (`testingscripts/test_roi_spectra_save_load.py`) validat
 **Test Results:**
 ```
 ============================================================
-# ✅ ALL TESTS PASSED!
+# ALL TESTS PASSED!
 ============================================================
 
 Summary:
@@ -260,15 +260,15 @@ The implementation was verified to:
 ## Code Quality
 
 ### Code Review
-- ✅ No issues found
-- ✅ Follows existing code patterns
-- ✅ Consistent with HSI compression approach
-- ✅ Clear documentation
+- No issues found
+- Follows existing code patterns
+- Consistent with HSI compression approach
+- Clear documentation
 
 ### Security Analysis (CodeQL)
-- ✅ No security vulnerabilities detected
-- ✅ No injection risks
-- ✅ Safe data handling
+- No security vulnerabilities detected
+- No injection risks
+- Safe data handling
 
 ## Documentation Updates
 
@@ -336,11 +336,11 @@ Potential improvements for future versions:
 
 The ROI compression implementation successfully addresses the original issue by:
 
-1. ✅ **Fixing the problem:** ROI masks now save/load efficiently
-2. ✅ **Improving performance:** 9-10x improvements in speed and size
-3. ✅ **Maintaining compatibility:** Old files still work seamlessly
-4. ✅ **Following best practices:** Mirrors HSI compression approach
-5. ✅ **Comprehensive testing:** All tests pass, no regressions
+1. **Fixing the problem:** ROI masks now save/load efficiently
+2. **Improving performance:** 9-10x improvements in speed and size
+3. **Maintaining compatibility:** Old files still work seamlessly
+4. **Following best practices:** Mirrors HSI compression approach
+5. **Comprehensive testing:** All tests pass, no regressions
 
 The implementation is production-ready and provides immediate benefits to all users working with ROI masks in SpecMap.
 

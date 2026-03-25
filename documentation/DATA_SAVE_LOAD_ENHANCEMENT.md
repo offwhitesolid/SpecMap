@@ -24,11 +24,11 @@ When you save a SpecMap dataset using `save_state()`, the following data is pres
    - Fit results and parameters
    - Image metadata
 
-3. **ROI masks** ✨ NEW
+3. **ROI masks** NEW
    - All defined ROI masks with their names
    - Mask dimensions validated on load
 
-4. **Averaged spectra** ✨ NEW
+4. **Averaged spectra** NEW
    - All averaged spectra (`disspecs`)
    - Multiple data types (PL-BG, derivatives, normalized derivatives)
    - Metadata for each averaged spectrum
@@ -90,8 +90,8 @@ When loading a saved state, the system:
 2. **Decompresses ROI data** - automatically restores `np.nan` values that were replaced during save
 3. **Validates dimensions** - checks that each ROI mask matches the HSI image dimensions
 4. **Logs validation results**:
-   - ✓ Success message for matching dimensions
-   - ⚠ Warning for mismatched dimensions
+   - Success message for matching dimensions
+   - Warning for mismatched dimensions
 
 Example output:
 ```
@@ -102,8 +102,8 @@ Successfully loaded XYMap state from: my_dataset.pkl
   - Loaded 2 ROI masks
     ROI names: ['ROI_1', 'ROI_bright']
   - Restored nan values in 2 ROI masks
-  ✓ ROI 'ROI_1' dimensions validated: (10, 10)
-  ✓ ROI 'ROI_bright' dimensions validated: (10, 10)
+  ROI 'ROI_1' dimensions validated: (10, 10)
+  ROI 'ROI_bright' dimensions validated: (10, 10)
 ```
 
 ### Accessing ROI Masks After Loading
@@ -275,8 +275,8 @@ Successfully loaded XYMap state from: my_analysis.pkl
   - Loaded 2 ROI masks
     ROI names: ['bright_region', 'edge_region']
   - Restored nan values in 2 ROI masks
-  ✓ ROI 'bright_region' dimensions validated: (10, 10)
-  ✓ ROI 'edge_region' dimensions validated: (10, 10)
+  ROI 'bright_region' dimensions validated: (10, 10)
+  ROI 'edge_region' dimensions validated: (10, 10)
   - Loaded 0 averaged spectra
   - WL axis: 800 points from 400.00 to 800.00 nm
 ```
@@ -359,8 +359,8 @@ Save the complete XYMap state to a pickle file.
 **Saves:**
 - Core spectral data (specs, SpecDataMatrix, WL, WL_eV, BG)
 - HSI images with fit results (PMdict)
-- ROI masks (roilist) ✨ NEW
-- Averaged spectra (disspecs) ✨ NEW
+- ROI masks (roilist) NEW
+- Averaged spectra (disspecs) NEW
 - Processing parameters and configuration
 
 **Returns:**
@@ -380,7 +380,7 @@ Load a previously saved XYMap state from a pickle file.
 
 **Restores:**
 - All saved data (see `save_state`)
-- Validates ROI dimensions ✨ NEW
+- Validates ROI dimensions NEW
 - Updates GUI elements
 
 **Returns:**
@@ -411,7 +411,7 @@ Average the selected HSI to a single spectrum using the currently selected data 
 xymap.averageHSItoSpecData()
 ```
 
-### `averageHSItoSpecDataMultiple(data_types=None)` ✨ NEW
+### `averageHSItoSpecDataMultiple(data_types=None)` NEW
 
 Generate multiple averaged spectra simultaneously for different data types.
 
@@ -451,7 +451,7 @@ Export the selected HSI to a CSV file.
 
 **Returns:** None
 
-### `exportHSIWithSpectra()` ✨ NEW
+### `exportHSIWithSpectra()` NEW
 
 Export HSI along with associated averaged spectra to separate CSV files.
 
@@ -469,7 +469,7 @@ Export HSI along with associated averaged spectra to separate CSV files.
 xymap.exportHSIWithSpectra()
 ```
 
-### `exportAllAveragedSpectra()` ✨ NEW
+### `exportAllAveragedSpectra()` NEW
 
 Generate and export all averaged spectra types in one operation.
 
@@ -647,10 +647,10 @@ The compression system maintains backward compatibility:
   - Works with old pickle files seamlessly
 
 - **Mixed scenarios**:
-  - HSI data compressed, ROI data not compressed: ✅ Supported
-  - HSI data not compressed, ROI data compressed: ✅ Supported
-  - Both compressed: ✅ Supported (optimal)
-  - Neither compressed: ✅ Supported (legacy)
+  - HSI data compressed, ROI data not compressed: Supported
+  - HSI data not compressed, ROI data compressed: Supported
+  - Both compressed: Supported (optimal)
+  - Neither compressed: Supported (legacy)
 
 ### Data Integrity
 
@@ -688,7 +688,7 @@ print(f"Size reduction: {old_size:.1f} MB → {new_size:.1f} MB")
 
 ### ROI Dimension Mismatch Warning
 
-**Issue:** `⚠ Warning: ROI 'name' dimensions (10, 10) don't match HSI dimensions (12, 12)`
+**Issue:** `Warning: ROI 'name' dimensions (10, 10) don't match HSI dimensions (12, 12)`
 
 **Cause:** ROI was created on a different HSI image or data was modified
 

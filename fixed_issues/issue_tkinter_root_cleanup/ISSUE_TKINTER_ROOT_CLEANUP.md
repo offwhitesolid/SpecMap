@@ -66,7 +66,7 @@ When data is loaded a second time, the following sequence causes the error:
 3. **XYMap.on_close() - Lines 2184-2186:**
    ```python
    try:
-       self.cmapframe.destroy()  # ❌ PROBLEM: Destroying frame it doesn't own
+       self.cmapframe.destroy()  # PROBLEM: Destroying frame it doesn't own
    except:
        pass
    ```
@@ -120,7 +120,7 @@ def on_close(self):
     plt.close('all')
     # tkinter destroy
     try:
-        self.cmapframe.destroy()  # ❌ Remove this - XYMap doesn't own the frame
+        self.cmapframe.destroy()  # Remove this - XYMap doesn't own the frame
     except:
         pass
     # explicitly clean up spectra to release file handles

@@ -110,7 +110,7 @@ def test_save_load_with_pickle():
             'HSI_from_fitparam_useROI': False
         }
         
-        print(f"  ✓ Created state with:")
+        print(f"  Created state with:")
         print(f"    - {len(roilist)} ROI masks")
         print(f"    - {len(disspecs)} averaged spectra")
         
@@ -121,7 +121,7 @@ def test_save_load_with_pickle():
             pickle.dump(state, f)
         
         file_size = os.path.getsize(temp_filename)
-        print(f"  ✓ Save successful! File size: {file_size / 1024:.1f} KB")
+        print(f"  Save successful! File size: {file_size / 1024:.1f} KB")
         
         # ===== LOAD STATE =====
         print(f"\n3. Loading state from: {temp_filename}")
@@ -129,7 +129,7 @@ def test_save_load_with_pickle():
         with open(temp_filename, 'rb') as f:
             loaded_state = pickle.load(f)
         
-        print("  ✓ Load successful!")
+        print("  Load successful!")
         
         # ===== VERIFY ROIs =====
         print("\n4. Verifying ROI data...")
@@ -144,7 +144,7 @@ def test_save_load_with_pickle():
             print(f"  ✗ FAIL: ROI count mismatch: expected {len(roilist)}, got {len(loaded_roilist)}")
             return False
         
-        print(f"  ✓ ROI count matches: {len(loaded_roilist)}")
+        print(f"  ROI count matches: {len(loaded_roilist)}")
         
         for roi_name in roilist.keys():
             if roi_name not in loaded_roilist:
@@ -168,7 +168,7 @@ def test_save_load_with_pickle():
                 print(f"  ✗ FAIL: ROI '{roi_name}' data mismatch!")
                 return False
             
-            print(f"  ✓ ROI '{roi_name}' data integrity verified")
+            print(f"  ROI '{roi_name}' data integrity verified")
         
         # ===== VERIFY AVERAGED SPECTRA =====
         print("\n5. Verifying averaged spectra data...")
@@ -183,7 +183,7 @@ def test_save_load_with_pickle():
             print(f"  ✗ FAIL: Spectra count mismatch: expected {len(disspecs)}, got {len(loaded_disspecs)}")
             return False
         
-        print(f"  ✓ Spectra count matches: {len(loaded_disspecs)}")
+        print(f"  Spectra count matches: {len(loaded_disspecs)}")
         
         for spec_name in disspecs.keys():
             if spec_name not in loaded_disspecs:
@@ -208,11 +208,11 @@ def test_save_load_with_pickle():
                 print(f"  ✗ FAIL: Spectrum '{spec_name}' metadata mismatch!")
                 return False
             
-            print(f"  ✓ Spectrum '{spec_name}' data integrity verified")
+            print(f"  Spectrum '{spec_name}' data integrity verified")
         
         # ===== SUCCESS =====
         print("\n" + "=" * 60)
-        print("✅ ALL TESTS PASSED!")
+        print("ALL TESTS PASSED!")
         print("=" * 60)
         print("\nSummary:")
         print("  - State file format includes 'roilist' field")

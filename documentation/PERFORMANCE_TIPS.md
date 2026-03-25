@@ -192,12 +192,12 @@ If you experience performance issues:
 ## Summary
 
 **Key Takeaways:**
-- ✅ Derivative calculation is now very fast (10-50x speedup)
-- ✅ Use ROI selection for large datasets
-- ✅ Choose cosmic ray method based on speed/accuracy needs
-- ✅ Process in chunks if memory is limited
-- ✅ Batch operations are faster than individual processing
-- ✅ Monitor performance with provided benchmark tools
+- Derivative calculation is now very fast (10-50x speedup)
+- Use ROI selection for large datasets
+- Choose cosmic ray method based on speed/accuracy needs
+- Process in chunks if memory is limited
+- Batch operations are faster than individual processing
+- Monitor performance with provided benchmark tools
 
 **Expected Performance:**
 - 30x faster overall

@@ -81,7 +81,7 @@ def specmap_to_envi(xymap, output_filename):
             else:
                 f.write(f'{key} = {value}\n')
     
-    print(f"✓ ENVI files created:")
+    print(f"ENVI files created:")
     print(f"  Data: {img_file}")
     print(f"  Header: {hdr_file}")
     
@@ -116,7 +116,7 @@ def export_specmap_to_numpy(xymap, output_file):
         y_axis=xymap.yax,
     )
     
-    print(f"✓ Saved to {output_file}")
+    print(f"Saved to {output_file}")
     print(f"  To load: data = np.load('{output_file}')")
     print(f"  Access with: data['hsi_cube'], data['wavelengths'], etc.")
 
@@ -135,7 +135,7 @@ def main():
     # Check for test data
     data_folder = "testdatasets/HSI20240903_I01"
     if not os.path.exists(data_folder):
-        print("\n⚠ Example data folder not found:", data_folder)
+        print("\nExample data folder not found:", data_folder)
         print("This is a template script. To use it:")
         print("1. Load your SpecMap data using lib9.XYMap")
         print("2. Call specmap_to_envi() or export_specmap_to_numpy()")
@@ -147,7 +147,7 @@ def main():
         import lib9
         import deflib1 as deflib
         
-        print(f"\n✓ SpecMap modules loaded")
+        print(f"\nSpecMap modules loaded")
         print(f"Loading data from: {data_folder}")
         
         # Initialize and load data
@@ -167,7 +167,7 @@ def main():
         xymap.SpecdataintoMatrix()
         
         if xymap.HSI is not None:
-            print(f"\n✓ Hyperspectral cube loaded")
+            print(f"\nHyperspectral cube loaded")
             print(f"  Shape: {xymap.HSI.shape} (rows × cols × wavelengths)")
             print(f"  Wavelength range: {xymap.WL[0]:.2f} - {xymap.WL[-1]:.2f} nm")
             
@@ -180,7 +180,7 @@ def main():
             export_specmap_to_numpy(xymap, "specmap_export.npz")
             
             print("\n" + "=" * 70)
-            print("✅ Conversion complete!")
+            print("Conversion complete!")
             print("=" * 70)
             print("\nGenerated files:")
             print("  - specmap_export.img (ENVI binary data)")
@@ -192,7 +192,7 @@ def main():
             print("  - Any ENVI-compatible software")
             
     except ImportError as e:
-        print(f"\n⚠ Cannot load SpecMap modules: {e}")
+        print(f"\nCannot load SpecMap modules: {e}")
         print("This example requires GUI libraries (tkinter).")
         print("For headless environments, see hyperspectral_standard_interface.ipynb")
 
