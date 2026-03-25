@@ -62,8 +62,8 @@ All optimizations have been rigorously validated:
 ### Before Optimization
 **Workflow:** Load 100x100 pixel dataset → Calculate derivatives → Average spectra
 - Load: 10 seconds
-- Derivatives: **5-10 minutes** ⏳
-- Averaging: **30 seconds** ⏳
+- Derivatives: **5-10 minutes** 
+- Averaging: **30 seconds** 
 - Memory: **1.0GB** 
 - **Total: ~15 minutes**
 

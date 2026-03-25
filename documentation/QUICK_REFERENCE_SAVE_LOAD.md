@@ -59,7 +59,7 @@ After loading a `.pkl` file:
 2. Select data type (PLB, Specdiff1, etc.)
 3. Click **"average hsi to spectrum"**
 
-**Method 2: All Types at Once** ⭐ Recommended
+**Method 2: All Types at Once** Recommended
 1. Select HSI from dropdown
 2. Click **"Export All Averaged Spectra"**
 3. All 5 types generated instantly
@@ -74,7 +74,7 @@ After loading a `.pkl` file:
 
 ---
 
-## 📁 File Locations
+##  File Locations
 
 ### Default Save Location
 - Current working directory
@@ -146,7 +146,7 @@ All types are generated with **"Export All Averaged Spectra"**
 
 ---
 
-## 🛠️ Common Tasks
+##  Common Tasks
 
 ### Task: Start New Analysis
 ```
@@ -198,7 +198,7 @@ All types are generated with **"Export All Averaged Spectra"**
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### ROIs Not Visible After Load
 - Check console - were they loaded?

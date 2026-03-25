@@ -7,34 +7,34 @@ This document describes the architecture and file organization of the SpecMap hy
 
 ```
 SpecMap1/
-├── 📄 main9.py                   # Main application entry point
-├── 📄 lib9.py                    # Core hyperspectral analysis engine
-├── 📄 deflib1.py                 # Default settings and utility functions
-├── 📄 claralib1.py               # Clara image processing module
-├── 📄 mathlib3.py                # Mathematical fitting functions
-├── 📄 PMclasslib1.py             # Pixel matrix and spectra data classes
-├── 📄 newtonspeclib1.py          # Newton spectrum analysis framework
-├── 📄 export1.py                 # Data export functionality
-├── 📄 defaults.txt               # Configuration file with default values
-├── 📄 requirements.txt           # Python package dependencies
-├── 📄 README.md                  # Complete project documentation
-├── 📄 PROJECT_STRUCTURE.md       # This file - project architecture
-├── 📄 COSMIC_REMOVAL_METHODS.md  # Mathematical documentation of all methods
-├── 📄 .copilotignore             # Files excluded from AI analysis
-├── 📄 LICENSE                    # Project license
-└── 📁 Directories/
-    ├── 📁 __pycache__/           # Python bytecode cache (ignored)
-    ├── 📁 exported Pixelmatrix/  # Output directory for exported data
-    ├── 📁 hsidata/               # Sample hyperspectral data files
-    ├── 📁 savefiles/             # Saved analysis sessions
-    ├── 📁 Igor Program/          # External Igor Pro integration files
-    ├── 📁 openspec/              # Spectrum opening utilities
-    ├── 📁 openerJN/              # Jupyter notebook examples
-    ├── 📁 pythontestsrc/         # Test scripts and examples
-    ├── 📁 scaleimages/           # Image scaling utilities
-    ├── 📁 testdatasets/          # Sample datasets for testing
-    ├── 📁 oldfiles/              # Legacy/backup files
-    └── 📁 standalone/            # Standalone utility scripts
+├──  main9.py                   # Main application entry point
+├──  lib9.py                    # Core hyperspectral analysis engine
+├──  deflib1.py                 # Default settings and utility functions
+├──  claralib1.py               # Clara image processing module
+├──  mathlib3.py                # Mathematical fitting functions
+├──  PMclasslib1.py             # Pixel matrix and spectra data classes
+├──  newtonspeclib1.py          # Newton spectrum analysis framework
+├──  export1.py                 # Data export functionality
+├──  defaults.txt               # Configuration file with default values
+├──  requirements.txt           # Python package dependencies
+├──  README.md                  # Complete project documentation
+├──  PROJECT_STRUCTURE.md       # This file - project architecture
+├──  COSMIC_REMOVAL_METHODS.md  # Mathematical documentation of all methods
+├──  .copilotignore             # Files excluded from AI analysis
+├──  LICENSE                    # Project license
+└──  Directories/
+    ├──  __pycache__/           # Python bytecode cache (ignored)
+    ├──  exported Pixelmatrix/  # Output directory for exported data
+    ├──  hsidata/               # Sample hyperspectral data files
+    ├──  savefiles/             # Saved analysis sessions
+    ├──  Igor Program/          # External Igor Pro integration files
+    ├──  openspec/              # Spectrum opening utilities
+    ├──  openerJN/              # Jupyter notebook examples
+    ├──  pythontestsrc/         # Test scripts and examples
+    ├──  scaleimages/           # Image scaling utilities
+    ├──  testdatasets/          # Sample datasets for testing
+    ├──  oldfiles/              # Legacy/backup files
+    └──  standalone/            # Standalone utility scripts
 ```
 
 ## Core Architecture
@@ -90,15 +90,15 @@ SpecMap1/
 ## Data Flow Architecture
 
 ```
-📂 Input Data Files
+ Input Data Files
     ↓
  File Loading (main9.py)
     ↓
  SpectrumData Objects (lib9.py)
     ↓
-🗂️ XYMap Organization
+ XYMap Organization
     ↓
-⚙️ Processing Pipeline
+ Processing Pipeline
     ├── Background Correction (deflib1.py)
     ├── Cosmic Ray Removal (deflib1.py)
     └── Power Correction (lib9.py)

@@ -78,7 +78,7 @@ python fastestup.py
 │  File extension    [ .txt ]                                               │
 ├─────────────────────────────┬────────────────────────────────────────────┤
 │  Background Correction      │  Cosmic Ray Removal                        │
-│  ☑ Linear Background        │  ☑ Remove Cosmic Rays                      │
+│   Linear Background        │   Remove Cosmic Rays                      │
 │    (average BG)             │  Method  [ Linear + Neighbor (Combined) ▼] │
 │                             │  Threshold  [ 100 ]                        │
 │                             │  Width      [ 10  ]                        │

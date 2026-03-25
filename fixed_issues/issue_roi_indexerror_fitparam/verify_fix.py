@@ -33,7 +33,7 @@ def demonstrate_bug():
     except IndexError as e:
         print(f"Expected IndexError occurred: {e}")
     except Exception as e:
-        print(f"✗ Unexpected error: {type(e).__name__}: {e}")
+        print(f" Unexpected error: {type(e).__name__}: {e}")
 
 def demonstrate_fix():
     """Demonstrates the correct fix."""
@@ -59,7 +59,7 @@ def demonstrate_fix():
         print(f"Assignment successful! lastpm[{i}][{j}] = {lastpm[i][j]}")
         print(f"The fix works correctly - no IndexError!")
     except Exception as e:
-        print(f"✗ Unexpected error: {type(e).__name__}: {e}")
+        print(f" Unexpected error: {type(e).__name__}: {e}")
 
 def verify_logic():
     """Verifies the complete logic of the fix."""

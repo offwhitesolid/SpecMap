@@ -57,7 +57,7 @@ The program requires the following Python packages (see `requirements.txt`):
 ### Hyperspectral Standard Interface (Optional)
 SpecMap includes a Jupyter notebook for interfacing with industry-standard hyperspectral libraries:
 
-📓 **[hyperspectral_standard_interface.ipynb](hyperspectral_standard_interface.ipynb)**
+ **[hyperspectral_standard_interface.ipynb](hyperspectral_standard_interface.ipynb)**
 
 This notebook demonstrates:
 - Converting SpecMap data to ENVI format (hyperspectral standard)
@@ -321,7 +321,7 @@ SpecMap1/
 - Perform 2D Gaussian fitting for beam characterization
 - Calculate beam parameters and areas
 
-### Advanced Data Export Features ✨
+### Advanced Data Export Features 
 
 #### Saving and Loading with ROI Masks
 SpecMap now automatically saves and restores ROI (Region of Interest) masks when you save/load your analysis sessions. This means:
@@ -411,7 +411,7 @@ Users can modify defaults by:
 ### Mathematical Methods Documentation
 For detailed mathematical descriptions of all cosmic ray removal, interpolation, and smoothing algorithms, see:
 
-📘 **[COSMIC_REMOVAL_METHODS.md](COSMIC_REMOVAL_METHODS.md)**
+ **[COSMIC_REMOVAL_METHODS.md](COSMIC_REMOVAL_METHODS.md)**
 
 This comprehensive document includes:
 - Complete mathematical formulations for all 15+ methods
@@ -423,12 +423,12 @@ This comprehensive document includes:
 ### Architecture Documentation
 For detailed project structure and architecture:
 
-📘 **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)**
+ **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)**
 
 ### Software Documentation
 For comprehensive developer documentation including program structure, GUI hierarchy, and detailed math library documentation:
 
-📘 **[Software Documentation Summary](Software_Documentation/DOCUMENTATION_SUMMARY.md)**
+ **[Software Documentation Summary](Software_Documentation/DOCUMENTATION_SUMMARY.md)**
 
 Key documents include:
 - **[MATHLIB_DOCUMENTATION.md](Software_Documentation/MATHLIB_DOCUMENTATION.md)**: Detailed mathematical formulations for all fit functions and analysis methods.

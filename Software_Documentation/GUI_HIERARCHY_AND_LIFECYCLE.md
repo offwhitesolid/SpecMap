@@ -403,13 +403,13 @@ SPECIAL CASE: Frames passed to external classes
 │ LEVEL 1: FileProcessorApp                                       │
 │ ┌─────────────────────────────────────────────────────────────┐ │
 │ │ Error Sources:                                              │ │
-│ │ ✗ init_spec_loadfiles() → Folder not found                  │ │
-│ │ ✗ spec_loadfiles() → No files matching pattern              │ │
-│ │ ✗ saveNanomap() → File write permission denied              │ │
-│ │ ✗ loadhsisaved() → Corrupted pickle file                    │ │
-│ │ ✗ cl_loadfiles() → Image file not found                     │ │
-│ │ ✗ newtonloadfiles() → Invalid spectrum format               │ │
-│ │ ✗ tcspcloadfiles() → Directory not accessible               │ │
+│ │  init_spec_loadfiles() → Folder not found                  │ │
+│ │  spec_loadfiles() → No files matching pattern              │ │
+│ │  saveNanomap() → File write permission denied              │ │
+│ │  loadhsisaved() → Corrupted pickle file                    │ │
+│ │  cl_loadfiles() → Image file not found                     │ │
+│ │  newtonloadfiles() → Invalid spectrum format               │ │
+│ │  tcspcloadfiles() → Directory not accessible               │ │
 │ │                                                             │ │
 │ │ Error Handling Strategy:                                    │ │
 │ │ 1. try/except blocks around file operations                 │ │
@@ -431,15 +431,15 @@ SPECIAL CASE: Frames passed to external classes
 │ LEVEL 2: XYMap (lib9.py)                                        │
 │ ┌──────────────────────────────────────────────────────────────┐ │
 │ │ Error Sources:                                               │ │
-│ │ ✗ loadfiles() → Thread pool exception                       │ │
-│ │ ✗ on_spec_chosen() → Invalid spectrum index                 │ │
-│ │ ✗ make_fit() → scipy.optimize.curve_fit failure             │ │
-│ │ ✗ save_state() → pickle.dump() error                        │ │
-│ │ ✗ load_state() → pickle.load() error                        │ │
-│ │ ✗ PM_selected() → KeyError (invalid PMdict key)             │ │
-│ │ ✗ PMfromfitparams() → Fit data not available                │ │
-│ │ ✗ WL_selected() → Empty PMdict                              │ │
-│ │ ✗ buildandPlotIntCmap() → Empty specs list                  │ │
+│ │  loadfiles() → Thread pool exception                       │ │
+│ │  on_spec_chosen() → Invalid spectrum index                 │ │
+│ │  make_fit() → scipy.optimize.curve_fit failure             │ │
+│ │  save_state() → pickle.dump() error                        │ │
+│ │  load_state() → pickle.load() error                        │ │
+│ │  PM_selected() → KeyError (invalid PMdict key)             │ │
+│ │  PMfromfitparams() → Fit data not available                │ │
+│ │  WL_selected() → Empty PMdict                              │ │
+│ │  buildandPlotIntCmap() → Empty specs list                  │ │
 │ │                                                               │ │
 │ │ Error Handling Strategy:                                     │ │
 │ │ 1. try/except with traceback.print_exc()                    │ │
@@ -461,11 +461,11 @@ SPECIAL CASE: Frames passed to external classes
 │ LEVEL 3: SpectrumData (lib9.py)                                 │
 │ ┌─────────────────────────────────────────────────────────────┐ │
 │ │ Error Sources:                                              │ │
-│ │ ✗ _read_file() → FileNotFoundError                          │ │
-│ │ ✗ _read_file() → ValueError (invalid data format)           │ │
-│ │ ✗ _read_file() → IndexError (malformed file)                │ │
-│ │ ✗ cosmic removal → deflib function exception                │ │
-│ │ ✗ background subtraction → Array shape mismatch             │ │
+│ │  _read_file() → FileNotFoundError                          │ │
+│ │  _read_file() → ValueError (invalid data format)           │ │
+│ │  _read_file() → IndexError (malformed file)                │ │
+│ │  cosmic removal → deflib function exception                │ │
+│ │  background subtraction → Array shape mismatch             │ │
 │ │                                                             │ │
 │ │ Error Handling Strategy:                                    │ │
 │ │ 1. Flag-based error tracking: self.dataokay = False         │ │
@@ -486,11 +486,11 @@ SPECIAL CASE: Frames passed to external classes
 │ LEVEL 4: Roihandler (lib9.py)                                   │
 │ ┌─────────────────────────────────────────────────────────────┐ │
 │ │ Error Sources:                                              │ │
-│ │ ✗ construct() → Invalid pixmatrix shape                     │ │
-│ │ ✗ toggle_roi() → Insufficient points (<3)                   │ │
-│ │ ✗ plotroi() → Empty roilist                                 │ │
-│ │ ✗ delete_roi() → KeyError (invalid ROI key)                 │ │
-│ │ ✗ on_click() → matplotlib event handling error              │ │
+│ │  construct() → Invalid pixmatrix shape                     │ │
+│ │  toggle_roi() → Insufficient points (<3)                   │ │
+│ │  plotroi() → Empty roilist                                 │ │
+│ │  delete_roi() → KeyError (invalid ROI key)                 │ │
+│ │  on_click() → matplotlib event handling error              │ │
 │ │                                                             │ │
 │ │ Error Handling Strategy:                                    │ │
 │ │ 1. Validation checks: if len(roi_points) > 2                │ │
@@ -510,28 +510,28 @@ SPECIAL CASE: Frames passed to external classes
 │ LEVEL 5: Component Classes (Exportframe, TCSPCprocessor, etc.)  │
 │ ┌─────────────────────────────────────────────────────────────┐ │
 │ │ Exportframe:                                                │ │
-│ │ ✗ save_file() → No data in PMdict                           │ │
-│ │ ✗ save_file() → CSV write error                             │ │
+│ │  save_file() → No data in PMdict                           │ │
+│ │  save_file() → CSV write error                             │ │
 │ │ Strategy: Check PMdict exists, try/except on write          │ │
 │ │                                                             │ │
 │ │ TCSPCprocessor:                                             │ │
-│ │ ✗ load_tcspc() → Directory not found                        │ │
-│ │ ✗ plot_tres_*() → No data loaded                            │ │
+│ │  load_tcspc() → Directory not found                        │ │
+│ │  plot_tres_*() → No data loaded                            │ │
 │ │ Strategy: Validation checks, print to console               │ │
 │ │                                                             │ │
 │ │ imageprocessor (claralib):                                  │ │
-│ │ ✗ __init__() → Image file not found                         │ │
-│ │ ✗ fit2dgaussian() → Fit failure                             │ │
+│ │  __init__() → Image file not found                         │ │
+│ │  fit2dgaussian() → Fit failure                             │ │
 │ │ Strategy: try/except, print error, propagate to FileProc    │ │
 │ │                                                             │ │
 │ │ newtonspecopener:                                           │ │
-│ │ ✗ __init__() → Invalid spectrum file                        │ │
+│ │  __init__() → Invalid spectrum file                        │ │
 │ │ Strategy: Implicit error handling, print to console         │ │
 │ │                                                             │ │
 │ │ specfilesorter:                                             │ │
-│ │ ✗ scan_maindir() → Directory access denied                  │ │
-│ │ ✗ sort_and_process() → File copy failure                    │ │
-│ │ ✗ _copy_worker() → Thread exception                         │ │
+│ │  scan_maindir() → Directory access denied                  │ │
+│ │  sort_and_process() → File copy failure                    │ │
+│ │  _copy_worker() → Thread exception                         │ │
 │ │ Strategy: try/except per file, continue, update progress    │ │
 │ └─────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘

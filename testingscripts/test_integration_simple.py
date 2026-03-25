@@ -137,18 +137,18 @@ def test_save_load_with_pickle():
         loaded_roilist = loaded_state.get('roilist', {})
         
         if 'roilist' not in loaded_state:
-            print("  ✗ FAIL: 'roilist' not found in loaded state!")
+            print("   FAIL: 'roilist' not found in loaded state!")
             return False
         
         if len(loaded_roilist) != len(roilist):
-            print(f"  ✗ FAIL: ROI count mismatch: expected {len(roilist)}, got {len(loaded_roilist)}")
+            print(f"   FAIL: ROI count mismatch: expected {len(roilist)}, got {len(loaded_roilist)}")
             return False
         
         print(f"  ROI count matches: {len(loaded_roilist)}")
         
         for roi_name in roilist.keys():
             if roi_name not in loaded_roilist:
-                print(f"  ✗ FAIL: ROI '{roi_name}' not found in loaded state!")
+                print(f"   FAIL: ROI '{roi_name}' not found in loaded state!")
                 return False
             
             original_roi = np.array(roilist[roi_name])
@@ -156,7 +156,7 @@ def test_save_load_with_pickle():
             
             # Compare shapes
             if original_roi.shape != loaded_roi.shape:
-                print(f"  ✗ FAIL: ROI '{roi_name}' shape mismatch!")
+                print(f"   FAIL: ROI '{roi_name}' shape mismatch!")
                 return False
             
             # Compare values (including NaN)
@@ -165,7 +165,7 @@ def test_save_load_with_pickle():
                                    loaded_roi[~np.isnan(loaded_roi)])
             
             if not (nan_match.all() and val_match):
-                print(f"  ✗ FAIL: ROI '{roi_name}' data mismatch!")
+                print(f"   FAIL: ROI '{roi_name}' data mismatch!")
                 return False
             
             print(f"  ROI '{roi_name}' data integrity verified")
@@ -176,18 +176,18 @@ def test_save_load_with_pickle():
         loaded_disspecs = loaded_state.get('disspecs', {})
         
         if 'disspecs' not in loaded_state:
-            print("  ✗ FAIL: 'disspecs' not found in loaded state!")
+            print("   FAIL: 'disspecs' not found in loaded state!")
             return False
         
         if len(loaded_disspecs) != len(disspecs):
-            print(f"  ✗ FAIL: Spectra count mismatch: expected {len(disspecs)}, got {len(loaded_disspecs)}")
+            print(f"   FAIL: Spectra count mismatch: expected {len(disspecs)}, got {len(loaded_disspecs)}")
             return False
         
         print(f"  Spectra count matches: {len(loaded_disspecs)}")
         
         for spec_name in disspecs.keys():
             if spec_name not in loaded_disspecs:
-                print(f"  ✗ FAIL: Spectrum '{spec_name}' not found in loaded state!")
+                print(f"   FAIL: Spectrum '{spec_name}' not found in loaded state!")
                 return False
             
             original_spec = disspecs[spec_name]
@@ -195,17 +195,17 @@ def test_save_load_with_pickle():
             
             # Check WL arrays match
             if not np.allclose(original_spec.WL, loaded_spec.WL):
-                print(f"  ✗ FAIL: Spectrum '{spec_name}' WL mismatch!")
+                print(f"   FAIL: Spectrum '{spec_name}' WL mismatch!")
                 return False
             
             # Check spectral data matches
             if not np.allclose(original_spec.Spec, loaded_spec.Spec):
-                print(f"  ✗ FAIL: Spectrum '{spec_name}' data mismatch!")
+                print(f"   FAIL: Spectrum '{spec_name}' data mismatch!")
                 return False
             
             # Check metadata matches
             if original_spec.metadata != loaded_spec.metadata:
-                print(f"  ✗ FAIL: Spectrum '{spec_name}' metadata mismatch!")
+                print(f"   FAIL: Spectrum '{spec_name}' metadata mismatch!")
                 return False
             
             print(f"  Spectrum '{spec_name}' data integrity verified")
@@ -227,7 +227,7 @@ def test_save_load_with_pickle():
         return True
         
     except Exception as e:
-        print(f"\n✗ Test failed with exception: {e}")
+        print(f"\n Test failed with exception: {e}")
         import traceback
         traceback.print_exc()
         return False

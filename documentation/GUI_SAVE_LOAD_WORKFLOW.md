@@ -223,13 +223,13 @@ When you save HSI state, **everything** is preserved:
 - Image metadata
 - Pixel matrices with NaN optimization
 
-**ROI Masks** ✨
+**ROI Masks** 
 - All defined ROI masks
 - ROI names
 - Mask arrays (with NaN compression)
 - Dimensions validated on load
 
-**Averaged Spectra** ✨
+**Averaged Spectra** 
 - All averaged spectra (disspecs)
 - Multiple data types:
   - PL-BG (background-corrected)

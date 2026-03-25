@@ -256,18 +256,18 @@ Copy this template for each test run:
 
 | Test ID | Test Name | Status | Notes |
 |---------|-----------|--------|-------|
-| Test 1  | Basic Repeated Loading | ⬜ Pass / ⬜ Fail | |
-| Test 2  | Different Datasets | ⬜ Pass / ⬜ Fail | |
-| Test 3  | Rapid Loading | ⬜ Pass / ⬜ Fail | |
-| Test 4  | Multiple HSI | ⬜ Pass / ⬜ Fail | |
-| Test 5  | Clean Close | ⬜ Pass / ⬜ Fail | |
-| Test 6  | Save/Load State | ⬜ Pass / ⬜ Fail | |
-| Test 7  | GUI Elements | ⬜ Pass / ⬜ Fail | |
-| Test 8  | Frame Lifecycle | ⬜ Pass / ⬜ Fail | |
-| Test 9  | Empty Folder | ⬜ Pass / ⬜ Fail | |
-| Test 10 | Other Loaders | ⬜ Pass / ⬜ Fail | |
+| Test 1  | Basic Repeated Loading |  Pass /  Fail | |
+| Test 2  | Different Datasets |  Pass /  Fail | |
+| Test 3  | Rapid Loading |  Pass /  Fail | |
+| Test 4  | Multiple HSI |  Pass /  Fail | |
+| Test 5  | Clean Close |  Pass /  Fail | |
+| Test 6  | Save/Load State |  Pass /  Fail | |
+| Test 7  | GUI Elements |  Pass /  Fail | |
+| Test 8  | Frame Lifecycle |  Pass /  Fail | |
+| Test 9  | Empty Folder |  Pass /  Fail | |
+| Test 10 | Other Loaders |  Pass /  Fail | |
 
-**Overall Result:** ⬜ All Pass / ⬜ Some Failures
+**Overall Result:**  All Pass /  Some Failures
 
 **Issues Found:**
 - [List any issues discovered]

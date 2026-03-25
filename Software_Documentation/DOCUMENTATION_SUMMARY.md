@@ -7,7 +7,7 @@
 
 ## What Was Created
 
-### 📁 New Directory Structure
+###  New Directory Structure
 
 ```
 Software_Documentation/

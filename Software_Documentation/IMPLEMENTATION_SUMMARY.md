@@ -416,17 +416,17 @@ When applied pixel-by-pixel across hyperspectral images, these methods provide:
 
 | Method | Peak Position | Edge Sharpness | Peak Width | Noise Robustness |
 |--------|--------------|----------------|------------|------------------|
-| **Gaussian Fit** | ✓✓✓ | ✗ | ✓✓✓ (FWHM) | ✓✓ |
+| **Gaussian Fit** | ✓✓✓ |  | ✓✓✓ (FWHM) | ✓✓ |
 | **Derivative (SG)** | ✓✓ | ✓✓ | ✓✓ (Infl. Width) | ✓✓✓ |
-| **derivative1 (FD)** | ✓✓ | ✓✓✓ | ✗ | ✓ |
+| **derivative1 (FD)** | ✓✓ | ✓✓✓ |  | ✓ |
 | **derivative2 (FD)** | ✓✓✓ | ✓ | ✓✓ (Infl. Width) | ✓ |
-| **Moments** | ✓✓ (COM) | ✗ | ✓✓ (Quantile) | ✓✓✓ |
+| **Moments** | ✓✓ (COM) |  | ✓✓ (Quantile) | ✓✓✓ |
 
 **Key:**
 - ✓✓✓ = Excellent
 - ✓✓ = Good
 - ✓ = Fair
-- ✗ = Not provided
+-  = Not provided
 
 **Notes:**
 - Finite differences (FD) are faster but noisier than Savitzky-Golay (SG)

@@ -154,7 +154,7 @@ def test_full_integration():
             file_size = os.path.getsize(temp_filename)
             print(f"  File size: {file_size / 1024:.1f} KB")
         else:
-            print("  ✗ Save FAILED!")
+            print("   Save FAILED!")
             return False
         
         # Store original data for comparison
@@ -182,7 +182,7 @@ def test_full_integration():
         if load_success:
             print("  Load successful!")
         else:
-            print("  ✗ Load FAILED!")
+            print("   Load FAILED!")
             return False
         
         # ===== VERIFY LOADED DATA =====
@@ -195,13 +195,13 @@ def test_full_integration():
         if loaded_roi_count == original_roi_count:
             print(f"  ROI count matches: {loaded_roi_count}")
         else:
-            print(f"  ✗ ROI count mismatch: expected {original_roi_count}, got {loaded_roi_count}")
+            print(f"   ROI count mismatch: expected {original_roi_count}, got {loaded_roi_count}")
             return False
         
         if set(loaded_roi_names) == set(original_roi_names):
             print(f"  ROI names match: {loaded_roi_names}")
         else:
-            print(f"  ✗ ROI names mismatch!")
+            print(f"   ROI names mismatch!")
             print(f"    Expected: {original_roi_names}")
             print(f"    Got: {loaded_roi_names}")
             return False
@@ -213,7 +213,7 @@ def test_full_integration():
             
             # Compare shapes
             if original_roi.shape != loaded_roi.shape:
-                print(f"  ✗ ROI '{roi_name}' shape mismatch!")
+                print(f"   ROI '{roi_name}' shape mismatch!")
                 return False
             
             # Compare values (including NaN)
@@ -224,7 +224,7 @@ def test_full_integration():
             if nan_match.all() and val_match:
                 print(f"  ROI '{roi_name}' data integrity verified")
             else:
-                print(f"  ✗ ROI '{roi_name}' data mismatch!")
+                print(f"   ROI '{roi_name}' data mismatch!")
                 return False
         
         # Verify averaged spectra
@@ -234,13 +234,13 @@ def test_full_integration():
         if loaded_spec_count == original_spec_count:
             print(f"  Averaged spectra count matches: {loaded_spec_count}")
         else:
-            print(f"  ✗ Spectra count mismatch: expected {original_spec_count}, got {loaded_spec_count}")
+            print(f"   Spectra count mismatch: expected {original_spec_count}, got {loaded_spec_count}")
             return False
         
         if set(loaded_spec_names) == set(original_spec_names):
             print(f"  Spectra names match: {loaded_spec_names}")
         else:
-            print(f"  ✗ Spectra names mismatch!")
+            print(f"   Spectra names mismatch!")
             print(f"    Expected: {original_spec_names}")
             print(f"    Got: {loaded_spec_names}")
             return False
@@ -252,12 +252,12 @@ def test_full_integration():
             
             # Check WL arrays match
             if not np.allclose(original_spec.WL, loaded_spec.WL):
-                print(f"  ✗ Spectrum '{spec_name}' WL mismatch!")
+                print(f"   Spectrum '{spec_name}' WL mismatch!")
                 return False
             
             # Check spectral data matches
             if not np.allclose(original_spec.Spec, loaded_spec.Spec):
-                print(f"  ✗ Spectrum '{spec_name}' data mismatch!")
+                print(f"   Spectrum '{spec_name}' data mismatch!")
                 return False
             
             print(f"  Spectrum '{spec_name}' data integrity verified")
@@ -267,7 +267,7 @@ def test_full_integration():
         if loaded_hsi_count == original_hsi_count:
             print(f"  HSI count matches: {loaded_hsi_count}")
         else:
-            print(f"  ✗ HSI count mismatch: expected {original_hsi_count}, got {loaded_hsi_count}")
+            print(f"   HSI count mismatch: expected {original_hsi_count}, got {loaded_hsi_count}")
             return False
         
         if 'Test_HSI' in nanomap2.PMdict:
@@ -275,7 +275,7 @@ def test_full_integration():
             if loaded_hsi_shape == original_hsi_shape:
                 print(f"  HSI shape matches: {loaded_hsi_shape}")
             else:
-                print(f"  ✗ HSI shape mismatch: expected {original_hsi_shape}, got {loaded_hsi_shape}")
+                print(f"   HSI shape mismatch: expected {original_hsi_shape}, got {loaded_hsi_shape}")
                 return False
         
         # ===== SUCCESS =====
@@ -291,7 +291,7 @@ def test_full_integration():
         return True
         
     except Exception as e:
-        print(f"\n✗ Test failed with exception: {e}")
+        print(f"\n Test failed with exception: {e}")
         import traceback
         traceback.print_exc()
         return False

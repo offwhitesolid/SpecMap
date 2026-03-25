@@ -134,7 +134,7 @@ For a dataset with:
 
 **Total estimated memory:**
 - Without optimization: 600 MB (base) + 600 MB (duplicate in specs list) + 400 MB (derivatives) = **~1.6 GB**
-- With optimization: 600 MB (base) + 400 MB (derivatives) = **~1.0 GB** ✓
+- With optimization: 600 MB (base) + 400 MB (derivatives) = **~1.0 GB**
 
 ### Recommended System Requirements
 
