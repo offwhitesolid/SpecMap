@@ -14,8 +14,8 @@ multiple_Background = False
 linear_Background = True
 remove_cosmics = True
 cosmic_threshold = 250
-cosmic_width = 50
-cosmic_method = Linear Interpolation
+cosmic_width = 10
+cosmic_method = Linear + Neighbor (Combined)
 clara_image = //Nas-akh/pc104_plm/Data/Moritz Limbacher/claratest/laserfocus50x/laser in focus50x.asc
 lowest_wavelength = 510
 highest_wavelength = 650
@@ -44,11 +44,15 @@ power_correction = False
 tcspc_maindir = None
 tcspc_subdir = None
 process_multiple_HSIs_bool = False
-calculate_first_derivative = True
-calculate_second_derivative = True
+
 derivative_polynomial_order = 2
 derivative_Nfitpoints = 20
 do_normalize_HSI_var = False
-calc_norm_and_derive = True
-calc_norm_on_intensity = True
+
 save_multiple_HSIs_bool = True
+
+# derivative bools: if True, calc derivatives
+calculate_first_derivative = False
+calculate_second_derivative = False
+calc_norm_and_derive = False
+calc_norm_on_intensity = False

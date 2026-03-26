@@ -1294,8 +1294,8 @@ defaults={
     'cosmic_threshold': 100,
     'cosmic_width': 10,
     'cosmic_method': 'Linear Interpolation',
-    'calculate_first_derivative': True,
-    'calculate_second_derivative': True, 
+    'calculate_first_derivative': False,
+    'calculate_second_derivative': False, 
     'derivative_polynomial_order': 2,
     'derivative_Nfitpoints': 5,
     # Clara Image Frame
@@ -1357,8 +1357,8 @@ defaults={
     'do_normalize_HSI_var': False,
     'normalize_method': 'None',
     'normalize_wavelength': '600',
-    'calc_norm_and_derive': True,
-    'calc_norm_on_intensity': True
+    'calc_norm_and_derive': False,
+    'calc_norm_on_intensity': False
 }
 
 defaulttypes = {
