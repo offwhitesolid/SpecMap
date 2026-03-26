@@ -187,7 +187,8 @@ class ErrorEngine:
         # Display user-friendly error message
         user_message = self._format_user_message(exception, context, kwargs)
         try:
-            messagebox.showerror("Error", user_message)
+            #messagebox.showerror("Error", user_message)
+            print(f"ERROR: {user_message}")
         except Exception as e:
             # If messagebox fails (e.g., no display), just print
             print(f"Error (messagebox failed): {user_message}")
@@ -229,7 +230,8 @@ class ErrorEngine:
             user_message += f"\n\nDetails:\n{details}"
         
         try:
-            messagebox.showwarning("Warning", user_message)
+            #messagebox.showwarning("Warning", user_message)
+            print(f"WARNING: {user_message}")
         except Exception as e:
             # If messagebox fails, just print
             print(f"Warning (messagebox failed): {user_message}")

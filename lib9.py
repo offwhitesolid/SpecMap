@@ -2773,31 +2773,42 @@ class XYMap:
             N_fitpoints += 1 # Ensure odd window size
 
         print(f"Calculating derivatives: d1={calc_d1}, d2={calc_d2}, order={poly_order}, window={N_fitpoints}")
+        
+        # Get error engine for logging
+        error_engine = error_handler.get_default_error_engine()
 
         half_window = N_fitpoints // 2
 
         # Iterate over all spectra in SpecDataMatrix
         # (self.specs is cleared after autogenmatrix() to free memory)
-        for row in self.SpecDataMatrix:
-            for spec in row:
+        for row_idx, row in enumerate(self.SpecDataMatrix):
+            for col_idx, spec in enumerate(row):
                 if spec is None:
                     continue
 
-                # Ensure we have data
-                # Check for None or empty arrays/lists explicitly to avoid ambiguity with numpy arrays
-                if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
+                try:
+                    # Ensure we have data
+                    # Check for None or empty arrays/lists explicitly to avoid ambiguity with numpy arrays
+                    if not hasattr(spec, 'PLB') or not hasattr(spec, 'WL'):
+                        error_engine.warning(f"Invalid spectrum object encountered at row {row_idx}, col {col_idx}. Type: {type(spec)}. Skipping.", context="calculate_derivatives")
+                        continue
+                        
+                    if spec.PLB is None or spec.WL is None or len(spec.PLB) == 0 or len(spec.WL) == 0 or len(spec.PLB) != len(spec.WL):
+                        continue
+
+                    wl = np.asarray(spec.WL, dtype=np.float32)
+                    plb = np.asarray(spec.PLB, dtype=np.float32)
+
+                    # Initialize derivative arrays with zeros (float32 to reduce RAM usage)
+                    if calc_d1:
+                        spec.Specdiff1 = np.zeros(len(plb), dtype=np.float32)
+                    if calc_d2:
+                        spec.Specdiff2 = np.zeros(len(plb), dtype=np.float32)
+
+                    n_points = len(wl)
+                except Exception as e:
+                    error_engine.error(e, context="calculate_derivatives", row=row_idx, col=col_idx)
                     continue
-
-                wl = np.asarray(spec.WL, dtype=np.float32)
-                plb = np.asarray(spec.PLB, dtype=np.float32)
-
-                # Initialize derivative arrays with zeros (float32 to reduce RAM usage)
-                if calc_d1:
-                    spec.Specdiff1 = np.zeros(len(plb), dtype=np.float32)
-                if calc_d2:
-                    spec.Specdiff2 = np.zeros(len(plb), dtype=np.float32)
-
-                n_points = len(wl)
 
                 # Sliding window loop
                 for i in range(half_window, n_points - half_window):
