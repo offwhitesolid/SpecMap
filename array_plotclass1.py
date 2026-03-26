@@ -189,6 +189,18 @@ class PlotHSI:
         self._add_entry(left_frame, row, "V Max:", self.vmax_var)
         row += 1
         
+        # === HSI Image Settings ===
+        ttk.Label(left_frame, text="=== HSI Image Settings ===", font=('Arial', 10, 'bold')).grid(
+            row=row, column=0, columnspan=2, pady=(10, 5), sticky=tk.W)
+        row += 1
+
+        hsi_btn_frame = ttk.Frame(left_frame)
+        hsi_btn_frame.grid(row=row, column=0, columnspan=2, pady=5, sticky=tk.W+tk.E)
+        ttk.Button(hsi_btn_frame, text="Mirror Horizontally", command=self._mirror_horizontal).pack(side=tk.LEFT, padx=2)
+        ttk.Button(hsi_btn_frame, text="Mirror Vertically", command=self._mirror_vertical).pack(side=tk.LEFT, padx=2)
+        ttk.Button(hsi_btn_frame, text="Rotate 90°", command=self._rotate_90).pack(side=tk.LEFT, padx=2)
+        row += 1
+
         # === Scalebar Section ===
         ttk.Label(left_frame, text="=== Scalebar Settings ===", font=('Arial', 10, 'bold')).grid(
             row=row, column=0, columnspan=2, pady=(10, 5), sticky=tk.W)
@@ -363,6 +375,33 @@ class PlotHSI:
             self.file_label.config(text=f"Error: {str(e)}", foreground="red")
             print(f"Error loading data: {e}")
     
+    def _mirror_horizontal(self):
+        """Mirror the loaded HSI data horizontally (left-right) and refresh the plot."""
+        if self.data is None:
+            print("No data loaded!")
+            return
+        self.data = np.fliplr(self.data)
+        if self.plot_window is not None:
+            self._update_plot()
+
+    def _mirror_vertical(self):
+        """Mirror the loaded HSI data vertically (up-down) and refresh the plot."""
+        if self.data is None:
+            print("No data loaded!")
+            return
+        self.data = np.flipud(self.data)
+        if self.plot_window is not None:
+            self._update_plot()
+
+    def _rotate_90(self):
+        """Rotate the loaded HSI data by 90° counter-clockwise and refresh the plot."""
+        if self.data is None:
+            print("No data loaded!")
+            return
+        self.data = np.rot90(self.data)
+        if self.plot_window is not None:
+            self._update_plot()
+
     def _plot_hsi(self):
         """Create initial plot in separate window."""
         if self.data is None:
