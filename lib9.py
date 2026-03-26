@@ -2673,12 +2673,17 @@ class XYMap:
             self.gdx = 0
             self.gdy = 0
         else:
+            _coord_tol = 1e-9  # tolerance for floating-point coordinate deduplication
             for i in self.specs:
                 if i is not None:
-                    if i.data['x-position'] not in self.mxcoords:
-                        self.mxcoords.append(i.data['x-position'])
-                    if i.data['y-position'] not in self.mycoords:
-                        self.mycoords.append(i.data['y-position'])
+                    xpos = i.data['x-position']
+                    ypos = i.data['y-position']
+                    # Bug 1 fix: use tolerance-based comparison instead of exact equality
+                    # to prevent floating-point noise from creating spurious extra columns/rows
+                    if not any(abs(xpos - cx) <= _coord_tol for cx in self.mxcoords):
+                        self.mxcoords.append(xpos)
+                    if not any(abs(ypos - cy) <= _coord_tol for cy in self.mycoords):
+                        self.mycoords.append(ypos)
             self.mxcoords = sorted(self.mxcoords)
             self.mycoords = sorted(self.mycoords)
 
@@ -3079,6 +3084,7 @@ class XYMap:
     # set the spectra into the array
     def SpecdataintoMatrix(self, overwrite=False):
         # sorting function
+        error_engine = error_handler.get_default_error_engine()
         for i in self.specs:
             x = i.data['x-position']
             y = i.data['y-position']
@@ -3087,36 +3093,60 @@ class XYMap:
                 if overwrite == True:
                     self.SpecDataMatrix[yind][xind] = i
                 else:
-                    print('Point neglected of index {} {}. Its pos is {} {}. Occupiing pos is {} {}'.format(
-                        xind, yind, x, y, self.SpecDataMatrix[yind][xind].data['x-position'], self.SpecDataMatrix[yind][xind].data['y-position']))
+                    # Bug 5 fix: log the collision to the error log instead of silently printing
+                    occupant = self.SpecDataMatrix[yind][xind]
+                    msg = (
+                        f"Point neglected at grid index ({xind}, {yind}). "
+                        f"Incoming position: ({x}, {y}). "
+                        f"Occupying position: ({occupant.data['x-position']}, {occupant.data['y-position']}). "
+                        f"Use overwrite=True to replace existing spectra."
+                    )
+                    error_engine.get_logger().warning(msg, extra={'context': 'SpecdataintoMatrix'})
             else:
                 #self.SpecDataMatrix[xind][yind] = i
                 self.SpecDataMatrix[yind][xind] = i
         
     def genmatgrid(self, xar, yar): # returns that must be filled with the SpectrumData Objects
+        error_engine = error_handler.get_default_error_engine()
         self.matstart = [np.amin(self.mxcoords), np.amin(self.mycoords)] # find min coordinates
         self.matend = [np.amax(self.mxcoords), np.amax(self.mycoords)] # find max coordinates
         dxa = deflib.findif(self.mxcoords) # find differences between coordinates
         dya = deflib.findif(self.mycoords) # find differences between coordinates
-        self.dxanodup = deflib.remove_duplicates(dxa) # remove duplicates
-        self.dyanodup = deflib.remove_duplicates(dya) # remove duplicates
+        # Bug 2 fix: round step values before deduplication and most_freq_element so that
+        # near-identical floating-point steps are treated as the same step size
+        _step_round = 10
+        dxa_rounded = [round(v, _step_round) for v in dxa]
+        dya_rounded = [round(v, _step_round) for v in dya]
+        self.dxanodup = deflib.remove_duplicates(dxa_rounded) # remove duplicates
+        self.dyanodup = deflib.remove_duplicates(dya_rounded) # remove duplicates
         if len(self.dxanodup) == 1:
-            self.gdx = dxa[0]
+            self.gdx = dxa_rounded[0]
         else:
-            self.gdx = deflib.most_freq_element(dxa) # find most frequent element
+            self.gdx = deflib.most_freq_element(dxa_rounded) # find most frequent element
         if len(self.dyanodup) == 1:
-            self.gdy = dya[0]
+            self.gdy = dya_rounded[0]
         else:
-            self.gdy = deflib.most_freq_element(dya) 
+            self.gdy = deflib.most_freq_element(dya_rounded)
         self.gdx = round(self.gdx, 10) # avoid rounding errors
         self.gdy = round(self.gdy, 10) # avoid rounding errors
+
+        if abs(self.gdx) < 1e-9 or abs(self.gdy) < 1e-9:
+            msg = f"genmatgrid: computed step size is zero (gdx={self.gdx}, gdy={self.gdy}). Cannot build grid."
+            error_engine.get_logger().error(msg, extra={'context': 'genmatgrid'})
+            raise ValueError(msg)
+
         matpixax = []
         matpiyax = []
         PixelMatrix = []
         SpectralMatrix = []
-        for i in range(int((self.matend[0]-self.matstart[0]+self.gdx)/self.gdx)): # create x axis of the matrix
+        # Bug 4 fix: use round() before int() to prevent truncation of values like 4.9999999
+        # +gdx/gdy in the numerator makes the range inclusive of the endpoint
+        nx = int(round((self.matend[0] - self.matstart[0] + self.gdx) / self.gdx))
+        ny = int(round((self.matend[1] - self.matstart[1] + self.gdy) / self.gdy))
+        # Bug 3 fix: build axes by multiplying index * step to avoid accumulated rounding errors
+        for i in range(nx): # create x axis of the matrix
             matpixax.append(round(i*self.gdx+self.matstart[0], 10)) # put rounded values in the axis
-        for i in range(int((self.matend[1]-self.matstart[1]+self.gdy)/self.gdy)): # create y axis of the matrix
+        for i in range(ny): # create y axis of the matrix
             matpiyax.append(round(i*self.gdy+self.matstart[1], 10)) # put rounded values in the axis
             fillmat = []
             pixmat = []
@@ -3125,6 +3155,10 @@ class XYMap:
                 pixmat.append(0)
             SpectralMatrix.append(fillmat) # put row data into the matrix
             PixelMatrix.append(pixmat)
+        error_engine.get_logger().info(
+            f"genmatgrid: grid built ({ny}x{nx}), gdx={self.gdx}, gdy={self.gdy}",
+            extra={'context': 'genmatgrid'}
+        )
         return(PixelMatrix, SpectralMatrix, matpixax, matpiyax)
     
     def writetopixmatrix(self, matrix, name=None):
