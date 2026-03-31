@@ -1,0 +1,131 @@
+documentation: 
+lib9.py
+
+### NO Memory Leak ###
+what does NOT create the memory problem:
+click on "Load Data" tab Load HSI data (with all the ohter relevant input)
+Important: if the checkboxes for the derivative are disabled, no memory leak appears. 
+The expected RAM is used. 
+
+2. If derivative are calculated and the dataset is exported via Save the current Data object. 
+Afterwards the program is restarted and the dataset is reloaded. 
+Reloading does request roughly the expected RAM. 
+
+### ###
+
+### Memory Leak ###
+Load Data with derivatives enabled 1., 2., norm counts, then derive, norm on I, then derive. 
+
+what part of the code should be the part that causes in lib9.py:
+
+possible cause 1: 
+
+        # Calculate derivatives using optimized function
+        if self.derivative_polynomarray and len(self.derivative_polynomarray) >= 4:
+            try:
+                # Handle both Tkinter variables and direct values
+                d1_val = self.derivative_polynomarray[0]
+                calc_d1 = d1_val.get() if hasattr(d1_val, 'get') else d1_val
+                
+                d2_val = self.derivative_polynomarray[1]
+                calc_d2 = d2_val.get() if hasattr(d2_val, 'get') else d2_val
+                
+                if calc_d1 or calc_d2:
+                    p_order_val = self.derivative_polynomarray[2]
+                    poly_order = int(p_order_val.get()) if hasattr(p_order_val, 'get') else int(p_order_val)
+                    
+                    n_points_val = self.derivative_polynomarray[3]
+                    N_fitpoints = int(n_points_val.get()) if hasattr(n_points_val, 'get') else int(n_points_val)
+                    
+                    # Use optimized calc_derivative function instead of manual loop
+                    derivative_config = [calc_d1, calc_d2, poly_order, N_fitpoints]
+                    PMlib.calc_derivative(new_spec, derivative_config)
+            except Exception as e:
+                print(f"Error calculating derivatives for averaged spectrum: {e}")
+
+        self.disspecs[self.createdisspecname()] = new_spec
+        self._enforce_disspecs_memory_limit()
+
+        # update the selectbox for spectral data
+        self.specselect['values'] = list(self.disspecs.keys())
+        self.specselect.set(list(self.disspecs.keys())[-1])
+
+possible cause 2: 
+
+            # Calculate derivatives for the averaged spectrum itself
+            if self.derivative_polynomarray and len(self.derivative_polynomarray) >= 4:
+                try:
+                    d1_val = self.derivative_polynomarray[0]
+                    calc_d1 = d1_val.get() if hasattr(d1_val, 'get') else d1_val
+                    
+                    d2_val = self.derivative_polynomarray[1]
+                    calc_d2 = d2_val.get() if hasattr(d2_val, 'get') else d2_val
+                    
+                    if calc_d1 or calc_d2:
+                        p_order_val = self.derivative_polynomarray[2]
+                        poly_order = int(p_order_val.get()) if hasattr(p_order_val, 'get') else int(p_order_val)
+                        
+                        n_points_val = self.derivative_polynomarray[3]
+                        N_fitpoints = int(n_points_val.get()) if hasattr(n_points_val, 'get') else int(n_points_val)
+                        
+                        derivative_config = [calc_d1, calc_d2, poly_order, N_fitpoints]
+                        PMlib.calc_derivative(new_spec, derivative_config)
+                except Exception as e:
+                    print(f"Error calculating derivatives for averaged spectrum: {e}")
+
+possible cause 3: 
+
+    def calculate_derivatives(self):
+        """
+        Calculate first and second derivatives for all SpectrumData objects in SpecDataMatrix.
+        Uses sliding window polynomial fitting (Savitzky-Golay style).
+        """
+        # Get memory tracker
+        mem_tracker = memory_tracker.get_default_memory_tracker()
+        mem_tracker.log_separator("CALCULATING DERIVATIVES")
+        mem_tracker.log_memory("Before derivative calculation", context="calculate_derivatives")
+        
+        # Check if derivative calculation is requested
+        # derivative_polynomarray: [first_derivative_bool, second_derivative_bool, polynomial_order, N_fitpoints]
+        if not self.derivative_polynomarray or len(self.derivative_polynomarray) < 4:
+            print("Derivative calculation skipped: Invalid configuration array.")
+            return
+
+        try:
+            # Handle both Tkinter variables (with .get()) and direct values
+            d1_val = self.derivative_polynomarray[0]
+            calc_d1 = d1_val.get() if hasattr(d1_val, 'get') else d1_val
+            
+            d2_val = self.derivative_polynomarray[1]
+            calc_d2 = d2_val.get() if hasattr(d2_val, 'get') else d2_val
+        except Exception as e:
+            print(f"Error reading derivative flags: {e}")
+            return
+        
+        if not (calc_d1 or calc_d2):
+            print("Derivative calculation skipped: Neither 1st nor 2nd derivative requested.")
+            return
+
+        try:
+            p_order_val = self.derivative_polynomarray[2]
+            poly_order = int(p_order_val.get()) if hasattr(p_order_val, 'get') else int(p_order_val)
+            
+            n_points_val = self.derivative_polynomarray[3]
+            N_fitpoints = int(n_points_val.get()) if hasattr(n_points_val, 'get') else int(n_points_val)
+        except (ValueError, TypeError) as e:
+            print(f"Invalid polynomial order or fit points for derivative calculation: {e}")
+            return
+
+### ###
+
+### Summary and todo ###
+the memory leak is real and it is observed at every loading process where the derivatives are calculated. 
+The amount of RAM required after "Load HSI data" on the "Load data" tab is real. 
+The issue. The data set should require a few hundered MB to load, but on loading the scripts requires more and more memory until the RAM is 100 % full (more than 10 GB). This means roughly 50 x too high RAM usage. 
+
+Your goal, 
+figure out what might cause the memory issue and provide a documentation what causes the error (maybe multiple sources) and provide ideas for a fix. 
+Do this by asking the question: 
+What functionalities load data in the RAM and how much? 
+What loops might iterate too much and make the RAM overflow? 
+### ###
