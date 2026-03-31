@@ -35,7 +35,6 @@ from datetime import datetime
 # Try to import tkinter, but make it optional for testing
 try:
     import tkinter as tk
-    from tkinter import messagebox
     HAS_TKINTER = True
 except ImportError:
     HAS_TKINTER = False
