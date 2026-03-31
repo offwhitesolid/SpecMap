@@ -52,7 +52,7 @@ do_normalize_HSI_var = False
 save_multiple_HSIs_bool = True
 
 # derivative bools: if True, calc derivatives
-calculate_first_derivative = False
-calculate_second_derivative = False
-calc_norm_and_derive = False
-calc_norm_on_intensity = False
+calculate_first_derivative = True
+calculate_second_derivative = True
+calc_norm_and_derive = True
+calc_norm_on_intensity = True

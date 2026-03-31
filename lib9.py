@@ -1054,6 +1054,9 @@ class XYMap:
             self.disspecs[spname].Spec_d1 = source_spec.Spec_d1.copy() if hasattr(source_spec.Spec_d1, 'copy') else source_spec.Spec_d1
         if hasattr(source_spec, 'Spec_d2') and source_spec.Spec_d2 is not None:
             self.disspecs[spname].Spec_d2 = source_spec.Spec_d2.copy() if hasattr(source_spec.Spec_d2, 'copy') else source_spec.Spec_d2
+            
+        self._enforce_disspecs_memory_limit()
+        
         # update the combobox with the new spectrum name
         # todo: fix this
         self.specselect['values'] = list(self.disspecs.keys())
@@ -1077,6 +1080,13 @@ class XYMap:
         self.correctionSpec = spec
         del lines
     
+    def _enforce_disspecs_memory_limit(self):
+        """Limit the number of stored spectra to prevent memory leaks."""
+        MAX_SPECTRA_CACHE = 50
+        while len(self.disspecs) > MAX_SPECTRA_CACHE:
+            oldest_key = next(iter(self.disspecs))
+            del self.disspecs[oldest_key]
+            
     def averageHSItoSpecData(self):
         # average all HSI to a single SpectrumData
         self.hsiselected = self.hsiselect.get()
@@ -1150,6 +1160,7 @@ class XYMap:
                 print(f"Error calculating derivatives for averaged spectrum: {e}")
 
         self.disspecs[self.createdisspecname()] = new_spec
+        self._enforce_disspecs_memory_limit()
 
         # update the selectbox for spectral data
         self.specselect['values'] = list(self.disspecs.keys())
@@ -1287,6 +1298,7 @@ class XYMap:
             
             # Store in disspecs
             self.disspecs[spec_name] = new_spec
+            self._enforce_disspecs_memory_limit()
             generated_spectra[spec_name] = new_spec
             
             print(f"  Created averaged spectrum: {spec_name}")
