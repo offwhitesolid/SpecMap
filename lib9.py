@@ -249,6 +249,7 @@ class XYMap:
         self.HSI_fit_useROI = tk.BooleanVar()                               # use ROI for fit
         self.HSI_fit_useROI.set(self.defentries['Fit_use_ROI_mask'])        # set default value for HSI_fit_useROI
         self.colormap = tk.StringVar()                                      # Colormap
+        self.colormap.set(self.defentries['default_colormap'])              # set default colormap
         self.WL_selection = tk.StringVar()                                  # Wavelength Selection
         self.WL_values= deflib.WL_values
         self.WL_selection.set(self.WL_values[self.WL_values.index(defentries['selected_WL_axis'])]) # set default WL selection
@@ -418,7 +419,7 @@ class XYMap:
         self.selectspecbox.grid(row=1, column=1)
         tk.Label(frame, text="Select Colormap".format(self.DataSpecMax)).grid(row=0, column=2)
         self.selectcolmapbox = ttk.Combobox(frame, values=plt.colormaps(), textvariable=self.colormap)
-        self.selectcolmapbox.set(plt.colormaps()[0])
+        self.selectcolmapbox.set(self.defentries['default_colormap'])  # set default colormap from defentries
         self.selectcolmapbox.grid(row=1, column=2) 
 
     def updatecountthresh(self):
@@ -3913,7 +3914,7 @@ class XYMap:
                 self.defentries = state['defentries']
             
             # Restore settings (tk variables)
-            self.colormap.set(state.get('colormap', 'viridis'))
+            self.colormap.set(state.get('colormap', self.defentries['default_colormap']))
             self.WL_selection.set(state.get('WL_selection', self.WL_values[0]))
             self.HSI_fit_useROI.set(state.get('HSI_fit_useROI', False))
             self.HSI_from_fitparam_useROI.set(state.get('HSI_from_fitparam_useROI', False))
