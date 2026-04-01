@@ -594,7 +594,7 @@ class XYMap:
 
         # build third column for Spectral Data
         tk.Label(frame, text="Select Spectral Data").grid(row=0, column=2)
-        self.specselect = ttk.Combobox(frame)
+        self.specselect = ttk.Combobox(frame, width=40)
         self.specselect.grid(row=1, column=2)
         
         # Populate Spectrum list from existing data if available - fixes empty combobox after loading
@@ -1468,7 +1468,7 @@ class XYMap:
         if has_data:
             self.loadinfolabel = tk.Label(plotframe, text='Pixel Loaded: {} x {}'.format(len(self.SpecDataMatrix[0]), len(self.SpecDataMatrix))).pack(side=tk.TOP, anchor=tk.W)
         else:
-            self.loadinfolabel = tk.Label(plotframe, text='No data loaded yet \n - Load HSI data to begin', ).pack(side=tk.TOP, anchor=tk.W)
+            self.loadinfolabel = tk.Label(plotframe, text='No data loaded - Load HSI data', ).pack(side=tk.TOP, anchor=tk.W)
         
         tk.Label(plotframe, text='selected Pixel: ').pack(side=tk.TOP, anchor=tk.W)
         xyframe = tk.Frame(plotframe)
@@ -1487,7 +1487,7 @@ class XYMap:
         self.newsely = 0
 
         tk.Label(plotframe, text="Select Data Set".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
-        self.selectspecpixbox = ttk.Combobox(plotframe, values=list(self.speckeys.keys()))
+        self.selectspecpixbox = ttk.Combobox(plotframe, values=list(self.speckeys.keys()), width=40)
         self.selectspecpixbox.set(list(self.speckeys.keys())[-1])
         self.selectspecpixbox.pack(side=tk.TOP, anchor=tk.W)
 
