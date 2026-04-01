@@ -1289,6 +1289,7 @@ defaults={
     # Background Subtraction Frame
     'multiple_Background': False,
     'linear_Background': True,
+    'default_colormap': 'twilight', 
     # Cosmic Ray Removal Frame
     'remove_cosmics': True,
     'cosmic_threshold': 100,
@@ -1371,6 +1372,7 @@ defaulttypes = {
     'file_extension': str,
     'multiple_Background': bool,
     'linear_Background': bool,
+    'default_colormap': str, 
     'remove_cosmics': bool,
     'cosmic_threshold': int,
     'cosmic_width': int,

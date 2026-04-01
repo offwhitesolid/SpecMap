@@ -12,6 +12,7 @@ windowsize_Y = 1200
 file_extension = .txt
 multiple_Background = False
 linear_Background = True
+default_colormap = twilight
 remove_cosmics = True
 cosmic_threshold = 250
 cosmic_width = 10
