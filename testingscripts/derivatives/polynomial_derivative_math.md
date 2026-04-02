@@ -8,11 +8,11 @@ This document outlines the rigorous mathematical foundation for evaluating spect
 
 In raw hyperspectral or spectroscopic data, the measured intensity $y_i$ at wavelength $x_i$ always contains physical truth $f(x_i)$ plus random noise $\epsilon_i$:
 
-$$ y_i = f(x_i) + \epsilon_i $$
+$ y_i = f(x_i) + \epsilon_i $
 
 If the derivative is computed using a standard finite difference, e.g., the central difference:
 
-$$ y'_i \approx \frac{y_{i+1} - y_{i-1}}{2h} = \frac{f(x_{i+1}) - f(x_{i-1})}{2h} + \frac{\epsilon_{i+1} - \epsilon_{i-1}}{2h} $$
+$ y'_i \approx \frac{y_{i+1} - y_{i-1}}{2h} = \frac{f(x_{i+1}) - f(x_{i-1})}{2h} + \frac{\epsilon_{i+1} - \epsilon_{i-1}}{2h} $
 
 Because the spacing $h = x_{i+1} - x_i$ is typically very small, dividing by $2h$ massively amplifies the high-frequency random noise $\epsilon$. The resulting derivative spectrum will be dominated by noise, obscuring the physical signal. 
 
@@ -28,7 +28,7 @@ The input coordinates for this window are $x_i$ where $i \in \{-m, \dots, -1, 0,
 
 The objective is to approximate the data inside this window using a polynomial of degree $n$ (where $n < N$):
 
-$$ p_n(x) = c_0 + c_1 x + c_2 x^2 + \dots + c_n x^n = \sum_{k=0}^{n} c_k x^k $$
+$ p_n(x) = c_0 + c_1 x + c_2 x^2 + \dots + c_n x^n = \sum_{k=0}^{n} c_k x^k $
 
 ---
 
@@ -36,32 +36,32 @@ $$ p_n(x) = c_0 + c_1 x + c_2 x^2 + \dots + c_n x^n = \sum_{k=0}^{n} c_k x^k $$
 
 To find the best fitting polynomial, the sum of the squared residuals ($E$) between the polynomial $p_n(x)$ and the observed data $y_i$ is minimized:
 
-$$ E(c_0, \dots, c_n) = \sum_{i=-m}^{m} \left( p_n(x_i) - y_i \right)^2 = \sum_{i=-m}^{m} \left( \sum_{k=0}^{n} c_k x_i^k - y_i \right)^2 $$
+$ E(c_0, \dots, c_n) = \sum_{i=-m}^{m} \left( p_n(x_i) - y_i \right)^2 = \sum_{i=-m}^{m} \left( \sum_{k=0}^{n} c_k x_i^k - y_i \right)^2 $
 
 This can be written elegantly in matrix notation. 
 Let $\mathbf{y}$ be the column vector of length $N$ containing the data points, and $\mathbf{c}$ be the vector of polynomial coefficients:
 
-$$ \mathbf{y} = \begin{bmatrix} y_{-m} \\ \vdots \\ y_0 \\ \vdots \\ y_m \end{bmatrix}, \quad \mathbf{c} = \begin{bmatrix} c_0 \\ c_1 \\ \vdots \\ c_n \end{bmatrix} $$
+$ \mathbf{y} = \begin{bmatrix} y_{-m} \\ \vdots \\ y_0 \\ \vdots \\ y_m \end{bmatrix}, \quad \mathbf{c} = \begin{bmatrix} c_0 \\ c_1 \\ \vdots \\ c_n \end{bmatrix} $
 
 Let $\mathbf{X}$ be the **Design Matrix** (or Vandermonde matrix) of shape $N \times (n+1)$, where each element $X_{i,k} = x_i^k$:
 
-$$ \mathbf{X} = \begin{bmatrix} 
+$ \mathbf{X} = \begin{bmatrix} 
 1 & x_{-m} & x_{-m}^2 & \dots & x_{-m}^n \\
 \vdots & \vdots & \vdots & & \vdots \\
 1 & x_0 & x_0^2 & \dots & x_0^n \\
 \vdots & \vdots & \vdots & & \vdots \\
 1 & x_m & x_m^2 & \dots & x_m^n
-\end{bmatrix} $$
+\end{bmatrix} $
 
 The objective is to minimize the squared $L_2$ norm: $E(\mathbf{c}) = ||\mathbf{Xc} - \mathbf{y}||^2$.
 
 To find the minimum, the gradient with respect to $\mathbf{c}$ is taken and set to zero, leading to the **Normal Equations**:
 
-$$ (\mathbf{X}^T \mathbf{X}) \mathbf{c} = \mathbf{X}^T \mathbf{y} $$
+$ (\mathbf{X}^T \mathbf{X}) \mathbf{c} = \mathbf{X}^T \mathbf{y} $
 
 If the points are distinct (which they are), $\mathbf{X}^T \mathbf{X}$ is a non-singular, invertible square matrix. The exact mathematical solution for the optimal polynomial coefficients is:
 
-$$ \mathbf{c} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T \mathbf{y} $$
+$ \mathbf{c} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T \mathbf{y} $
 
 ---
 
@@ -69,15 +69,15 @@ $$ \mathbf{c} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T \mathbf{y} $$
 
 Recalling the local polynomial:
 
-$$ p_n(x) = c_0 + c_1 x + c_2 x^2 + c_3 x^3 + \dots $$
+$ p_n(x) = c_0 + c_1 x + c_2 x^2 + c_3 x^3 + \dots $
 
 Taking the first analytical derivative yields:
 
-$$ \frac{d}{dx} p_n(x) = c_1 + 2 c_2 x + 3 c_3 x^2 + \dots $$
+$ \frac{d}{dx} p_n(x) = c_1 + 2 c_2 x + 3 c_3 x^2 + \dots $
 
 Because the local coordinate system is heavily shifted so the point of interest (the center of the window) sits exactly at $x = 0$, evaluating the derivative at the center point makes all terms involving $x$ vanish!
 
-$$ \left. \frac{d}{dx} p_n(x) \right|_{x=0} = c_1 + 2 c_2(0) + \dots = c_1 $$
+$ \left. \frac{d}{dx} p_n(x) \right|_{x=0} = c_1 + 2 c_2(0) + \dots = c_1 $
 
 Similarly, if the smoothed data value is required, it is simply $c_0$. The second derivative is exactly $2c_2$.
 
@@ -93,7 +93,7 @@ However, mathematical pioneers Abraham Savitzky and Marcel J. E. Golay (1964) re
 
 Consider the matrix term that maps the data vector $\mathbf{y}$ to the coefficient vector $\mathbf{c}$:
 
-$$ \mathbf{H} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T $$
+$ \mathbf{H} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T $
 
 This "Hat Matrix" $\mathbf{H}$ depends *exclusively* on the grid spacing ($x_i$), window size ($N$), and polynomial order ($n$). **It does not depend on the actual spectral data $\mathbf{y}$ at all.** 
 
@@ -102,7 +102,7 @@ Therefore, the matrix $\mathbf{H}$ is **a constant for the entire spectrum**.
 
 Since only the first derivative (the $c_1$ coefficient) is of interest, only the second row of the $\mathbf{H}$ matrix is needed. Let this row vector be designated $\mathbf{w}$ (for weights).
 
-$$ c_1 = \mathbf{w} \cdot \mathbf{y} = \sum_{i=-m}^{m} w_i y_i $$
+$ c_1 = \mathbf{w} \cdot \mathbf{y} = \sum_{i=-m}^{m} w_i y_i $
 
 ### The Paradigm Shift
 Instead of doing a massive matrix inversion solving $E = ||\mathbf{Xc} - \mathbf{y}||^2$ repetitively, `scipy.signal.savgol_filter` simply pre-calculates the array of constants $\mathbf{w}$ once. It then slides across the spectrum performing a simple $O(N)$ **linear convolution** (a dot product). 
@@ -119,19 +119,19 @@ Assume the random noise $e_i$ at each pixel is independent and identically distr
 
 ### Scenario A: Noise in Finite Differences
 Using the central difference method, the derivative is calculated from two adjacent points separated by a grid spacing of $h$:
-$$ y'_i \approx \frac{y_{i+1} - y_{i-1}}{2h} $$
+$ y'_i \approx \frac{y_{i+1} - y_{i-1}}{2h} $
 
 The variance of this derivative is calculated using the property $Var(aX + bY) = a^2 Var(X) + b^2 Var(Y)$:
-$$ \text{Var}(y'_i) = \text{Var}\left( \frac{y_{i+1}}{2h} - \frac{y_{i-1}}{2h} \right) = \frac{\text{Var}(y_{i+1}) + \text{Var}(y_{i-1})}{(2h)^2} = \frac{\sigma^2 + \sigma^2}{4h^2} = \frac{\sigma^2}{2h^2} $$
+$ \text{Var}(y'_i) = \text{Var}\left( \frac{y_{i+1}}{2h} - \frac{y_{i-1}}{2h} \right) = \frac{\text{Var}(y_{i+1}) + \text{Var}(y_{i-1})}{(2h)^2} = \frac{\sigma^2 + \sigma^2}{4h^2} = \frac{\sigma^2}{2h^2} $
 
 **The consequence:** Because the pixel spacing $h$ in spectroscopy is very small (often $h \ll 1$), $h^2$ is microscopic. Dividing variance $\sigma^2$ by this microscopic number causes the noise variance to **explode globally**. The higher the resolution of the spectrometer (the smaller $h$ gets), the worse the noise becomes in finite differences!
 
 ### Scenario B: Noise in a Polynomial Fit (Savitzky-Golay)
 In the Savitzky-Golay method, the center point's first derivative $c_1$ is calculated via a linear combination of all $N$ window points using the pre-computed weights $w_j$:
-$$ y'_i = c_1 = \sum_{j=-m}^{m} w_j y_{i+j} $$
+$ y'_i = c_1 = \sum_{j=-m}^{m} w_j y_{i+j} $
 
 The variance of a linear combination of independent variables translates to the sum of the squared coefficients:
-$$ \text{Var}(y'_i) = \text{Var}\left( \sum_{j=-m}^{m} w_j y_{i+j} \right) = \sum_{j=-m}^{m} w_j^2 \text{Var}(y_{i+j}) = \sigma^2 \sum_{j=-m}^{m} w_j^2 $$
+$ \text{Var}(y'_i) = \text{Var}\left( \sum_{j=-m}^{m} w_j y_{i+j} \right) = \sum_{j=-m}^{m} w_j^2 \text{Var}(y_{i+j}) = \sigma^2 \sum_{j=-m}^{m} w_j^2 $
 
 **The consequence:** By extending the evaluation window across $N$ points, the variance is scaled by the sum of the squared convolution weights $\sum w_j^2$. Through the analytical properties of the hat matrix $\mathbf{H} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T$, it can be proven that the sum of squared weights for the first derivative roughly scales proportionally to $\frac{1}{N^3}$. 
 
