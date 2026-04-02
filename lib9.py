@@ -41,7 +41,7 @@ SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
 # todo: make the load data function in the SpectrumData class more robust for statistical cosmic removal
 
 class SpectrumData:
-    def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, removecosmicmethod=list(deflib.cosmicfuncts.keys())[0], WL_eV=None):
+    def __init__(self, filename, WL, BG, loadeachbg = False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, removecosmicmethod=list(deflib.cosmicfuncts.keys())[0], WL_eV=None, default_dataset='Spectrum (PL-BG)'):
         self.removecosmicsmethod = removecosmicmethod
         self.loadeachbg = loadeachbg
         self.linearbg = linearbg
@@ -57,6 +57,7 @@ class SpectrumData:
             self.BG = BG
         self.filename = filename
         self.readinkeys = ['BG', 'PL'] # WL is defined in XYMap
+        self.default_dataset = default_dataset
         self.openFstate = [] # open floats state from metadata
         self.openDstate = [] # open Data from spectrometer
         self.dataokay = False    # set True if everything openend properly
@@ -233,7 +234,7 @@ class SpectrumData:
 
 # create XY Map that contains the Pixels 
 class XYMap:
-    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults, derivative_polynomarray=[None, None, None, None], calc_norm_and_derive=None, calc_norm_on_intensity=None, skip_gui_build=False):
+    def __init__(self, fnames, cmapframe, specframe, loadbg=False, linearbg=False, removecosmics=False, cosmicthreshold=20, cosmicpixels=3, cosmicmethod=list(deflib.cosmicfuncts.keys())[0], defentries=deflib.defaults, derivative_polynomarray=[None, None, None, None], calc_norm_and_derive=None, calc_norm_on_intensity=None, skip_gui_build=False, default_dataset='Spectrum (PL-BG)'):
         self.defentries = defentries
         self.remcosmicfunc = cosmicmethod
         self.removecosmics = removecosmics
@@ -245,6 +246,7 @@ class XYMap:
         self.loadeachbg = loadbg
         self.specs = []                                                     # Spectral Objects
         self.fontsize = self.defentries['fontsize']                         # Default Plot Font Size
+        self.default_dataset = default_dataset
         # init tk variables
         self.HSI_fit_useROI = tk.BooleanVar()                               # use ROI for fit
         self.HSI_fit_useROI.set(self.defentries['Fit_use_ROI_mask'])        # set default value for HSI_fit_useROI
@@ -411,10 +413,10 @@ class XYMap:
         self.selectspecbox = ttk.Combobox(frame, values=values, width=40)
         # Use the default from defentries if available, otherwise fall back to 'Spectrum (PL-BG)'
         DEFAULT_DATA_SET = 'Spectrum (PL-BG)'
-        default_dataset = self.defentries.get('data_set', DEFAULT_DATA_SET)
+        default_dataset = self.defentries.get('data_set', self.default_dataset)
         if default_dataset in values:
             self.selectspecbox.set(default_dataset)
-        elif DEFAULT_DATA_SET in values:
+        elif self.default_dataset in values:
             self.selectspecbox.set(DEFAULT_DATA_SET)  # Hardcoded fallback if defentries value not found
         self.selectspecbox.grid(row=1, column=1)
         tk.Label(frame, text="Select Colormap".format(self.DataSpecMax)).grid(row=0, column=2)
@@ -1488,7 +1490,10 @@ class XYMap:
 
         tk.Label(plotframe, text="Select Data Set".format(self.DataSpecMax)).pack(side=tk.TOP, anchor=tk.W)
         self.selectspecpixbox = ttk.Combobox(plotframe, values=list(self.speckeys.keys()), width=40)
-        self.selectspecpixbox.set(list(self.speckeys.keys())[-1])
+        if self.default_dataset in self.speckeys:
+            self.selectspecpixbox.set(self.default_dataset)
+        else:
+            self.selectspecpixbox.set(list(self.speckeys.keys())[-1])
         self.selectspecpixbox.pack(side=tk.TOP, anchor=tk.W)
 
         # add a combobox to select wavelength / nm or energy / eV axis
