@@ -1827,195 +1827,145 @@ class XYMap:
         # update wlstart and wlend
         self.selectwindowboxVari = self.selectwindowbox.get()
         self.selectspecboxVari = self.selectspecbox.get()
-        for i in range(len(self.SpecDataMatrix)):
-            for j in range(len(self.SpecDataMatrix[i])):
-                if type(self.SpecDataMatrix[i][j]) == SpectrumData:
-                    if self.SpecDataMatrix[i][j].dataokay == True:
-                        self.SpecDataMatrix[i][j].dofit = True
-                        tries = 1
-                        worked = False
-                        adjmin = True
-                        # if fit does not work, adjust the window size
-                        while tries < nmin+nmax and worked == False and self.SpecDataMatrix[i][j].dofit == True:
-                            tries += 1
-                            if True: 
-                                if mode == 'fullHSI':
-                                    if np.sum(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend]) < self.countthreshv:
-                                        PixMatrix[i][j] = np.nan
-                                        self.SpecDataMatrix[i][j].dofit = False
-                                        # break the while loop
-                                        break
-                                    else: 
-                                        try:
-                                            self.maxiter = int(self.fitmaxiter.get())
-                                        except:
-                                            print('Maxiter must be int. Using default 1000.')
-                                            self.maxiter = 1000
-                                        
-                                        # Execute fit with error handling
-                                        fit_result = {'fitdata': None, 'fit_status': 0}
-                                        
-                                        def run_fit():
-                                            fitdata, fit_status = self.execute_fit_with_error_handling(
-                                                self.SpecDataMatrix[i][j],
-                                                self.fitkeys[self.selectwindowboxVari][1],
-                                                self.aqpixstart,
-                                                self.aqpixend,
-                                                self.maxiter,
-                                                self.fitbackup
-                                            )
-                                            fit_result['fitdata'] = fitdata
-                                            fit_result['fit_status'] = fit_status
-                                        
-                                        # Create and start thread to run fit
-                                        fit_thread = thre.Thread(target=run_fit)
-                                        fit_thread.start()
-                                        fit_thread.join() # Wait for thread to complete
-                                        
-                                        # Store fit results
-                                        self.SpecDataMatrix[i][j].fitdata = fit_result['fitdata']
-                                        fit_status = fit_result['fit_status']
-                                        
-                                        # Only process if fit succeeded
-                                        if fit_status == 1 and self.SpecDataMatrix[i][j].fitdata != [None]:
-                                            self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])
-                                            r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[i][j].fitdata[:-1]))
-                                            a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get()) # a is the index of the fit function
-                                            
-                                            # Store fitdata into fitparams
-                                            try:
-                                                for k in range(matl.fitkeys[list(matl.fitkeys.keys())[a]][4]):
-                                                    self.SpecDataMatrix[i][j].fitparams[a][k] = self.SpecDataMatrix[i][j].fitdata[k]
-                                                # store fitmaxX and fitmaxY in fitparams
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('max_x')-len(matl.addtofitparms)] = self.SpecDataMatrix[i][j].fitmaxX
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('max_y')-len(matl.addtofitparms)] = self.SpecDataMatrix[i][j].fitmaxY
-                                                # store aqpixstart and aqpixend in fitparams
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('pixstart')-len(matl.addtofitparms)] = self.aqpixstart
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('pixend')-len(matl.addtofitparms)] = self.aqpixend
-                                                # store wlstart and wlend
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('wlstart')-len(matl.addtofitparms)] = self.wlstart
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('wlend')-len(matl.addtofitparms)] = self.wlend
-                                                # store fwhm
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('fwhm')-len(matl.addtofitparms)] = matl.fitkeys[list(matl.fitkeys.keys())[a]][7](self.SpecDataMatrix[i][j].fitdata[:matl.fitkeys[list(matl.fitkeys.keys())[a]][4]])
-                                                # store r_squared, ss_res, ss_tot
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)] = r_squared
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)] = ss_res
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)] = ss_tot
-                                                # store fit_status (1 = success)
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('fit_status')-len(matl.addtofitparms)] = fit_status
-                                                # store the fit parameters in backup
-                                                self.fitbackup = self.SpecDataMatrix[i][j].fitdata
-                                            except Exception as e:
-                                                print('Fit parameter update failed in function {}.\n{}'.format('XYMap.fittoMatrixfitparams', str(e)))
-                                        else:
-                                            # Fit failed - store failure status
-                                            a = list(matl.fitkeys.keys()).index(self.selectwindowbox.get())
-                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('fit_status')-len(matl.addtofitparms)] = fit_status
-                                            PixMatrix[i][j] = np.nan
-                                    
-                                elif mode == 'roi':
-                                    if np.isnan(roi[i][j]) == True: # type: ignore
-                                        PixMatrix[i][j] = np.nan
-                                        self.SpecDataMatrix[i][j].dofit = False
-                                        # break the while loop
-                                        break
-                                    else: 
-                                        try:
-                                            self.maxiter = int(self.fitmaxiter.get())
-                                        except:
-                                            print('Maxiter must be int. Using default 1000.')
-                                            self.maxiter = 1000
-                                        
-                                        # Execute fit with error handling
-                                        fit_result = {'fitdata': None, 'fit_status': 0}
-                                        
-                                        def run_fit():
-                                            fitdata, fit_status = self.execute_fit_with_error_handling(
-                                                self.SpecDataMatrix[i][j],
-                                                self.fitkeys[self.selectwindowboxVari][1],
-                                                self.aqpixstart,
-                                                self.aqpixend,
-                                                self.maxiter,
-                                                self.fitbackup
-                                            )
-                                            fit_result['fitdata'] = fitdata
-                                            fit_result['fit_status'] = fit_status
-                                        
-                                        # Create and start thread to run fit
-                                        fit_thread = thre.Thread(target=run_fit)
-                                        fit_thread.start()
-                                        fit_thread.join() # Wait for thread to complete
-                                        
-                                        # Store fit results
-                                        self.SpecDataMatrix[i][j].fitdata = fit_result['fitdata']
-                                        fit_status = fit_result['fit_status']
-                                        
-                                        # Only process if fit succeeded
-                                        if fit_status == 1 and self.SpecDataMatrix[i][j].fitdata != [None]:
-                                            self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY = self.fitkeys[self.selectwindowboxVari][2](self.aqpixstart, self.aqpixend, *self.SpecDataMatrix[i][j].fitdata[:-1])
-                                            r_squared, ss_res, ss_tot = matl.calc_r_squared(self.SpecDataMatrix[i][j].PLB[self.aqpixstart:self.aqpixend], self.fitkeys[self.selectwindowboxVari][0](self.SpecDataMatrix[i][j].WL[self.aqpixstart:self.aqpixend], *self.SpecDataMatrix[i][j].fitdata[:-1]))
-                                            a =  list(matl.fitkeys.keys()).index(self.selectwindowbox.get()) # a is the index of the fit function
-                                            
-                                            # Store fitdata into fitparams
-                                            try:
-                                                for k in range(matl.fitkeys[list(matl.fitkeys.keys())[a]][4]):
-                                                    self.SpecDataMatrix[i][j].fitparams[a][k] = self.SpecDataMatrix[i][j].fitdata[k]
-                                                # store fitmaxX and fitmaxY in fitparams
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('max_x')-len(matl.addtofitparms)] = self.SpecDataMatrix[i][j].fitmaxX
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('max_y')-len(matl.addtofitparms)] = self.SpecDataMatrix[i][j].fitmaxY
-                                                # store aqpixstart and aqpixend in fitparams
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('pixstart')-len(matl.addtofitparms)] = self.aqpixstart
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('pixend')-len(matl.addtofitparms)] = self.aqpixend
-                                                # store wlstart and wlend
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('wlstart')-len(matl.addtofitparms)] = self.wlstart
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('wlend')-len(matl.addtofitparms)] = self.wlend
-                                                # store fwhm
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('fwhm')-len(matl.addtofitparms)] = matl.fitkeys[list(matl.fitkeys.keys())[a]][7](self.SpecDataMatrix[i][j].fitdata[:matl.fitkeys[list(matl.fitkeys.keys())[a]][4]])
-                                                # store r_squared, ss_res, ss_tot
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('r_squared')-len(matl.addtofitparms)] = r_squared
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_res')-len(matl.addtofitparms)] = ss_res
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('ss_tot')-len(matl.addtofitparms)] = ss_tot
-                                                # store fit_status (1 = success)
-                                                self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('fit_status')-len(matl.addtofitparms)] = fit_status
-                                                # store the fit parameters in backup
-                                                self.fitbackup = self.SpecDataMatrix[i][j].fitdata
-                                            except Exception as e:
-                                                print('Fit parameter update failed in function {}.\n{}'.format('XYMap.fittoMatrixfitparams', str(e)))
-                                        else:
-                                            # Fit failed - store failure status
-                                            a = list(matl.fitkeys.keys()).index(self.selectwindowbox.get())
-                                            self.SpecDataMatrix[i][j].fitparams[a][matl.addtofitparms.index('fit_status')-len(matl.addtofitparms)] = fit_status
-                                            PixMatrix[i][j] = np.nan
-                                    
+        
+        # Precompute lookups and indices outside the loop
+        # Check if maxiter is available, otherwise use default
+        try:
+            precomputed_maxiter = int(self.fitmaxiter.get())
+        except:
+            print('Maxiter must be int. Using default 1000.')
+            precomputed_maxiter = 1000
+            
+        a_index = list(matl.fitkeys.keys()).index(self.selectwindowboxVari)
+        num_fit_params = matl.fitkeys[list(matl.fitkeys.keys())[a_index]][4]
+        
+        idx_max_x = matl.addtofitparms.index('max_x') - len(matl.addtofitparms)
+        idx_max_y = matl.addtofitparms.index('max_y') - len(matl.addtofitparms)
+        idx_pixstart = matl.addtofitparms.index('pixstart') - len(matl.addtofitparms)
+        idx_pixend = matl.addtofitparms.index('pixend') - len(matl.addtofitparms)
+        idx_wlstart = matl.addtofitparms.index('wlstart') - len(matl.addtofitparms)
+        idx_wlend = matl.addtofitparms.index('wlend') - len(matl.addtofitparms)
+        idx_fwhm = matl.addtofitparms.index('fwhm') - len(matl.addtofitparms)
+        idx_r_squared = matl.addtofitparms.index('r_squared') - len(matl.addtofitparms)
+        idx_ss_res = matl.addtofitparms.index('ss_res') - len(matl.addtofitparms)
+        idx_ss_tot = matl.addtofitparms.index('ss_tot') - len(matl.addtofitparms)
+        idx_fit_status = matl.addtofitparms.index('fit_status') - len(matl.addtofitparms)
+        
+        fit_func = self.fitkeys[self.selectwindowboxVari][1]
+        fit_calc_max = self.fitkeys[self.selectwindowboxVari][2]
+        fit_calc_fwhm = matl.fitkeys[list(matl.fitkeys.keys())[a_index]][7]
+        fit_eval = self.fitkeys[self.selectwindowboxVari][0]
 
-                                else:
-                                    print('Mode not implemented yet.')
-                                    PixMatrix[i][j] = np.nan
-                                    self.SpecDataMatrix[i][j].dofit = False
-                                    # break the while loop
-                                    break
+        # Update GUI elements definitively once before threading
+        self.updatewl()
+        base_aqstart = self.aqpixstart
+        base_aqend = self.aqpixend
+        
+        def process_pixel(i, j):
+            if type(self.SpecDataMatrix[i][j]) != SpectrumData or not self.SpecDataMatrix[i][j].dataokay:
+                return (i, j, False)
+                
+            self.SpecDataMatrix[i][j].dofit = True
+            tries = 1
+            worked = False
+            adjmin = True
+            
+            # Start with the base values to prevent race conditions on self
+            local_aqstart = base_aqstart
+            local_aqend = base_aqend
+            local_fitbackup = None  # Using None avoids thread contention and bad p0 jumping
+            
+            while tries < nmin+nmax and not worked and self.SpecDataMatrix[i][j].dofit:
+                tries += 1
+                skip_fit = False
+                if mode == 'fullHSI':
+                    if np.sum(self.SpecDataMatrix[i][j].PLB[int(local_aqstart):int(local_aqend)]) < self.countthreshv:
+                        skip_fit = True
+                elif mode == 'roi':
+                    if np.isnan(roi[i][j]): # type: ignore
+                        skip_fit = True
+                else:
+                    print('Mode not implemented yet.')
+                    skip_fit = True
+                    
+                if skip_fit:
+                    PixMatrix[i][j] = np.nan
+                    self.SpecDataMatrix[i][j].dofit = False
+                    break
+                
+                # Execute fit with local subset to ensure thread safety
+                fitdata, fit_status = self.execute_fit_with_error_handling(
+                    self.SpecDataMatrix[i][j],
+                    fit_func,
+                    int(local_aqstart),
+                    int(local_aqend),
+                    precomputed_maxiter,
+                    local_fitbackup
+                )
+                self.SpecDataMatrix[i][j].fitdata = fitdata
+                
+                # Only process if fit succeeded
+                if fit_status == 1 and self.SpecDataMatrix[i][j].fitdata != [None]:
+                    fitmaxX, fitmaxY = fit_calc_max(int(local_aqstart), int(local_aqend), *self.SpecDataMatrix[i][j].fitdata[:-1])
+                    self.SpecDataMatrix[i][j].fitmaxX = fitmaxX
+                    self.SpecDataMatrix[i][j].fitmaxY = fitmaxY
+                    r_squared, ss_res, ss_tot = matl.calc_r_squared(
+                        self.SpecDataMatrix[i][j].PLB[int(local_aqstart):int(local_aqend)], 
+                        fit_eval(self.SpecDataMatrix[i][j].WL[int(local_aqstart):int(local_aqend)], *self.SpecDataMatrix[i][j].fitdata[:-1])
+                    )
+                    
+                    try:
+                        for k in range(num_fit_params):
+                            self.SpecDataMatrix[i][j].fitparams[a_index][k] = self.SpecDataMatrix[i][j].fitdata[k]
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_max_x] = fitmaxX
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_max_y] = fitmaxY
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_pixstart] = local_aqstart
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_pixend] = local_aqend
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_wlstart] = self.wlstart
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_wlend] = self.wlend
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_fwhm] = fit_calc_fwhm(self.SpecDataMatrix[i][j].fitdata[:num_fit_params])
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_r_squared] = r_squared
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_ss_res] = ss_res
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_ss_tot] = ss_tot
+                        self.SpecDataMatrix[i][j].fitparams[a_index][idx_fit_status] = fit_status
+                        local_fitbackup = self.SpecDataMatrix[i][j].fitdata
+                    except Exception as e:
+                        print('Fit parameter update failed in function XYMap.fittoMatrixfitparams:', e)
+                else:
+                    self.SpecDataMatrix[i][j].fitparams[a_index][idx_fit_status] = fit_status
+                    PixMatrix[i][j] = np.nan
+                    
+                if self.SpecDataMatrix[i][j].fitdata == [None] or self.SpecDataMatrix[i][j].fitdata is None:
+                    PixMatrix[i][j] = np.nan
+                else:
+                    if self.wlstart <= getattr(self.SpecDataMatrix[i][j], 'fitmaxX', -1) <= self.wlend:
+                        worked = True
+                        PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
+                
+                if not worked:
+                    try:
+                        if adjmin:
+                            local_aqstart += incmin
+                            adjmin = False
+                        else:
+                            local_aqend += incmax
+                            adjmin = True
+                    except Exception:
+                        worked = True
+                        
+            return (i, j, worked)
 
-                                if self.SpecDataMatrix[i][j].fitdata == [None]:
-                                    PixMatrix[i][j] = np.nan
-                                else:
-                                    # check if maximum is within the window and set to Intmatrix
-                                    if self.SpecDataMatrix[i][j].fitmaxX >= self.wlstart and self.SpecDataMatrix[i][j].fitmaxX <= self.wlend:
-                                        worked = True
-                                        PixMatrix[i][j] = self.SpecDataMatrix[i][j].get_attribute(variable)
-                                    else:
-                                        pass
-                                        #print(self.SpecDataMatrix[i][j].fitmaxX, self.SpecDataMatrix[i][j].fitmaxY)
-                                try:
-                                    if adjmin == True:
-                                        self.aqpixstart += incmin
-                                        adjmin = False
-                                    else:
-                                        self.aqpixend += incmax
-                                        adjmin = True
-                                except Exception as e:
-                                    #print("Fit Window ran out of Data. Fit to Matrix Failed at element {}, {} in exc1 function {}.\n{}".format(i, j, 'XYMap.fittoMatrixfitparams', str(e)))
-                                    worked = True
-                            self.updatewl()
+        # Build thread pool to evaluate all pixels concurrently
+        workers = min(32, (os.cpu_count() or 1) + 4)
+        futures = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            for i in range(len(self.SpecDataMatrix)):
+                for j in range(len(self.SpecDataMatrix[i])):
+                    futures.append(executor.submit(process_pixel, i, j))
+        
+        # Await completion to ensure matrix is completely populated before proceeding
+        for future in as_completed(futures):
+            future.result()
 
     # function currently not in use
     def fittoSpecfitparams(self, PixMatrix, variable='fitmaxX', incmin=2, incmax=-2, nmin=20, nmax=20):
