@@ -1680,12 +1680,17 @@ class XYMap:
 
     # Max Counts Colormap
     def buildandPlotIntCmap(self, savetoimage='False'):
+        hsi_name = self.hsiselect.get()
+        if not hsi_name or hsi_name not in self.PMdict:
+            print("No valid HSI selected to plot.")
+            return
+            
         self.readfontsize()
         self.updatecountthresh()
         # update spec min and max values
         self.updatewl()
         # create a new colormap by using the selected HSI
-        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
+        lastpm = copy.deepcopy(self.PMdict[hsi_name].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)
         self.getPLpixelIntervalMaxIndex(self.PMdict[newpm].PixMatrix, False)
         
@@ -1701,10 +1706,15 @@ class XYMap:
         
     # Spectral Maximum Colormap
     def buildandPlotSpecCmap(self):
+        hsi_name = self.hsiselect.get()
+        if not hsi_name or hsi_name not in self.PMdict:
+            print("No valid HSI selected to plot.")
+            return
+
         self.updatewl()
         self.updatecountthresh()
         self.readfontsize()
-        lastpm = copy.deepcopy(self.PMdict[self.hsiselect.get()].PixMatrix)
+        lastpm = copy.deepcopy(self.PMdict[hsi_name].PixMatrix)
         newpm = self.writetopixmatrix(lastpm, None)#str(self.selectspecpixbox.get()))
         if self.HSI_fit_useROI.get() == False:
             self.fittoMatrixfitparams(self.PMdict[newpm].PixMatrix, 'fitmaxX', mode='fullHSI', roi=None)
@@ -3869,7 +3879,7 @@ class XYMap:
                 self.defentries = state['defentries']
             
             # Restore settings (tk variables)
-            self.colormap.set(state.get('colormap', self.defentries['default_colormap']))
+            self.colormap.set(state.get('colormap', self.defentries.get('default_colormap', 'viridis')))
             self.WL_selection.set(state.get('WL_selection', self.WL_values[0]))
             self.HSI_fit_useROI.set(state.get('HSI_fit_useROI', False))
             self.HSI_from_fitparam_useROI.set(state.get('HSI_from_fitparam_useROI', False))
