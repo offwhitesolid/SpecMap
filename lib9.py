@@ -2357,8 +2357,16 @@ class XYMap:
         cbar.set_label(leglabel, fontsize=self.fontsize)
         # Set the font size of the colorbar ticks
         cbar.ax.tick_params(labelsize=self.fontsize)
+        # Get metadata for correct wavelength and pixel integration representation
+        meta = getattr(self.PMdict[HSIname], 'metadata', {})
+        if not isinstance(meta, dict):
+            meta = {}
+        pl_aqpixstart = meta.get('aqpixstart', self.aqpixstart)
+        pl_aqpixend = meta.get('aqpixend', self.aqpixend)
+        pl_wlstart = meta.get('wlstart', self.wlstart)
+        pl_wlend = meta.get('wlend', self.wlend)
         # Set the plot title
-        ax.set_title('Integrated {0} pixels from {1} nm to {2} nm.'.format(int(self.aqpixend-self.aqpixstart+1), self.wlstart, self.wlend, fontsize=self.fontsize))
+        ax.set_title('Integrated {0} pixels from {1} nm to {2} nm.'.format(int(pl_aqpixend-pl_aqpixstart+1), pl_wlstart, pl_wlend), fontsize=self.fontsize)
         # Set the x and y axis labels
         ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=self.fontsize)
         ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=self.fontsize)
@@ -2417,8 +2425,14 @@ class XYMap:
         cbar.set_label('Highest Intensity in nm', fontsize=self.fontsize)
         # Set the font size of the colorbar ticks
         cbar.ax.tick_params(labelsize=self.fontsize)
+        # Get metadata for correct wavelength representation
+        meta = getattr(self.PMdict[PMname], 'metadata', {})
+        if not isinstance(meta, dict):
+            meta = {}
+        pl_wlstart = meta.get('wlstart', self.wlstart)
+        pl_wlend = meta.get('wlend', self.wlend)
         # Set the plot title
-        ax.set_title('Nanostage Intensity {} nm to {} nm.'.format(self.wlstart , self.wlend), fontsize=self.fontsize)
+        ax.set_title('Nanostage Intensity {} nm to {} nm.'.format(pl_wlstart, pl_wlend), fontsize=self.fontsize)
         # Set the x and y axis labels
         ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=self.fontsize)
         ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=self.fontsize)
@@ -2965,7 +2979,6 @@ class XYMap:
             self.hsiselect.set(list(self.PMdict.keys())[-1])
 
     def multiroitopixmatrix(self):
-        fig, ax = plt.subplots()
         if len(self.roihandler.roilist) == 0:
             print('No ROI found. Cannot create HSI.')
             return
@@ -3000,10 +3013,9 @@ class XYMap:
             data_type=source_pm.data_type
         )
         self.PMdict[new_hsi_name] = lastpixmatrix
-        #fig.imshow(self.PMdict[new_hsi_name].PixMatrix) error
-        ax.imshow(self.PMdict[new_hsi_name].PixMatrix)
-        fig.show()
         self.UpdateHSIselect()
+        self.hsiselect.set(new_hsi_name)
+        self.plotPixelMatrix(new_hsi_name)
     
     def delHSI(self):
         if len(self.PMdict) == 1:
