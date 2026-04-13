@@ -3890,6 +3890,11 @@ class XYMap:
             if 'defentries' in state:
                 self.defentries = state['defentries']
             
+            # add fallback: iterate trough defentries and add any missing keys with default values
+            for key, value in deflib.initdefaults().items():
+                if key not in self.defentries:
+                    self.defentries[key] = value
+            
             # Restore settings (tk variables)
             self.colormap.set(state.get('colormap', self.defentries.get('default_colormap', 'viridis')))
             self.WL_selection.set(state.get('WL_selection', self.WL_values[0]))
