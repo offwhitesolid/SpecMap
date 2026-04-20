@@ -569,8 +569,29 @@ class XYMap:
         b1.grid(row=2, column=0)
         b2 = tk.Button(frame, text="plot ROI", command= lambda: self.roihandler.plotroi())
         b2.grid(row=3, column=0)
+        # select a color for the roiplot
+        roicolor = tk.StringVar()
+        tk.Label(frame, text="ROI Plot Color").grid(row=4, column=0)
+        roicolorselect = ttk.Combobox(frame, textvariable=roicolor, values=['red', 'blue', 'green', 'yellow', 'cyan', 'magenta', 'white', 'black'])
+        roicolorselect.grid(row=5, column=0)
+        roicolorselect.set(self.defentries['roi_plot_color']) # set default ROI plot color
+        # button plot roi with selected color on selected HSI
+        b_roi_hsi = tk.Button(frame, text="Plot ROI on HSI", command= lambda: self.roihandler.plot_roi_on_pixmatrix(
+            # plot_roi_on_pixmatrix(pixmatrix, 'test_roi', vis_type='cornerlines', color='red')
+            self.PMdict[self.hsiselect.get()].PixMatrix, 
+            self.roisel.get(), 
+            vis_type=roivistypeselect.get(), 
+            color=roicolor.get())
+            )
+        b_roi_hsi.grid(row=6, column=0)
+        # select roi plot type
+        tk.Label(frame, text="ROI Plot Type").grid(row=7, column=0)
+        roivistypeselect = ttk.Combobox(frame, values=['cornerlines', 'overlay'], width=15)
+        roivistypeselect.set(self.defentries['roi_vis_type']) # set default ROI plot type
+        roivistypeselect.grid(row=8, column=0)
+
         b3 = tk.Button(frame, text="delete ROI", command= lambda: self.roihandler.delete_roi())
-        b3.grid(row=4, column=0)     
+        b3.grid(row=9, column=0)     
     
         # build second clumn for ROI
         tk.Label(frame, text="Select HSI Image").grid(row=0, column=1)

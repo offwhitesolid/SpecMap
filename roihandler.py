@@ -47,7 +47,6 @@ class Roihandler():
                     self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
                 newroi = deflib.highlight_roi(self.pixmatrix, self.roi_points)
                 # transpose newroi
-                #newroi = np.transpose(newroi)
                 self.roilist[str('roi'+str(nrois+1))] = newroi
                 cax = ax.imshow(newroi, cmap='viridis')
                 # add colorbar to the plot
@@ -129,5 +128,65 @@ class Roihandler():
     def on_close(self):
         plt.close('all')
 
+    def _draw_overlay(self, ax, roi, color='red'):
+        # Create a masked array to overlay the ROI matching the previous logic
+        masked_roi = np.ma.masked_where(roi == 0, roi)
+        ax.imshow(masked_roi, cmap='Reds', alpha=0.5)
+
+    def _draw_cornerlines(self, ax, roi, color='red'):
+        # Outline the exact shape of the ROI connecting its boundaries/corners
+        # By providing X and Y meshgrids, we make sure it perfectly aligns with imshow indices
+        clean_roi = np.nan_to_num(roi, nan=0)
+        Y, X = np.indices(clean_roi.shape)
+        ax.contour(X, Y, clean_roi, levels=[0.5], colors=[color], linewidths=3)
+
+    def plot_roi_on_pixmatrix(self, pixmatrix, roiname, vis_type='overlay', color='red', fontsize=12):
+        vis_funcs = {
+            'overlay': self._draw_overlay,
+            'cornerlines': self._draw_cornerlines
+        }
+
+        if roiname in self.roilist:
+            roi = self.roilist[roiname]
+            fig, ax = plt.subplots()
+            
+            # Display pixelmatrix as background using standard colormap
+            #img = ax.imshow(np.transpose(pixmatrix), cmap='viridis')
+            img = ax.imshow(pixmatrix, cmap='viridis')
+            fig.colorbar(img, ax=ax, label='Intensity')
+            
+            # Apply the selected visualization function
+            if vis_type in vis_funcs:
+                vis_funcs[vis_type](ax, roi, color)
+            else:
+                print(f"Visualization type '{vis_type}' not recognized. Defaulting to 'overlay'.")
+                vis_funcs['overlay'](ax, roi, color)
+            
+            ax.set_title(f'Region of Interest: {roiname}')
+            ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
+            ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
+            plt.show()
+        else:
+            print(f"ROI '{roiname}' not found.")
+
+def test_roionpixmatrix():
+    pixmatrix = np.random.rand(100, 100)
+    
+    # Simulate user clicking arbitrary points to form a polygon
+    roi_points = [(15, 25), (85, 20), (75, 90), (10, 70)]
+    
+    # Generate the custom ROI using the real library function
+    roi_data = deflib.highlight_roi(np.transpose(pixmatrix), roi_points)
+    
+    roilist = {'test_roi': roi_data}
+    
+    handler = Roihandler(roilist=roilist, pixmatrix=pixmatrix)
+    
+    # Test overlay visualization
+    handler.plot_roi_on_pixmatrix(pixmatrix, 'test_roi', vis_type='overlay')
+    
+    # Test outline (cornerlines) visualization
+    handler.plot_roi_on_pixmatrix(pixmatrix, 'test_roi', vis_type='cornerlines', color='red')
+
 if __name__ == "__main__":
-    pass
+    test_roionpixmatrix()

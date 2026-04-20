@@ -1329,6 +1329,7 @@ defaults={
     'loadonstart': False, 
     'selected_WL_axis': 'Wavelength (nm)',
     'Fit_use_ROI_mask': True, 
+    'roi_vis_type': 'cornerlines',
     'HSI_from_fitparam_useROI': True, 
     'power_correction': False, 
     'laser_spotsize_nm': 1000.0,
@@ -1359,7 +1360,10 @@ defaults={
     'normalize_method': 'None',
     'normalize_wavelength': '600',
     'calc_norm_and_derive': False,
-    'calc_norm_on_intensity': False
+    'calc_norm_on_intensity': False, 
+    # roi defaults
+    'roi_plot_color': 'red',
+    'roi_vis_type': 'cornerlines',
 }
 
 defaulttypes = {
@@ -1439,8 +1443,9 @@ defaulttypes = {
     'normalize_method': str,
     'normalize_wavelength': str,
     'calc_norm_and_derive': bool,
-    'calc_norm_on_intensity': bool
-
+    'calc_norm_on_intensity': bool, 
+    'roi_plot_color': str,
+    'roi_vis_type': 'str',
 }
 
 def testdefaults():
