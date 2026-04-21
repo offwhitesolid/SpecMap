@@ -42,18 +42,31 @@ class Roihandler():
             # Save the current ROI if valid
             if len(self.roi_points) > 2:
                 fig, ax = plt.subplots()
-                nrois = len(list(self.roilist.keys()))
+                
+                # Determine next available ROI index to avoid overwriting if ROIs were deleted
+                max_n = 0
+                for k in self.roilist.keys():
+                    if k.startswith('roi'):
+                        try:
+                            n = int(k[3:])
+                            if n > max_n:
+                                max_n = n
+                        except ValueError:
+                            pass
+                new_roi_name = f'roi{max_n + 1}'
+                
                 for i in range(len(self.roi_points)):
                     self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
                 newroi = deflib.highlight_roi(self.pixmatrix, self.roi_points)
                 # transpose newroi
-                self.roilist[str('roi'+str(nrois+1))] = newroi
+                self.roilist[new_roi_name] = newroi
                 cax = ax.imshow(newroi, cmap='viridis')
                 # add colorbar to the plot
                 cbar = fig.colorbar(cax, ax=ax)
 
                 plt.show()
                 self.roiselgui['values'] = list(self.roilist.keys())
+                self.roiselgui.set(new_roi_name)
                 # Clear ROI points and lines to allow immediate painting of new ROI
                 self.roi_points.clear()
                 self.clear_roi_lines()
@@ -140,7 +153,7 @@ class Roihandler():
         Y, X = np.indices(clean_roi.shape)
         ax.contour(X, Y, clean_roi, levels=[0.5], colors=[color], linewidths=3)
 
-    def plot_roi_on_pixmatrix(self, pixmatrix, roiname, vis_type='overlay', color='red', fontsize=12):
+    def plot_roi_on_pixmatrix(self, pixmatrix, roiname, vis_type='overlay', color='red', fontsize=12, cmap='viridis', title=None):
         vis_funcs = {
             'overlay': self._draw_overlay,
             'cornerlines': self._draw_cornerlines
@@ -150,9 +163,9 @@ class Roihandler():
             roi = self.roilist[roiname]
             fig, ax = plt.subplots()
             
-            # Display pixelmatrix as background using standard colormap
+            # Display pixelmatrix as background using standard or passed colormap
             #img = ax.imshow(np.transpose(pixmatrix), cmap='viridis')
-            img = ax.imshow(pixmatrix, cmap='viridis')
+            img = ax.imshow(pixmatrix, cmap=cmap)
             fig.colorbar(img, ax=ax, label='Intensity')
             
             # Apply the selected visualization function
@@ -162,7 +175,9 @@ class Roihandler():
                 print(f"Visualization type '{vis_type}' not recognized. Defaulting to 'overlay'.")
                 vis_funcs['overlay'](ax, roi, color)
             
-            ax.set_title(f'Region of Interest: {roiname}')
+            if title is None:
+                title = f'Region of Interest: {roiname}'
+            ax.set_title(title, fontsize=fontsize)
             ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
             ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
             plt.show()
