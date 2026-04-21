@@ -577,11 +577,12 @@ class XYMap:
         roicolorselect.set(self.defentries['roi_plot_color']) # set default ROI plot color
         # button plot roi with selected color on selected HSI
         b_roi_hsi = tk.Button(frame, text="Plot ROI on HSI", command= lambda: self.roihandler.plot_roi_on_pixmatrix(
-            # plot_roi_on_pixmatrix(pixmatrix, 'test_roi', vis_type='cornerlines', color='red')
             self.PMdict[self.hsiselect.get()].PixMatrix, 
             self.roisel.get(), 
             vis_type=roivistypeselect.get(), 
-            color=roicolor.get())
+            color=roicolor.get(),
+            cmap=self.colormap.get(),
+            title=self._get_hsi_title(self.hsiselect.get()))
             )
         b_roi_hsi.grid(row=6, column=0)
         # select roi plot type
@@ -2327,6 +2328,16 @@ class XYMap:
         plt.tight_layout()
         plt.show()
 
+    def _get_hsi_title(self, HSIname):
+        meta = getattr(self.PMdict[HSIname], 'metadata', {})
+        if not isinstance(meta, dict):
+            meta = {}
+        pl_aqpixstart = meta.get('aqpixstart', self.aqpixstart)
+        pl_aqpixend = meta.get('aqpixend', self.aqpixend)
+        pl_wlstart = meta.get('wlstart', self.wlstart)
+        pl_wlend = meta.get('wlend', self.wlend)
+        return 'Integrated {0} pixels from {1} nm to {2} nm.'.format(int(pl_aqpixend-pl_aqpixstart+1), pl_wlstart, pl_wlend)
+
     def plotPixelMatrix(self, HSIname, leglabel='Spectrometer Counts', savetoimage='False'):
         fig, ax = plt.subplots()
         HSIimage = self.PMdict[HSIname].PixMatrix       
@@ -2338,16 +2349,8 @@ class XYMap:
         cbar.set_label(leglabel, fontsize=self.fontsize)
         # Set the font size of the colorbar ticks
         cbar.ax.tick_params(labelsize=self.fontsize)
-        # Get metadata for correct wavelength and pixel integration representation
-        meta = getattr(self.PMdict[HSIname], 'metadata', {})
-        if not isinstance(meta, dict):
-            meta = {}
-        pl_aqpixstart = meta.get('aqpixstart', self.aqpixstart)
-        pl_aqpixend = meta.get('aqpixend', self.aqpixend)
-        pl_wlstart = meta.get('wlstart', self.wlstart)
-        pl_wlend = meta.get('wlend', self.wlend)
         # Set the plot title
-        ax.set_title('Integrated {0} pixels from {1} nm to {2} nm.'.format(int(pl_aqpixend-pl_aqpixstart+1), pl_wlstart, pl_wlend), fontsize=self.fontsize)
+        ax.set_title(self._get_hsi_title(HSIname), fontsize=self.fontsize)
         # Set the x and y axis labels
         ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=self.fontsize)
         ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=self.fontsize)

@@ -140,7 +140,7 @@ class Roihandler():
         Y, X = np.indices(clean_roi.shape)
         ax.contour(X, Y, clean_roi, levels=[0.5], colors=[color], linewidths=3)
 
-    def plot_roi_on_pixmatrix(self, pixmatrix, roiname, vis_type='overlay', color='red', fontsize=12):
+    def plot_roi_on_pixmatrix(self, pixmatrix, roiname, vis_type='overlay', color='red', fontsize=12, cmap='viridis', title=None):
         vis_funcs = {
             'overlay': self._draw_overlay,
             'cornerlines': self._draw_cornerlines
@@ -150,9 +150,9 @@ class Roihandler():
             roi = self.roilist[roiname]
             fig, ax = plt.subplots()
             
-            # Display pixelmatrix as background using standard colormap
+            # Display pixelmatrix as background using standard or passed colormap
             #img = ax.imshow(np.transpose(pixmatrix), cmap='viridis')
-            img = ax.imshow(pixmatrix, cmap='viridis')
+            img = ax.imshow(pixmatrix, cmap=cmap)
             fig.colorbar(img, ax=ax, label='Intensity')
             
             # Apply the selected visualization function
@@ -162,7 +162,9 @@ class Roihandler():
                 print(f"Visualization type '{vis_type}' not recognized. Defaulting to 'overlay'.")
                 vis_funcs['overlay'](ax, roi, color)
             
-            ax.set_title(f'Region of Interest: {roiname}')
+            if title is None:
+                title = f'Region of Interest: {roiname}'
+            ax.set_title(title, fontsize=fontsize)
             ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
             ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
             plt.show()
