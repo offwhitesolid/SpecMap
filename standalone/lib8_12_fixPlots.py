@@ -1459,19 +1459,31 @@ class Roihandler():
             fig, ax = plt.subplots()
             self.button_toggle.label.set_text('Edit ROI')
             if len(self.roi_points) > 2:
-                nrois = len(list(self.roilist.keys()))
+                # Determine next available ROI index to avoid overwriting if ROIs were deleted
+                max_n = 0
+                for k in self.roilist.keys():
+                    if k.startswith('roi'):
+                        try:
+                            n = int(k[3:])
+                            if n > max_n:
+                                max_n = n
+                        except ValueError:
+                            pass
+                new_roi_name = f'roi{max_n + 1}'
+
                 for i in range(len(self.roi_points)):
                     self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
                 newroi = deflib.highlight_roi(self.pixmatrix, self.roi_points)
                 # transpose newroi
                 #newroi = np.transpose(newroi)
-                self.roilist[str('roi'+str(nrois+1))] = newroi
+                self.roilist[new_roi_name] = newroi
                 cax = ax.imshow(newroi, cmap='viridis')
                 # add colorbar to the plot
                 cbar = fig.colorbar(cax, ax=ax)
 
                 plt.show()
                 self.roiselgui['values'] = list(self.roilist.keys())
+                self.roiselgui.set(new_roi_name)
                 self.roi_points.clear()
             self.roi_mode = False
             print(len(self.roilist))
