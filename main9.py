@@ -93,7 +93,7 @@ class FileProcessorApp:
         self.Specplotter = plotspecs.Specplottergui(
             Specdata={}, 
             Specdiffsets={}, 
-            guiroot=self.nodeframes['Plot Spectra']
+            guiroot=self.nodeframes['Plot Spectra'],
             disspecs=self.Nanomap.disspecs
             )
 
