@@ -1,0 +1,223 @@
+# Visualization of the Select Sepctral Data as spectra
+import matplotlib.pyplot as plt
+import numpy as np
+import tkinter as tk
+from tkinter import ttk
+
+class Specplottergui: 
+    def __init__(self, Specdata={}, Specdiffsets={}, guiroot=None, disspecs=None):
+        self.Specdata = Specdata
+        self.Specdiffsets = Specdiffsets
+        self.guiroot = guiroot
+        self.disspecs = disspecs
+
+        if self.guiroot is not None:
+            self.buildgui()
+
+    def buildgui(self):
+        # build 2 tabs, one to select what spectral data to plot, and one to select the plot type
+        self.tab_control = ttk.Notebook(self.guiroot)
+        self.tab1 = ttk.Frame(self.tab_control)
+        self.tab2 = ttk.Frame(self.tab_control)
+        
+        self.tab_control.add(self.tab1, text='Data Selection')
+        self.tab_control.add(self.tab2, text='Plot Options')
+        self.tab_control.pack(expand=1, fill="both")
+
+        self.build_data_selection_tab()
+        self.build_plot_options_tab()
+
+    def build_data_selection_tab(self):
+        # Matrix to select spectra: HSI names (rows) x Datatypes (columns)
+        # Using short names to avoid excessive column width
+        datatypes = [
+            'PL-BG', 'CNT', 'D1', 'D2', 
+            'D1-N', 'D2-N', 'D1-NI', 'D2-NI', 'D2-NC'
+        ]
+        
+        # Determine dataset names (use dummy if dicts are empty for layout testing)
+        dataset_names = list(self.Specdata.keys())
+        if not dataset_names:
+            dataset_names = ['Dataset_1', 'Dataset_2', 'Dataset_3']
+
+        self.plot_vars = {}
+
+        # Button frame for Select All / Deselect All / Transfer
+        btn_frame = ttk.Frame(self.tab1)
+        btn_frame.pack(fill="x", padx=10, pady=10)
+        ttk.Button(btn_frame, text="Select All", command=self.select_all_specs).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="Deselect All", command=self.deselect_all_specs).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="Transfer to Plot Options", command=self.transfer_to_plot).pack(side="left", padx=5)
+
+        # Create a separate frame for the grid-based matrix (cannot mix pack and grid on same frame)
+        matrix_frame = ttk.Frame(self.tab1)
+        matrix_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Create headers
+        ttk.Label(matrix_frame, text="Datasets", font=('Arial', 10, 'bold')).grid(row=0, column=0, padx=5, pady=5)
+        for col, dtype in enumerate(datatypes):
+            ttk.Label(matrix_frame, text=dtype.upper(), font=('Arial', 10, 'bold')).grid(row=0, column=col+1, padx=5, pady=5)
+
+        # Create checkbox matrix
+        for row, ds_name in enumerate(dataset_names):
+            ttk.Label(matrix_frame, text=ds_name).grid(row=row+1, column=0, sticky='w', padx=5, pady=2)
+            self.plot_vars[ds_name] = {}
+            for col, dtype in enumerate(datatypes):
+                var = tk.BooleanVar()
+                chk = ttk.Checkbutton(matrix_frame, variable=var)
+                chk.grid(row=row+1, column=col+1, padx=5, pady=2)
+                self.plot_vars[ds_name][dtype] = var
+
+    def select_all_specs(self):
+        """Set all checkboxes to True"""
+        for ds in self.plot_vars:
+            for dtype in self.plot_vars[ds]:
+                self.plot_vars[ds][dtype].set(True)
+
+    def deselect_all_specs(self):
+        """Set all checkboxes to False"""
+        for ds in self.plot_vars:
+            for dtype in self.plot_vars[ds]:
+                self.plot_vars[ds][dtype].set(False)
+
+    def transfer_to_plot(self):
+        """Transfer selected specs to plot options (placeholder)"""
+        pass
+
+    def build_plot_options_tab(self):
+        # Variables for plot options
+        self.opt_vars = {
+            'x_min': tk.StringVar(value='Auto'),
+            'x_max': tk.StringVar(value='Auto'),
+            'y_min': tk.StringVar(value='Auto'),
+            'y_max': tk.StringVar(value='Auto'),
+            'x_tick': tk.StringVar(value='50'),
+            'y_tick': tk.StringVar(value='0.2'),
+            'label_font_size': tk.StringVar(value='24'),
+            'tick_font_size': tk.StringVar(value='22'),
+            'legend_font_size': tk.StringVar(value='22'),
+            'font_family': tk.StringVar(value='Arial'),
+            'x_label': tk.StringVar(value='Wavelength (nm)'),
+            'y_label': tk.StringVar(value='norm. Intensity'),
+            'title': tk.StringVar(value='Spectra Plot'),
+            'show_grid': tk.BooleanVar(value=True),
+            'normalize_point': tk.BooleanVar(value=False),
+            'normalize_max': tk.BooleanVar(value=False),
+            'use_nm_to_ev': tk.BooleanVar(value=False),
+            'save_path': tk.StringVar(value='C:\\Users\\volib\\Desktop'),
+            'file_name': tk.StringVar(value='specs1')
+        }
+
+        # Create canvas with scrollbar for the options
+        canvas = tk.Canvas(self.tab2)
+        scrollbar = ttk.Scrollbar(self.tab2, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        scrollbar.pack(side="right", fill="y")
+
+        # Axes Limits frame
+        limits_frame = ttk.LabelFrame(scrollable_frame, text="Axes Limits")
+        limits_frame.pack(fill="x", padx=5, pady=5)
+        
+        ttk.Label(limits_frame, text="X Min:").grid(row=0, column=0, padx=3, pady=3, sticky='e')
+        ttk.Entry(limits_frame, textvariable=self.opt_vars['x_min'], width=10).grid(row=0, column=1, padx=3, pady=3)
+        ttk.Button(limits_frame, text="Auto", width=6).grid(row=0, column=2, padx=3, pady=3)
+        
+        ttk.Label(limits_frame, text="X Max:").grid(row=0, column=3, padx=3, pady=3, sticky='e')
+        ttk.Entry(limits_frame, textvariable=self.opt_vars['x_max'], width=10).grid(row=0, column=4, padx=3, pady=3)
+        ttk.Button(limits_frame, text="Auto", width=6).grid(row=0, column=5, padx=3, pady=3)
+        
+        ttk.Label(limits_frame, text="Y Min:").grid(row=0, column=6, padx=3, pady=3, sticky='e')
+        ttk.Entry(limits_frame, textvariable=self.opt_vars['y_min'], width=10).grid(row=0, column=7, padx=3, pady=3)
+        ttk.Button(limits_frame, text="Auto", width=6).grid(row=0, column=8, padx=3, pady=3)
+        
+        ttk.Label(limits_frame, text="Y Max:").grid(row=0, column=9, padx=3, pady=3, sticky='e')
+        ttk.Entry(limits_frame, textvariable=self.opt_vars['y_max'], width=10).grid(row=0, column=10, padx=3, pady=3)
+        ttk.Button(limits_frame, text="Auto", width=6).grid(row=0, column=11, padx=3, pady=3)
+
+        # Tick and Font frame
+        format_frame = ttk.LabelFrame(scrollable_frame, text="Formatting")
+        format_frame.pack(fill="x", padx=5, pady=5)
+        
+        ttk.Label(format_frame, text="X Tick:").grid(row=0, column=0, padx=3, pady=3, sticky='e')
+        ttk.Entry(format_frame, textvariable=self.opt_vars['x_tick'], width=10).grid(row=0, column=1, padx=3, pady=3)
+        
+        ttk.Label(format_frame, text="Y Tick:").grid(row=0, column=2, padx=3, pady=3, sticky='e')
+        ttk.Entry(format_frame, textvariable=self.opt_vars['y_tick'], width=10).grid(row=0, column=3, padx=3, pady=3)
+        
+        ttk.Label(format_frame, text="Label Font Size:").grid(row=0, column=4, padx=3, pady=3, sticky='e')
+        ttk.Entry(format_frame, textvariable=self.opt_vars['label_font_size'], width=8).grid(row=0, column=5, padx=3, pady=3)
+        
+        ttk.Label(format_frame, text="Tick Font Size:").grid(row=0, column=6, padx=3, pady=3, sticky='e')
+        ttk.Entry(format_frame, textvariable=self.opt_vars['tick_font_size'], width=8).grid(row=0, column=7, padx=3, pady=3)
+        
+        ttk.Label(format_frame, text="Legend Font Size:").grid(row=0, column=8, padx=3, pady=3, sticky='e')
+        ttk.Entry(format_frame, textvariable=self.opt_vars['legend_font_size'], width=8).grid(row=0, column=9, padx=3, pady=3)
+        
+        ttk.Label(format_frame, text="Font:").grid(row=0, column=10, padx=3, pady=3, sticky='e')
+        ttk.Combobox(format_frame, textvariable=self.opt_vars['font_family'], values=['Arial', 'Times', 'Courier'], width=10).grid(row=0, column=11, padx=3, pady=3)
+
+        # Labels frame
+        labels_frame = ttk.LabelFrame(scrollable_frame, text="Axes Labels")
+        labels_frame.pack(fill="x", padx=5, pady=5)
+        
+        ttk.Label(labels_frame, text="X Label:").grid(row=0, column=0, padx=3, pady=3, sticky='e')
+        ttk.Entry(labels_frame, textvariable=self.opt_vars['x_label'], width=20).grid(row=0, column=1, padx=3, pady=3)
+        
+        ttk.Label(labels_frame, text="Y Label:").grid(row=0, column=2, padx=3, pady=3, sticky='e')
+        ttk.Entry(labels_frame, textvariable=self.opt_vars['y_label'], width=20).grid(row=0, column=3, padx=3, pady=3)
+
+        # Options frame
+        options_frame = ttk.LabelFrame(scrollable_frame, text="Options")
+        options_frame.pack(fill="x", padx=5, pady=5)
+        
+        ttk.Checkbutton(options_frame, text="Show Grid", variable=self.opt_vars['show_grid']).pack(side="left", padx=10, pady=5)
+        ttk.Checkbutton(options_frame, text="Normalize by Point", variable=self.opt_vars['normalize_point']).pack(side="left", padx=10, pady=5)
+        ttk.Checkbutton(options_frame, text="Normalize by Max", variable=self.opt_vars['normalize_max']).pack(side="left", padx=10, pady=5)
+        ttk.Checkbutton(options_frame, text="Use nm to eV", variable=self.opt_vars['use_nm_to_ev']).pack(side="left", padx=10, pady=5)
+
+        # Save frame
+        save_frame = ttk.LabelFrame(scrollable_frame, text="Save Settings")
+        save_frame.pack(fill="x", padx=5, pady=5)
+        
+        ttk.Label(save_frame, text="Save Path:").grid(row=0, column=0, padx=3, pady=3, sticky='e')
+        ttk.Entry(save_frame, textvariable=self.opt_vars['save_path'], width=40).grid(row=0, column=1, padx=3, pady=3)
+        ttk.Button(save_frame, text="Change Path", width=12).grid(row=0, column=2, padx=3, pady=3)
+        
+        ttk.Label(save_frame, text="File Name:").grid(row=1, column=0, padx=3, pady=3, sticky='e')
+        ttk.Entry(save_frame, textvariable=self.opt_vars['file_name'], width=20).grid(row=1, column=1, padx=3, pady=3, sticky='w')
+
+        # Plot Button
+        btn_frame = ttk.Frame(scrollable_frame)
+        btn_frame.pack(fill="x", padx=5, pady=15)
+        ttk.Button(btn_frame, text="Plot Spectra", command=self.trigger_plot).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="Save Plot", command=self.save_plot).pack(side="left", padx=5)
+
+    def save_plot(self):
+        """Save plot (placeholder)"""
+        pass
+
+    def trigger_plot(self):
+        print("Gathering data to plot based on:")
+        for ds, types in self.plot_vars.items():
+            for dtype, var in types.items():
+                if var.get():
+                    print(f" - Dataset: {ds}, Type: {dtype}")
+        
+        print("\nPlot Options:")
+        for k, v in self.opt_vars.items():
+            print(f" - {k}: {v.get()}")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = Specplottergui(guiroot=root)
+    root.mainloop()
+

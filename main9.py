@@ -18,7 +18,7 @@ import TCSPClib as tcspclib
 import shutil, gc
 import error_handler  # Centralized error handling and logging
 import datetime as datet
-
+import plotspecs
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -88,6 +88,14 @@ class FileProcessorApp:
         
         # construct Exportframe to create a fancy Image from the HSI
         self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
+
+        # build the Plot Spectra notebook
+        self.Specplotter = plotspecs.Specplottergui(
+            Specdata={}, 
+            Specdiffsets={}, 
+            guiroot=self.nodeframes['Plot Spectra']
+            disspecs=self.Nanomap.disspecs
+            )
 
     def createmenue(self):
         # Create the menu bar

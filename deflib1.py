@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.patches import Rectangle
 
-Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'HSI Plot', 'Newton Spectrum', 'TCSPC', 'HSI File Sorter', 'Settings']
+Notebooks = ['Load Data', 'Hyperspectra', 'Clara Image', 'HSI Plot', 'Newton Spectrum', 'TCSPC', 'HSI File Sorter', 'Plot Spectra', 'Settings']
 # dir of this file
 DIR = os.path.dirname(os.path.abspath(__file__))
 # Default values for the application
