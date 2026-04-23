@@ -50,7 +50,8 @@ class Specplottergui:
         btn_frame.pack(fill="x", padx=10, pady=10)
         ttk.Button(btn_frame, text="Select All", command=self.select_all_specs).pack(side="left", padx=5)
         ttk.Button(btn_frame, text="Deselect All", command=self.deselect_all_specs).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="Transfer to Plot Options", command=self.transfer_to_plot).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="Transfer to Plot Options", command=self.transfer_to_plot_options).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="Generate Plot", command=self.generate_plot).pack(side="left", padx=5)
         ttk.Button(btn_frame, text="Refresh Data", command=self.refresh_data).pack(side="left", padx=5)
 
         # Create a separate frame for the grid-based matrix (cannot mix pack and grid on same frame)
@@ -120,27 +121,24 @@ class Specplottergui:
             for dtype in self.plot_vars[ds]:
                 self.plot_vars[ds][dtype].set(False)
 
-    def transfer_to_plot(self):
+    def transfer_to_plot_options(self):
         """
-        Transfer selected specs to matplotlib plot using Plot Options.
-        Gathers all selected spectra and creates a plot with configured options.
+        Transfer selected specs to Plot Options tab for configuration.
         """
         if not self.disspecs:
             print("Error: No spectral data available")
             return
-        
+
         # Collect selected spectra
-        selected_plots = []
-        
+        self.selected_plots = []
         for ds_name, types_dict in self.plot_vars.items():
             for dtype, is_selected in types_dict.items():
                 if is_selected.get():
                     if ds_name in self.disspecs:
                         spec_obj = self.disspecs[ds_name]
-                        # Get the appropriate array based on datatype
                         data = self._get_spectra_array(spec_obj, dtype)
                         if data is not None:
-                            selected_plots.append({
+                            self.selected_plots.append({
                                 'dataset': ds_name,
                                 'datatype': dtype,
                                 'wl': spec_obj.WL,
@@ -148,10 +146,26 @@ class Specplottergui:
                                 'spec_obj': spec_obj
                             })
         
-        if not selected_plots:
+        if not self.selected_plots:
             print("Error: No spectra selected")
             return
+
+        # Dynamically build plot options in the second tab
+        self._build_dynamic_plot_options()
         
+        # Switch to the Plot Options tab
+        self.tab_control.select(self.tab2)
+        
+        print(f"Transferred {len(self.selected_plots)} spectra to Plot Options.")
+
+    def generate_plot(self):
+        """
+        Generates and displays the plot based on selections and configurations.
+        """
+        if not hasattr(self, 'selected_plots') or not self.selected_plots:
+            print("Error: No plots selected to generate. Please select data and transfer first.")
+            return
+
         # Create figure and plot
         fig, ax = plt.subplots(figsize=(12, 6))
         
@@ -159,7 +173,7 @@ class Specplottergui:
         colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan']
         
         # Plot each selected spectrum
-        for idx, plot_data in enumerate(selected_plots):
+        for idx, plot_data in enumerate(self.selected_plots):
             color = colors[idx % len(colors)]
             label = f"{plot_data['dataset']} - {plot_data['datatype']}"
             ax.plot(plot_data['wl'], plot_data['data'], color=color, linewidth=1.5, label=label)
@@ -233,7 +247,7 @@ class Specplottergui:
             plt.tight_layout()
             plt.show()
             
-            print(f"Plotted {len(selected_plots)} spectra")
+            print(f"Plotted {len(self.selected_plots)} spectra")
             
         except Exception as e:
             print(f"Error creating plot: {e}")
@@ -360,20 +374,20 @@ class Specplottergui:
         # Create canvas with scrollbar for the options
         canvas = tk.Canvas(self.tab2)
         scrollbar = ttk.Scrollbar(self.tab2, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
+        self.scrollable_frame = ttk.Frame(canvas)
         
-        scrollable_frame.bind(
+        self.scrollable_frame.bind(
             "<Configure>",
             lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
         
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
         scrollbar.pack(side="right", fill="y")
 
         # Axes Limits frame
-        limits_frame = ttk.LabelFrame(scrollable_frame, text="Axes Limits")
+        limits_frame = ttk.LabelFrame(self.scrollable_frame, text="Axes Limits")
         limits_frame.pack(fill="x", padx=5, pady=5)
         
         ttk.Label(limits_frame, text="X Min:").grid(row=0, column=0, padx=3, pady=3, sticky='e')
@@ -393,7 +407,7 @@ class Specplottergui:
         ttk.Button(limits_frame, text="Auto", width=6).grid(row=0, column=11, padx=3, pady=3)
 
         # Tick and Font frame
-        format_frame = ttk.LabelFrame(scrollable_frame, text="Formatting")
+        format_frame = ttk.LabelFrame(self.scrollable_frame, text="Formatting")
         format_frame.pack(fill="x", padx=5, pady=5)
         
         ttk.Label(format_frame, text="X Tick:").grid(row=0, column=0, padx=3, pady=3, sticky='e')
@@ -415,7 +429,7 @@ class Specplottergui:
         ttk.Combobox(format_frame, textvariable=self.opt_vars['font_family'], values=['Arial', 'Times', 'Courier'], width=10).grid(row=0, column=11, padx=3, pady=3)
 
         # Labels frame
-        labels_frame = ttk.LabelFrame(scrollable_frame, text="Axes Labels")
+        labels_frame = ttk.LabelFrame(self.scrollable_frame, text="Axes Labels")
         labels_frame.pack(fill="x", padx=5, pady=5)
         
         ttk.Label(labels_frame, text="X Label:").grid(row=0, column=0, padx=3, pady=3, sticky='e')
@@ -425,7 +439,7 @@ class Specplottergui:
         ttk.Entry(labels_frame, textvariable=self.opt_vars['y_label'], width=20).grid(row=0, column=3, padx=3, pady=3)
 
         # Options frame
-        central_frame = ttk.Frame(scrollable_frame)
+        central_frame = ttk.Frame(self.scrollable_frame)
         central_frame.pack(fill="x", padx=5, pady=10)
         
         # Checkboxes
@@ -450,61 +464,71 @@ class Specplottergui:
         # Plot / File Name / Save Plot
         plot_btn_frame = ttk.Frame(central_frame)
         plot_btn_frame.pack(pady=5)
-        ttk.Button(plot_btn_frame, text="Plot", command=self.trigger_plot).pack(side="left", padx=5)
+        ttk.Button(plot_btn_frame, text="Plot", command=self.generate_plot).pack(side="left", padx=5)
         ttk.Label(plot_btn_frame, text="File Name:").pack(side="left", padx=2)
         ttk.Entry(plot_btn_frame, textvariable=self.opt_vars['file_name'], width=20).pack(side="left", padx=2)
         ttk.Button(plot_btn_frame, text="Save Plot", command=self.save_plot).pack(side="left", padx=5)
 
         # Container for the dynamic series rows
-        self.series_container = ttk.Frame(scrollable_frame)
+        self.series_container = ttk.Frame(self.scrollable_frame)
         self.series_container.pack(fill="x", padx=5, pady=10)
         
-        # Insert two mock rows to match the image requirements
-        self._add_mock_series_rows()
+        # Initially, the dynamic plot options are not shown
+        # self._add_mock_series_rows()
 
-    def _add_mock_series_rows(self):
-        def create_series_row(parent, title, default_color, default_label):
-            frame = ttk.Frame(parent)
-            frame.pack(fill="x", pady=10)
-            
-            ttk.Label(frame, text=title).grid(row=0, column=0, columnspan=16, sticky='w', pady=(0, 5))
-            
-            ttk.Label(frame, text="Line Thickness:").grid(row=1, column=0, padx=2)
-            e_thick = ttk.Entry(frame, width=5)
-            e_thick.grid(row=1, column=1, padx=2)
-            e_thick.insert(0, "1.5")
-            
-            ttk.Label(frame, text="Line Color:").grid(row=1, column=2, padx=2)
-            e_col = ttk.Entry(frame, width=10)
-            e_col.grid(row=1, column=3, padx=2)
-            e_col.insert(0, default_color)
-            
-            ttk.Label(frame, text="Legend Label:").grid(row=1, column=4, padx=2)
-            e_leg = ttk.Entry(frame, width=20)
-            e_leg.grid(row=1, column=5, padx=2)
-            e_leg.insert(0, default_label)
-            
-            ttk.Label(frame, text="Line Style:").grid(row=1, column=6, padx=2)
-            cb_style = ttk.Combobox(frame, values=["Solid", "Dashed", "Dotted"], width=8)
-            cb_style.grid(row=1, column=7, padx=2)
-            cb_style.set("Solid")
-            
-            ttk.Label(frame, text="Normalize Point:").grid(row=1, column=8, padx=2)
-            e_norm = ttk.Entry(frame, width=5)
-            e_norm.grid(row=1, column=9, padx=2)
-            e_norm.insert(0, "1.0")
-            
-            ttk.Checkbutton(frame, text="Scatter Graph").grid(row=1, column=10, padx=5)
-            
-            ttk.Label(frame, text="Point Size:").grid(row=1, column=11, padx=2)
-            e_pt = ttk.Entry(frame, width=5)
-            e_pt.grid(row=1, column=12, padx=2)
-            e_pt.insert(0, "15")
-            
-            ttk.Checkbutton(frame, text="Enable Fit").grid(row=1, column=13, padx=5)
+    def _build_dynamic_plot_options(self):
+        # Clear existing dynamic rows
+        for widget in self.series_container.winfo_children():
+            widget.destroy()
 
-        create_series_row(self.series_container, "Plot 1: Wavelength (nm) vs Spectrum (PL-BG)", "red", "PL")
-        create_series_row(self.series_container, "Plot 2: Wavelength (nm) vs first derivative", "blue", "PL 1. abl (norm)")
+        # Define color palette
+        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan']
+
+        for idx, plot_data in enumerate(self.selected_plots):
+            title = f"Plot {idx + 1}: Wavelength (nm) vs {plot_data['dataset']} ({plot_data['datatype']})"
+            default_color = colors[idx % len(colors)]
+            default_label = f"{plot_data['dataset']}-{plot_data['datatype']}"
+            self._create_series_row(self.series_container, title, default_color, default_label)
+
+    def _create_series_row(self, parent, title, default_color, default_label):
+        frame = ttk.Frame(parent)
+        frame.pack(fill="x", pady=10)
+        
+        ttk.Label(frame, text=title).grid(row=0, column=0, columnspan=16, sticky='w', pady=(0, 5))
+        
+        ttk.Label(frame, text="Line Thickness:").grid(row=1, column=0, padx=2)
+        e_thick = ttk.Entry(frame, width=5)
+        e_thick.grid(row=1, column=1, padx=2)
+        e_thick.insert(0, "1.5")
+        
+        ttk.Label(frame, text="Line Color:").grid(row=1, column=2, padx=2)
+        e_col = ttk.Entry(frame, width=10)
+        e_col.grid(row=1, column=3, padx=2)
+        e_col.insert(0, default_color)
+        
+        ttk.Label(frame, text="Legend Label:").grid(row=1, column=4, padx=2)
+        e_leg = ttk.Entry(frame, width=20)
+        e_leg.grid(row=1, column=5, padx=2)
+        e_leg.insert(0, default_label)
+        
+        ttk.Label(frame, text="Line Style:").grid(row=1, column=6, padx=2)
+        cb_style = ttk.Combobox(frame, values=["Solid", "Dashed", "Dotted"], width=8)
+        cb_style.grid(row=1, column=7, padx=2)
+        cb_style.set("Solid")
+        
+        ttk.Label(frame, text="Normalize Point:").grid(row=1, column=8, padx=2)
+        e_norm = ttk.Entry(frame, width=5)
+        e_norm.grid(row=1, column=9, padx=2)
+        e_norm.insert(0, "1.0")
+        
+        ttk.Checkbutton(frame, text="Scatter Graph").grid(row=1, column=10, padx=5)
+        
+        ttk.Label(frame, text="Point Size:").grid(row=1, column=11, padx=2)
+        e_pt = ttk.Entry(frame, width=5)
+        e_pt.grid(row=1, column=12, padx=2)
+        e_pt.insert(0, "15")
+        
+        ttk.Checkbutton(frame, text="Enable Fit").grid(row=1, column=13, padx=5)
 
     def save_plot(self):
         """Save plot (placeholder)"""
