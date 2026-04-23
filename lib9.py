@@ -572,7 +572,7 @@ class XYMap:
         # select a color for the roiplot
         roicolor = tk.StringVar()
         tk.Label(frame, text="ROI Plot Color").grid(row=4, column=0)
-        roicolorselect = ttk.Combobox(frame, textvariable=roicolor, values=['red', 'blue', 'green', 'yellow', 'cyan', 'magenta', 'white', 'black'])
+        roicolorselect = ttk.Combobox(frame, textvariable=roicolor, values=['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta', 'yellow', 'teal', 'navy', 'maroon', 'olive', 'lime', 'coral', 'indigo', 'gold', 'silver'])
         roicolorselect.grid(row=5, column=0)
         roicolorselect.set(self.defentries['roi_plot_color']) # set default ROI plot color
         # button plot roi with selected color on selected HSI
@@ -591,8 +591,16 @@ class XYMap:
         roivistypeselect.set(self.defentries['roi_vis_type']) # set default ROI plot type
         roivistypeselect.grid(row=8, column=0)
 
+        # entry to enter, what roi (indicees 1,2,3 should be plotted at once, use colors 1,2,3 for that)
+        tk.Label(frame, text="Plot ROI indices (e.g. 1,2,3)").grid(row=9, column=0)
+        self.roi_plot_indices_entry = tk.Entry(frame)
+        self.roi_plot_indices_entry.grid(row=10, column=0)
+        # button to plot multiple rois with different colors on selected HSI
+        b_plot_multiple_rois = tk.Button(frame, text="Plot multiple ROIs on HSI", command= lambda: self.plot_multiple_rois_on_hsi())
+        b_plot_multiple_rois.grid(row=11, column=0)
+
         b3 = tk.Button(frame, text="delete ROI", command= lambda: self.roihandler.delete_roi())
-        b3.grid(row=9, column=0)     
+        b3.grid(row=13, column=0)     
     
         # build second clumn for ROI
         tk.Label(frame, text="Select HSI Image").grid(row=0, column=1)
@@ -744,6 +752,58 @@ class XYMap:
         tk.Button(frame, text="Save Plot to File", command=self.save_hsi_plot_to_file,
                  bg='lightgreen').grid(row=16, column=0, columnspan=2, pady=5, padx=5, sticky=tk.EW)
     
+    def plot_multiple_rois_on_hsi(self):
+        """Plot multiple ROIs on the selected HSI with different colors."""
+        try:
+            # Get selected HSI
+            hsi_name = self.hsiselect.get()
+            if hsi_name not in self.PMdict.keys():
+                print('Error: No valid HSI selected.')
+                return
+            
+            # Get the PMclass object
+            pm_obj = self.PMdict[hsi_name]
+            pixmatrix = pm_obj.PixMatrix
+            
+            # Get ROI indices to plot
+            roi_indices_str = self.roi_plot_indices_entry.get().split(',')
+            if not roi_indices_str:
+                print('Error: No ROI indices entered. Please enter indices separated by commas (e.g., 1,2,3).')
+                return
+            
+            roi_indices = []
+            for i in range(len(roi_indices_str)):
+                try: 
+                    roi_indices.append(int(roi_indices_str[i].strip())) # split by comma and take first part, then convert to int
+                except Exception as e:
+                    print(f'Error parsing ROI index "{roi_indices[i]}": {e}. Skipping this index.')
+            roibynames = roihandler.roiindicees2roinames(self.roihandler, roi_indices)
+            
+            # Get selected color for each ROI (cycle through colors if more ROIs than colors)
+            color_options = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta']
+            
+            #for i, roi_idx in enumerate(roibynames):
+            #    color = color_options[i % len(color_options)]
+            #    self.roihandler.plot_roi_on_pixmatrix(pixmatrix, roi_idx, vis_type=self.defentries.get('roi_vis_type', 'cornerlines'), color=color)
+            #plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14):
+
+            plotmodes = [self.defentries.get('roi_vis_type', 'cornerlines')] * len(roibynames)
+            colors = [color_options[i % len(color_options)] for i in range(len(roibynames))]
+
+            self.roihandler.plot_multiple_rois_on_pixmatrix(
+                self.roihandler,
+                pixmatrix, 
+                roibynames, 
+                plotmodes,
+                colors,
+                fontsize=self.defentries.get('roi_plot_fontsize', 14)
+            )
+        
+        except Exception as e:
+            print(f'Error plotting multiple ROIs on HSI: {e}')
+            import traceback
+            traceback.print_exc()
+
     def plot_hsi_with_options(self):
         """Plot the selected HSI using the options from the GUI."""
         try:
@@ -3986,7 +4046,8 @@ class XYMap:
                 else:
                     self.specselect.set('')
 
-
+    def returndisspecs(self):
+        return self.disspecs
 
 def load_spectrum(fname, instance, lock):
     specobj = SpectrumData(
