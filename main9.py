@@ -685,6 +685,12 @@ class FileProcessorApp:
             if self.powercorrectionBool.get() == 1:
                 self.Nanomap.powercorrection()
             self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
+            self.Specplotter = plotspecs.Specplottergui(
+                Specdata={}, 
+                Specdiffsets={}, 
+                guiroot=self.nodeframes['Plot Spectra'],
+                disspecs=self.Nanomap.disspecs
+                )
                 
         else:
             print("No files found with the specified name.")
@@ -811,6 +817,13 @@ class FileProcessorApp:
             
             # Create Exporter
             self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
+            # build the Plot Spectra notebook
+            self.Specplotter = plotspecs.Specplottergui(
+                Specdata={}, 
+                Specdiffsets={}, 
+                guiroot=self.nodeframes['Plot Spectra'],
+                disspecs=self.Nanomap.disspecs
+                )
         
         # Load the state
         success = self.Nanomap.load_state(filename)

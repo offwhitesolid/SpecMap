@@ -30,15 +30,14 @@ class Specplottergui:
     def build_data_selection_tab(self):
         # Matrix to select spectra: HSI names (rows) x Datatypes (columns)
         # Using short names to avoid excessive column width
-        datatypes = [
-            'PL-BG', 'CNT', 'D1', 'D2', 
-            'D1-N', 'D2-N', 'D1-NI', 'D2-NI', 'D2-NC'
+        self.specdatatypes = [
+            'PL-BG', 'D1', 'D2', 'D1-N', 'D2-N', 'D1-NI', 'D2-NI', 'D1-NC', 'D2-NC'
         ]
         
         # Determine dataset names (use dummy if dicts are empty for layout testing)
-        dataset_names = list(self.Specdata.keys())
-        if not dataset_names:
-            dataset_names = ['Dataset_1', 'Dataset_2', 'Dataset_3']
+        self.dataset_names = list(self.Specdata.keys())
+        if not self.dataset_names:
+            self.dataset_names = ['Dataset_1', 'Dataset_2', 'Dataset_3']
 
         self.plot_vars = {}
 
@@ -48,25 +47,44 @@ class Specplottergui:
         ttk.Button(btn_frame, text="Select All", command=self.select_all_specs).pack(side="left", padx=5)
         ttk.Button(btn_frame, text="Deselect All", command=self.deselect_all_specs).pack(side="left", padx=5)
         ttk.Button(btn_frame, text="Transfer to Plot Options", command=self.transfer_to_plot).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="Refresh Data", command=self.refresh_data).pack(side="left", padx=5)
 
         # Create a separate frame for the grid-based matrix (cannot mix pack and grid on same frame)
-        matrix_frame = ttk.Frame(self.tab1)
-        matrix_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self.matrix_frame = ttk.Frame(self.tab1)
+        self.matrix_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Create headers
-        ttk.Label(matrix_frame, text="Datasets", font=('Arial', 10, 'bold')).grid(row=0, column=0, padx=5, pady=5)
-        for col, dtype in enumerate(datatypes):
-            ttk.Label(matrix_frame, text=dtype.upper(), font=('Arial', 10, 'bold')).grid(row=0, column=col+1, padx=5, pady=5)
-
+        ttk.Label(self.matrix_frame, text="Datasets", font=('Arial', 10, 'bold')).grid(row=0, column=0, padx=5, pady=5)
+        for col, dtype in enumerate(self.specdatatypes):
+            ttk.Label(self.matrix_frame, text=dtype.upper(), font=('Arial', 10, 'bold')).grid(row=0, column=col+1, padx=5, pady=5)
+        
+        self.build_plot_checkbox()
+    
+    def build_plot_checkbox(self):
         # Create checkbox matrix
-        for row, ds_name in enumerate(dataset_names):
-            ttk.Label(matrix_frame, text=ds_name).grid(row=row+1, column=0, sticky='w', padx=5, pady=2)
+        for row, ds_name in enumerate(self.dataset_names):
+            ttk.Label(self.matrix_frame, text=ds_name).grid(row=row+1, column=0, sticky='w', padx=5, pady=2)
             self.plot_vars[ds_name] = {}
-            for col, dtype in enumerate(datatypes):
+            for col, dtype in enumerate(self.specdatatypes):
                 var = tk.BooleanVar()
-                chk = ttk.Checkbutton(matrix_frame, variable=var)
+                chk = ttk.Checkbutton(self.matrix_frame, variable=var)
                 chk.grid(row=row+1, column=col+1, padx=5, pady=2)
                 self.plot_vars[ds_name][dtype] = var
+        
+    def refresh_data(self):
+        """Refresh dataset names from self.disspecs and reset checkboxes"""
+        if not self.disspecs:
+            print("No spectral data available (disspecs is empty)")
+            # testing: print all keys of self.disspecs
+            print(f"Available datasets in disspecs: {list(self.disspecs.keys())}")
+            return
+        
+        # Reset all checkboxes to False
+        for ds in self.plot_vars:
+            for dtype in self.plot_vars[ds]:
+                self.plot_vars[ds][dtype].set(False)
+        
+        print(f"Data refreshed from {len(self.disspecs)} datasets")
 
     def select_all_specs(self):
         """Set all checkboxes to True"""
@@ -81,8 +99,217 @@ class Specplottergui:
                 self.plot_vars[ds][dtype].set(False)
 
     def transfer_to_plot(self):
-        """Transfer selected specs to plot options (placeholder)"""
-        pass
+        """
+        Transfer selected specs to matplotlib plot using Plot Options.
+        Gathers all selected spectra and creates a plot with configured options.
+        """
+        if not self.disspecs:
+            print("Error: No spectral data available")
+            return
+        
+        # Collect selected spectra
+        selected_plots = []
+        
+        for ds_name, types_dict in self.plot_vars.items():
+            for dtype, is_selected in types_dict.items():
+                if is_selected.get():
+                    if ds_name in self.disspecs:
+                        spec_obj = self.disspecs[ds_name]
+                        # Get the appropriate array based on datatype
+                        data = self._get_spectra_array(spec_obj, dtype)
+                        if data is not None:
+                            selected_plots.append({
+                                'dataset': ds_name,
+                                'datatype': dtype,
+                                'wl': spec_obj.WL,
+                                'data': data,
+                                'spec_obj': spec_obj
+                            })
+        
+        if not selected_plots:
+            print("Error: No spectra selected")
+            return
+        
+        # Create figure and plot
+        fig, ax = plt.subplots(figsize=(12, 6))
+        
+        # Define color palette
+        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan']
+        
+        # Plot each selected spectrum
+        for idx, plot_data in enumerate(selected_plots):
+            color = colors[idx % len(colors)]
+            label = f"{plot_data['dataset']} - {plot_data['datatype']}"
+            ax.plot(plot_data['wl'], plot_data['data'], color=color, linewidth=1.5, label=label)
+        
+        # Apply plot options
+        try:
+            # X and Y limits
+            x_min = self.opt_vars['x_min'].get()
+            x_max = self.opt_vars['x_max'].get()
+            y_min = self.opt_vars['y_min'].get()
+            y_max = self.opt_vars['y_max'].get()
+            
+            if x_min != 'Auto':
+                x_min = float(x_min)
+            else:
+                x_min = None
+            
+            if x_max != 'Auto':
+                x_max = float(x_max)
+            else:
+                x_max = None
+            
+            if y_min != 'Auto':
+                y_min = float(y_min)
+            else:
+                y_min = None
+            
+            if y_max != 'Auto':
+                y_max = float(y_max)
+            else:
+                y_max = None
+            
+            if x_min is not None or x_max is not None:
+                ax.set_xlim(x_min, x_max)
+            
+            if y_min is not None or y_max is not None:
+                ax.set_ylim(y_min, y_max)
+            
+            # Ticks
+            try:
+                x_tick = float(self.opt_vars['x_tick'].get())
+                y_tick = float(self.opt_vars['y_tick'].get())
+                ax.xaxis.set_major_locator(plt.MultipleLocator(x_tick))
+                ax.yaxis.set_major_locator(plt.MultipleLocator(y_tick))
+            except:
+                pass
+            
+            # Labels and title
+            x_label = self.opt_vars['x_label'].get()
+            y_label = self.opt_vars['y_label'].get()
+            title = self.opt_vars['title'].get()
+            
+            # Font sizes
+            label_font_size = int(self.opt_vars['label_font_size'].get())
+            tick_font_size = int(self.opt_vars['tick_font_size'].get())
+            legend_font_size = int(self.opt_vars['legend_font_size'].get())
+            
+            ax.set_xlabel(x_label, fontsize=label_font_size)
+            ax.set_ylabel(y_label, fontsize=label_font_size)
+            ax.set_title(title, fontsize=label_font_size)
+            
+            ax.tick_params(axis='both', which='major', labelsize=tick_font_size)
+            
+            # Grid
+            if self.opt_vars['show_grid'].get():
+                ax.grid(True, alpha=0.3)
+            
+            # Legend
+            ax.legend(fontsize=legend_font_size)
+            
+            plt.tight_layout()
+            plt.show()
+            
+            print(f"Plotted {len(selected_plots)} spectra")
+            
+        except Exception as e:
+            print(f"Error creating plot: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _get_spectra_array(self, spec_obj, datatype):
+        """
+        Extract the appropriate spectral array from a Spectra object based on datatype.
+        
+        Datatypes:
+        - PL-BG: Main spectrum
+        - D1: First derivative
+        - D2: Second derivative
+        - D1-N: First derivative normalized by max
+        - D2-N: Second derivative normalized by max
+        - D1-NI: First derivative normalized inverted
+        - D2-NI: Second derivative normalized inverted
+        - D1-NC: First derivative normalized clipped
+        - D2-NC: Second derivative normalized clipped
+        """
+        try:
+            if datatype == 'PL-BG':
+                return np.array(spec_obj.Spec)
+            
+            elif datatype == 'D1':
+                if spec_obj.Spec_d1 is not None:
+                    return np.array(spec_obj.Spec_d1)
+                else:
+                    print(f"Warning: D1 not available for {spec_obj.parenthsi}")
+                    return None
+            
+            elif datatype == 'D2':
+                if spec_obj.Spec_d2 is not None:
+                    return np.array(spec_obj.Spec_d2)
+                else:
+                    print(f"Warning: D2 not available for {spec_obj.parenthsi}")
+                    return None
+            
+            elif datatype == 'D1-N':
+                if spec_obj.Spec_d1 is not None:
+                    arr = np.array(spec_obj.Spec_d1)
+                    max_val = np.nanmax(np.abs(arr))
+                    return arr / max_val if max_val != 0 else arr
+                else:
+                    return None
+            
+            elif datatype == 'D2-N':
+                if spec_obj.Spec_d2 is not None:
+                    arr = np.array(spec_obj.Spec_d2)
+                    max_val = np.nanmax(np.abs(arr))
+                    return arr / max_val if max_val != 0 else arr
+                else:
+                    return None
+            
+            elif datatype == 'D1-NI':
+                if spec_obj.Spec_d1 is not None:
+                    arr = np.array(spec_obj.Spec_d1)
+                    max_val = np.nanmax(np.abs(arr))
+                    normalized = arr / max_val if max_val != 0 else arr
+                    return -normalized
+                else:
+                    return None
+            
+            elif datatype == 'D2-NI':
+                if spec_obj.Spec_d2 is not None:
+                    arr = np.array(spec_obj.Spec_d2)
+                    max_val = np.nanmax(np.abs(arr))
+                    normalized = arr / max_val if max_val != 0 else arr
+                    return -normalized
+                else:
+                    return None
+            
+            elif datatype == 'D1-NC':
+                if spec_obj.Spec_d1 is not None:
+                    arr = np.array(spec_obj.Spec_d1)
+                    max_val = np.nanmax(np.abs(arr))
+                    normalized = arr / max_val if max_val != 0 else arr
+                    return np.clip(normalized, -1, 1)
+                else:
+                    return None
+            
+            elif datatype == 'D2-NC':
+                if spec_obj.Spec_d2 is not None:
+                    arr = np.array(spec_obj.Spec_d2)
+                    max_val = np.nanmax(np.abs(arr))
+                    normalized = arr / max_val if max_val != 0 else arr
+                    return np.clip(normalized, -1, 1)
+                else:
+                    return None
+            
+            else:
+                print(f"Unknown datatype: {datatype}")
+                return None
+        
+        except Exception as e:
+            print(f"Error extracting {datatype} from {spec_obj.parenthsi}: {e}")
+            return None
 
     def build_plot_options_tab(self):
         # Variables for plot options
@@ -176,30 +403,86 @@ class Specplottergui:
         ttk.Entry(labels_frame, textvariable=self.opt_vars['y_label'], width=20).grid(row=0, column=3, padx=3, pady=3)
 
         # Options frame
-        options_frame = ttk.LabelFrame(scrollable_frame, text="Options")
-        options_frame.pack(fill="x", padx=5, pady=5)
+        central_frame = ttk.Frame(scrollable_frame)
+        central_frame.pack(fill="x", padx=5, pady=10)
         
-        ttk.Checkbutton(options_frame, text="Show Grid", variable=self.opt_vars['show_grid']).pack(side="left", padx=10, pady=5)
-        ttk.Checkbutton(options_frame, text="Normalize by Point", variable=self.opt_vars['normalize_point']).pack(side="left", padx=10, pady=5)
-        ttk.Checkbutton(options_frame, text="Normalize by Max", variable=self.opt_vars['normalize_max']).pack(side="left", padx=10, pady=5)
-        ttk.Checkbutton(options_frame, text="Use nm to eV", variable=self.opt_vars['use_nm_to_ev']).pack(side="left", padx=10, pady=5)
+        # Checkboxes
+        chk_frame = ttk.Frame(central_frame)
+        chk_frame.pack(pady=2)
+        ttk.Checkbutton(chk_frame, text="Show Grid", variable=self.opt_vars['show_grid']).pack(side="left", padx=10)
+        ttk.Checkbutton(chk_frame, text="Normalize by Point", variable=self.opt_vars['normalize_point']).pack(side="left", padx=10)
+        ttk.Checkbutton(chk_frame, text="Normalize by Max", variable=self.opt_vars['normalize_max']).pack(side="left", padx=10)
+        ttk.Checkbutton(chk_frame, text="Use nm to eV", variable=self.opt_vars['use_nm_to_ev']).pack(side="left", padx=10)
 
-        # Save frame
-        save_frame = ttk.LabelFrame(scrollable_frame, text="Save Settings")
-        save_frame.pack(fill="x", padx=5, pady=5)
-        
-        ttk.Label(save_frame, text="Save Path:").grid(row=0, column=0, padx=3, pady=3, sticky='e')
-        ttk.Entry(save_frame, textvariable=self.opt_vars['save_path'], width=40).grid(row=0, column=1, padx=3, pady=3)
-        ttk.Button(save_frame, text="Change Path", width=12).grid(row=0, column=2, padx=3, pady=3)
-        
-        ttk.Label(save_frame, text="File Name:").grid(row=1, column=0, padx=3, pady=3, sticky='e')
-        ttk.Entry(save_frame, textvariable=self.opt_vars['file_name'], width=20).grid(row=1, column=1, padx=3, pady=3, sticky='w')
+        # Save Path
+        path_frame = ttk.Frame(central_frame)
+        path_frame.pack(pady=2)
+        ttk.Label(path_frame, text="Save Path: ").pack(side="left")
+        ttk.Label(path_frame, textvariable=self.opt_vars['save_path']).pack(side="left")
 
-        # Plot Button
-        btn_frame = ttk.Frame(scrollable_frame)
-        btn_frame.pack(fill="x", padx=5, pady=15)
-        ttk.Button(btn_frame, text="Plot Spectra", command=self.trigger_plot).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="Save Plot", command=self.save_plot).pack(side="left", padx=5)
+        # Change Path button
+        btn_path_frame = ttk.Frame(central_frame)
+        btn_path_frame.pack(pady=2)
+        ttk.Button(btn_path_frame, text="Change Path", width=12).pack()
+
+        # Plot / File Name / Save Plot
+        plot_btn_frame = ttk.Frame(central_frame)
+        plot_btn_frame.pack(pady=5)
+        ttk.Button(plot_btn_frame, text="Plot", command=self.trigger_plot).pack(side="left", padx=5)
+        ttk.Label(plot_btn_frame, text="File Name:").pack(side="left", padx=2)
+        ttk.Entry(plot_btn_frame, textvariable=self.opt_vars['file_name'], width=20).pack(side="left", padx=2)
+        ttk.Button(plot_btn_frame, text="Save Plot", command=self.save_plot).pack(side="left", padx=5)
+
+        # Container for the dynamic series rows
+        self.series_container = ttk.Frame(scrollable_frame)
+        self.series_container.pack(fill="x", padx=5, pady=10)
+        
+        # Insert two mock rows to match the image requirements
+        self._add_mock_series_rows()
+
+    def _add_mock_series_rows(self):
+        def create_series_row(parent, title, default_color, default_label):
+            frame = ttk.Frame(parent)
+            frame.pack(fill="x", pady=10)
+            
+            ttk.Label(frame, text=title).grid(row=0, column=0, columnspan=16, sticky='w', pady=(0, 5))
+            
+            ttk.Label(frame, text="Line Thickness:").grid(row=1, column=0, padx=2)
+            e_thick = ttk.Entry(frame, width=5)
+            e_thick.grid(row=1, column=1, padx=2)
+            e_thick.insert(0, "1.5")
+            
+            ttk.Label(frame, text="Line Color:").grid(row=1, column=2, padx=2)
+            e_col = ttk.Entry(frame, width=10)
+            e_col.grid(row=1, column=3, padx=2)
+            e_col.insert(0, default_color)
+            
+            ttk.Label(frame, text="Legend Label:").grid(row=1, column=4, padx=2)
+            e_leg = ttk.Entry(frame, width=20)
+            e_leg.grid(row=1, column=5, padx=2)
+            e_leg.insert(0, default_label)
+            
+            ttk.Label(frame, text="Line Style:").grid(row=1, column=6, padx=2)
+            cb_style = ttk.Combobox(frame, values=["Solid", "Dashed", "Dotted"], width=8)
+            cb_style.grid(row=1, column=7, padx=2)
+            cb_style.set("Solid")
+            
+            ttk.Label(frame, text="Normalize Point:").grid(row=1, column=8, padx=2)
+            e_norm = ttk.Entry(frame, width=5)
+            e_norm.grid(row=1, column=9, padx=2)
+            e_norm.insert(0, "1.0")
+            
+            ttk.Checkbutton(frame, text="Scatter Graph").grid(row=1, column=10, padx=5)
+            
+            ttk.Label(frame, text="Point Size:").grid(row=1, column=11, padx=2)
+            e_pt = ttk.Entry(frame, width=5)
+            e_pt.grid(row=1, column=12, padx=2)
+            e_pt.insert(0, "15")
+            
+            ttk.Checkbutton(frame, text="Enable Fit").grid(row=1, column=13, padx=5)
+
+        create_series_row(self.series_container, "Plot 1: Wavelength (nm) vs Spectrum (PL-BG)", "red", "PL")
+        create_series_row(self.series_container, "Plot 2: Wavelength (nm) vs first derivative", "blue", "PL 1. abl (norm)")
 
     def save_plot(self):
         """Save plot (placeholder)"""
@@ -215,9 +498,24 @@ class Specplottergui:
         print("\nPlot Options:")
         for k, v in self.opt_vars.items():
             print(f" - {k}: {v.get()}")
+    
+    class Plotclass:
+        def __init__(self, speclist):
+            """
+            Plotclass to handle advanced plotting of spectral data.
+            
+            Args:
+                speclist: List of spectral data dictionaries to plot
+            """
+            self.speclist = speclist
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.title("Spectra Plotter GUI")
+    root.geometry("1200x700")
+    
+    # Test with dummy data
     app = Specplottergui(guiroot=root)
     root.mainloop()
+
 

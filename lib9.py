@@ -3983,7 +3983,8 @@ class XYMap:
                 else:
                     self.specselect.set('')
 
-
+    def returndisspecs(self):
+        return self.disspecs
 
 def load_spectrum(fname, instance, lock):
     specobj = SpectrumData(
