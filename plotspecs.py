@@ -172,8 +172,48 @@ class Specplottergui:
         # Define color palette
         colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan']
         
-        # Plot each selected spectrum
-        for idx, plot_data in enumerate(self.selected_plots):
+        # Get normalization and conversion options
+        normalize_by_point = self.opt_vars['normalize_point'].get()
+        normalize_by_max = self.opt_vars['normalize_max'].get()
+        use_nm_to_ev = self.opt_vars['use_nm_to_ev'].get()
+        
+        # Process each spectrum with normalization
+        processed_plots = []
+        for plot_data in self.selected_plots:
+            wl = np.array(plot_data['wl'])
+            data = np.array(plot_data['data'])
+            
+            # Apply normalization by point
+            if normalize_by_point:
+                # Find max point (or could be configurable)
+                max_idx = np.argmax(data)
+                norm_value = data[max_idx]
+                if norm_value != 0:
+                    data = data / norm_value
+            
+            # Apply normalization by max
+            elif normalize_by_max:
+                max_val = np.nanmax(np.abs(data))
+                if max_val != 0:
+                    data = data / max_val
+            
+            # Convert wavelength axis if needed
+            if use_nm_to_ev:
+                # Convert nm to eV using E = 1240 / lambda
+                wl = 1240.0 / wl
+                # Reverse the order since eV increases as nm decreases
+                wl = wl[::-1]
+                data = data[::-1]
+            
+            processed_plots.append({
+                'wl': wl,
+                'data': data,
+                'dataset': plot_data['dataset'],
+                'datatype': plot_data['datatype']
+            })
+        
+        # Plot each processed spectrum
+        for idx, plot_data in enumerate(processed_plots):
             color = colors[idx % len(colors)]
             label = f"{plot_data['dataset']} - {plot_data['datatype']}"
             ax.plot(plot_data['wl'], plot_data['data'], color=color, linewidth=1.5, label=label)
@@ -226,6 +266,17 @@ class Specplottergui:
             y_label = self.opt_vars['y_label'].get()
             title = self.opt_vars['title'].get()
             
+            # Update x_label if converting to eV
+            if use_nm_to_ev and 'nm' in x_label.lower():
+                x_label = x_label.replace('nm', 'eV').replace('(nm)', '(eV)').replace('Nm', 'eV')
+            elif use_nm_to_ev and 'eV' not in x_label.lower():
+                x_label = x_label + ' (eV)'
+            
+            # Update y_label if normalizing
+            if normalize_by_point or normalize_by_max:
+                if 'norm' not in y_label.lower():
+                    y_label = 'Normalized ' + y_label
+            
             # Font sizes
             label_font_size = int(self.opt_vars['label_font_size'].get())
             tick_font_size = int(self.opt_vars['tick_font_size'].get())
@@ -253,6 +304,7 @@ class Specplottergui:
             print(f"Error creating plot: {e}")
             import traceback
             traceback.print_exc()
+    
     
     def _get_spectra_array(self, spec_obj, datatype):
         """
