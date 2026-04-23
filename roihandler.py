@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
+from matplotlib.colors import ListedColormap
+from matplotlib.colors import to_rgba
 import deflib1 as deflib
 
 class Roihandler():
@@ -128,10 +130,27 @@ class Roihandler():
     def on_close(self):
         plt.close('all')
 
-    def _draw_overlay(self, ax, roi, color='red'):
-        # Create a masked array to overlay the ROI matching the previous logic
+    def _draw_overlay(self, ax, roi, color='red', alpha=0.5):
+        """
+        Draw ROI as a transparent colored overlay.
+        
+        Args:
+            ax: matplotlib axis
+            roi: ROI array
+            color: color name (e.g., 'red', 'blue', 'green')
+            alpha: transparency level (0-1, default 0.5)
+        """
+        # Create a masked array to overlay the ROI
         masked_roi = np.ma.masked_where(roi == 0, roi)
-        ax.imshow(masked_roi, cmap='Reds', alpha=0.5)
+        rgba_color = to_rgba(color)
+        
+        # Create a custom colormap that goes from transparent to the specified color
+        # Create colormap: 0 is transparent, any positive value is the color with alpha
+        cmap_colors = [rgba_color]
+        cmap = ListedColormap(cmap_colors)
+        
+        # Normalize the ROI values to use the colormap
+        ax.imshow(masked_roi, cmap=cmap, alpha=alpha)
 
     def _draw_cornerlines(self, ax, roi, color='red'):
         # Outline the exact shape of the ROI connecting its boundaries/corners
@@ -168,6 +187,30 @@ class Roihandler():
             plt.show()
         else:
             print(f"ROI '{roiname}' not found.")
+    
+    def plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14):
+        vis_funcs = {
+            'overlay': self._draw_overlay,
+            'cornerlines': self._draw_cornerlines
+        }
+        #display pixmatrix as background using standard colormap before plotting any rois, so it doesn't get overwritten by the rois
+        fig, ax = plt.subplots()
+        img = ax.imshow(pixmatrix, cmap='viridis')
+        fig.colorbar(img, ax=ax, label='Intensity')
+        for roiname, plotmode, color in zip(roinames, plotmodes, colors):
+            if roiname in handler.roilist:
+                roi = handler.roilist[roiname]
+                if plotmode in vis_funcs:
+                    vis_funcs[plotmode](ax, roi, color)
+                else:
+                    print(f"Visualization type '{plotmode}' not recognized. Defaulting to 'overlay'.")
+                    vis_funcs['overlay'](ax, roi, color)
+            else:
+                print(f"ROI '{roiname}' not found.")
+        ax.set_title(f'Regions of Interest', fontsize=fontsize)
+        ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
+        ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
+        plt.show()
 
 def test_roionpixmatrix():
     pixmatrix = np.random.rand(100, 100)
@@ -187,6 +230,14 @@ def test_roionpixmatrix():
     
     # Test outline (cornerlines) visualization
     handler.plot_roi_on_pixmatrix(pixmatrix, 'test_roi', vis_type='cornerlines', color='red')
+
+def roiindicees2roinames(handler, indicees):
+    roinames = []
+    for idx in indicees:
+        if idx < len(handler.roilist):
+            roinames.append(list(handler.roilist.keys())[idx])
+    return roinames
+
 
 if __name__ == "__main__":
     test_roionpixmatrix()

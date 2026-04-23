@@ -3,12 +3,39 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tkinter as tk
 from tkinter import ttk
+import deflib1 as deflib
 
-class Specplottergui: 
-    def __init__(self, Specdata={}, Specdiffsets={}, guiroot=None, disspecs=None):
+class Specplottergui:
+    # Fallback defaults in case file reading fails
+    FALLBACK_DEFAULTS = {
+        'x_min': 'Auto',
+        'x_max': 'Auto',
+        'y_min': 'Auto',
+        'y_max': 'Auto',
+        'x_tick': '50',
+        'y_tick': '100',
+        'label_font_size': '24',
+        'tick_font_size': '22',
+        'legend_font_size': '22',
+        'font_family': 'Arial',
+        'x_label': 'Wavelength (nm)',
+        'y_label': 'norm. Intensity',
+        'title': 'Spectra Plot',
+        'show_grid': 'True',
+        'normalize_point': 'False',
+        'normalize_max': 'False',
+        'use_nm_to_ev': 'False',
+        'save_path': 'C:\\Users\\volib\\Desktop',
+        'file_name': 'specs1'
+    }
+    
+    def __init__(self, Specdata={}, Specdiffsets={}, guiroot=None, disspecs=None, defaultsfile='defaults_specplotter.txt'):
         self.Specdata = Specdata
         self.Specdiffsets = Specdiffsets
         self.guiroot = guiroot
+        self.defaultsfile = defaultsfile
+        self.defaults = self._load_defaults()
+        
         # clear guiroot before building to avoid duplicates when reloading data
         if self.guiroot is not None:
             for widget in self.guiroot.winfo_children():
@@ -17,6 +44,86 @@ class Specplottergui:
 
         if self.guiroot is not None:
             self.buildgui()
+    
+    def _load_defaults(self):
+        """
+        Load defaults from file, with fallback to FALLBACK_DEFAULTS.
+        """
+        defaults = self.FALLBACK_DEFAULTS.copy()
+        try:
+            with open(self.defaultsfile, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    # Skip comments and empty lines
+                    if not line or line.startswith('#'):
+                        continue
+                    # Parse key = value
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        key = key.strip()
+                        value = value.strip()
+                        # Convert boolean strings to actual values
+                        if value.lower() == 'true':
+                            value = 'True'
+                        elif value.lower() == 'false':
+                            value = 'False'
+                        defaults[key] = value
+        except FileNotFoundError:
+            print(f"Defaults file '{self.defaultsfile}' not found. Using fallback defaults.")
+        except Exception as e:
+            print(f"Error loading defaults from '{self.defaultsfile}': {e}. Using fallback defaults.")
+        
+        return defaults
+
+    def save_defaults(self):
+        """
+        Save current plot options to the defaults file.
+        """
+        try:
+            with open(self.defaultsfile, 'w') as f:
+                f.write('# Default settings for Spectra Plotter GUI\n')
+                f.write('# Format: key = value\n\n')
+                
+                # Axes Limits
+                f.write('# Axes Limits\n')
+                f.write(f"x_min = {self.opt_vars['x_min'].get()}\n")
+                f.write(f"x_max = {self.opt_vars['x_max'].get()}\n")
+                f.write(f"y_min = {self.opt_vars['y_min'].get()}\n")
+                f.write(f"y_max = {self.opt_vars['y_max'].get()}\n\n")
+                
+                # Tick spacing
+                f.write('# Tick spacing\n')
+                f.write(f"x_tick = {self.opt_vars['x_tick'].get()}\n")
+                f.write(f"y_tick = {self.opt_vars['y_tick'].get()}\n\n")
+                
+                # Font sizes
+                f.write('# Font sizes\n')
+                f.write(f"label_font_size = {self.opt_vars['label_font_size'].get()}\n")
+                f.write(f"tick_font_size = {self.opt_vars['tick_font_size'].get()}\n")
+                f.write(f"legend_font_size = {self.opt_vars['legend_font_size'].get()}\n")
+                f.write(f"font_family = {self.opt_vars['font_family'].get()}\n\n")
+                
+                # Axis labels
+                f.write('# Axis labels\n')
+                f.write(f"x_label = {self.opt_vars['x_label'].get()}\n")
+                f.write(f"y_label = {self.opt_vars['y_label'].get()}\n")
+                f.write(f"title = {self.opt_vars['title'].get()}\n\n")
+                
+                # Display options
+                f.write('# Display options\n')
+                f.write(f"show_grid = {self.opt_vars['show_grid'].get()}\n")
+                f.write(f"normalize_point = {self.opt_vars['normalize_point'].get()}\n")
+                f.write(f"normalize_max = {self.opt_vars['normalize_max'].get()}\n")
+                f.write(f"use_nm_to_ev = {self.opt_vars['use_nm_to_ev'].get()}\n\n")
+                
+                # File settings
+                f.write('# File settings\n')
+                f.write(f"save_path = {self.opt_vars['save_path'].get()}\n")
+                f.write(f"file_name = {self.opt_vars['file_name'].get()}\n")
+            
+            print(f"Defaults saved to '{self.defaultsfile}'")
+        except Exception as e:
+            print(f"Error saving defaults to '{self.defaultsfile}': {e}")
 
     def buildgui(self):
         # build 2 tabs, one to select what spectral data to plot, and one to select the plot type
@@ -44,6 +151,8 @@ class Specplottergui:
             self.dataset_names = ['Dataset_1', 'Dataset_2']
 
         self.plot_vars = {}
+        self.col_headers = {}  # Store column header references
+        self.row_headers = {}  # Store row header references
 
         # Button frame for Select All / Deselect All / Transfer
         btn_frame = ttk.Frame(self.tab1)
@@ -61,7 +170,11 @@ class Specplottergui:
         # Create headers
         ttk.Label(self.matrix_frame, text="Datasets", font=('Arial', 10, 'bold')).grid(row=0, column=0, padx=5, pady=5)
         for col, dtype in enumerate(self.specdatatypes):
-            ttk.Label(self.matrix_frame, text=dtype.upper(), font=('Arial', 10, 'bold')).grid(row=0, column=col+1, padx=5, pady=5)
+            col_label = ttk.Label(self.matrix_frame, text=dtype.upper(), font=('Arial', 10, 'bold'), foreground='blue')
+            col_label.grid(row=0, column=col+1, padx=5, pady=5)
+            col_label.bind('<Button-1>', lambda e, c=col: self.toggle_column(c))
+            col_label.config(cursor='hand2')
+            self.col_headers[col] = col_label
         
         self.checkbox_widgets = []
         self.build_plot_checkbox()
@@ -71,8 +184,11 @@ class Specplottergui:
         self.destroy_plot_checkboxes()
         
         for row, ds_name in enumerate(self.dataset_names):
-            label = ttk.Label(self.matrix_frame, text=ds_name)
+            label = ttk.Label(self.matrix_frame, text=ds_name, foreground='blue')
             label.grid(row=row+1, column=0, sticky='w', padx=5, pady=2)
+            label.bind('<Button-1>', lambda e, r=row: self.toggle_row(r))
+            label.config(cursor='hand2')
+            self.row_headers[row] = label
             self.checkbox_widgets.append(label)
             
             self.plot_vars[ds_name] = {}
@@ -120,6 +236,43 @@ class Specplottergui:
         for ds in self.plot_vars:
             for dtype in self.plot_vars[ds]:
                 self.plot_vars[ds][dtype].set(False)
+
+    def toggle_column(self, col_idx):
+        """Toggle selection of all checkboxes in a column"""
+        # Determine the current state of the column
+        # If any checkbox is unchecked, check all; otherwise uncheck all
+        column_values = []
+        for ds_name in self.dataset_names:
+            dtype = self.specdatatypes[col_idx]
+            if dtype in self.plot_vars[ds_name]:
+                column_values.append(self.plot_vars[ds_name][dtype].get())
+        
+        # Determine new state: if all are True, set to False; otherwise set to True
+        new_state = not all(column_values) if column_values else True
+        
+        # Apply new state to all checkboxes in this column
+        for ds_name in self.dataset_names:
+            dtype = self.specdatatypes[col_idx]
+            if dtype in self.plot_vars[ds_name]:
+                self.plot_vars[ds_name][dtype].set(new_state)
+
+    def toggle_row(self, row_idx):
+        """Toggle selection of all checkboxes in a row"""
+        if row_idx >= len(self.dataset_names):
+            return
+        
+        ds_name = self.dataset_names[row_idx]
+        
+        # Determine the current state of the row
+        row_values = [self.plot_vars[ds_name][dtype].get() for dtype in self.specdatatypes if dtype in self.plot_vars[ds_name]]
+        
+        # Determine new state: if all are True, set to False; otherwise set to True
+        new_state = not all(row_values) if row_values else True
+        
+        # Apply new state to all checkboxes in this row
+        for dtype in self.specdatatypes:
+            if dtype in self.plot_vars[ds_name]:
+                self.plot_vars[ds_name][dtype].set(new_state)
 
     def transfer_to_plot_options(self):
         """
@@ -169,8 +322,8 @@ class Specplottergui:
         # Create figure and plot
         fig, ax = plt.subplots(figsize=(12, 6))
         
-        # Define color palette
-        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan']
+        # Define color palette (fallback)
+        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta', 'yellow', 'teal', 'navy', 'maroon', 'olive', 'lime', 'coral', 'indigo', 'gold', 'silver']
         
         # Get normalization and conversion options
         normalize_by_point = self.opt_vars['normalize_point'].get()
@@ -212,11 +365,51 @@ class Specplottergui:
                 'datatype': plot_data['datatype']
             })
         
-        # Plot each processed spectrum
+        # Plot each processed spectrum with configured options
         for idx, plot_data in enumerate(processed_plots):
-            color = colors[idx % len(colors)]
-            label = f"{plot_data['dataset']} - {plot_data['datatype']}"
-            ax.plot(plot_data['wl'], plot_data['data'], color=color, linewidth=1.5, label=label)
+            # Get custom options for this series
+            if hasattr(self, 'series_options') and idx in self.series_options:
+                options = self.series_options[idx]
+                try:
+                    line_thickness = float(options['line_thickness'].get())
+                except:
+                    line_thickness = 1.5
+                
+                try:
+                    color = options['line_color'].get()
+                except:
+                    color = colors[idx % len(colors)]
+                
+                try:
+                    label = options['legend_label'].get()
+                except:
+                    label = f"{plot_data['dataset']} - {plot_data['datatype']}"
+                
+                line_style_str = options['line_style'].get().lower()
+                linestyle_map = {'solid': '-', 'dashed': '--', 'dotted': ':'}
+                linestyle = linestyle_map.get(line_style_str, '-')
+                
+                is_scatter = options['scatter_graph'].get()
+                
+                try:
+                    point_size = float(options['point_size'].get())
+                except:
+                    point_size = 15
+            else:
+                # Fallback to defaults if series_options not available
+                line_thickness = 1.5
+                color = colors[idx % len(colors)]
+                label = f"{plot_data['dataset']} - {plot_data['datatype']}"
+                linestyle = '-'
+                is_scatter = False
+                point_size = 15
+            
+            # Plot either as scatter or line
+            if is_scatter:
+                ax.scatter(plot_data['wl'], plot_data['data'], color=color, s=point_size, label=label, alpha=0.7)
+            else:
+                ax.plot(plot_data['wl'], plot_data['data'], color=color, linewidth=line_thickness, 
+                       linestyle=linestyle, label=label)
         
         # Apply plot options
         try:
@@ -304,6 +497,7 @@ class Specplottergui:
             print(f"Error creating plot: {e}")
             import traceback
             traceback.print_exc()
+    
     
     
     def _get_spectra_array(self, spec_obj, datatype):
@@ -400,27 +594,27 @@ class Specplottergui:
             return None
 
     def build_plot_options_tab(self):
-        # Variables for plot options
+        # Variables for plot options, using loaded defaults
         self.opt_vars = {
-            'x_min': tk.StringVar(value='Auto'),
-            'x_max': tk.StringVar(value='Auto'),
-            'y_min': tk.StringVar(value='Auto'),
-            'y_max': tk.StringVar(value='Auto'),
-            'x_tick': tk.StringVar(value='50'),
-            'y_tick': tk.StringVar(value='100'),
-            'label_font_size': tk.StringVar(value='24'),
-            'tick_font_size': tk.StringVar(value='22'),
-            'legend_font_size': tk.StringVar(value='22'),
-            'font_family': tk.StringVar(value='Arial'),
-            'x_label': tk.StringVar(value='Wavelength (nm)'),
-            'y_label': tk.StringVar(value='norm. Intensity'),
-            'title': tk.StringVar(value='Spectra Plot'),
-            'show_grid': tk.BooleanVar(value=True),
-            'normalize_point': tk.BooleanVar(value=False),
-            'normalize_max': tk.BooleanVar(value=False),
-            'use_nm_to_ev': tk.BooleanVar(value=False),
-            'save_path': tk.StringVar(value='C:\\Users\\volib\\Desktop'),
-            'file_name': tk.StringVar(value='specs1')
+            'x_min': tk.StringVar(value=self.defaults.get('x_min', 'Auto')),
+            'x_max': tk.StringVar(value=self.defaults.get('x_max', 'Auto')),
+            'y_min': tk.StringVar(value=self.defaults.get('y_min', 'Auto')),
+            'y_max': tk.StringVar(value=self.defaults.get('y_max', 'Auto')),
+            'x_tick': tk.StringVar(value=self.defaults.get('x_tick', '50')),
+            'y_tick': tk.StringVar(value=self.defaults.get('y_tick', '100')),
+            'label_font_size': tk.StringVar(value=self.defaults.get('label_font_size', '24')),
+            'tick_font_size': tk.StringVar(value=self.defaults.get('tick_font_size', '22')),
+            'legend_font_size': tk.StringVar(value=self.defaults.get('legend_font_size', '22')),
+            'font_family': tk.StringVar(value=self.defaults.get('font_family', 'Arial')),
+            'x_label': tk.StringVar(value=self.defaults.get('x_label', 'Wavelength (nm)')),
+            'y_label': tk.StringVar(value=self.defaults.get('y_label', 'norm. Intensity')),
+            'title': tk.StringVar(value=self.defaults.get('title', 'Spectra Plot')),
+            'show_grid': tk.BooleanVar(value=self.defaults.get('show_grid', 'True').lower() == 'true'),
+            'normalize_point': tk.BooleanVar(value=self.defaults.get('normalize_point', 'False').lower() == 'true'),
+            'normalize_max': tk.BooleanVar(value=self.defaults.get('normalize_max', 'False').lower() == 'true'),
+            'use_nm_to_ev': tk.BooleanVar(value=self.defaults.get('use_nm_to_ev', 'False').lower() == 'true'),
+            'save_path': tk.StringVar(value=self.defaults.get('save_path', 'C:\\Users\\volib\\Desktop')),
+            'file_name': tk.StringVar(value=self.defaults.get('file_name', 'specs1'))
         }
 
         # Create canvas with scrollbar for the options
@@ -520,6 +714,7 @@ class Specplottergui:
         ttk.Label(plot_btn_frame, text="File Name:").pack(side="left", padx=2)
         ttk.Entry(plot_btn_frame, textvariable=self.opt_vars['file_name'], width=20).pack(side="left", padx=2)
         ttk.Button(plot_btn_frame, text="Save Plot", command=self.save_plot).pack(side="left", padx=5)
+        ttk.Button(plot_btn_frame, text="Save Defaults", command=self.save_defaults).pack(side="left", padx=5)
 
         # Container for the dynamic series rows
         self.series_container = ttk.Frame(self.scrollable_frame)
@@ -534,13 +729,16 @@ class Specplottergui:
             widget.destroy()
 
         # Define color palette
-        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan']
+        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta', 'yellow', 'teal', 'navy', 'maroon', 'olive', 'lime', 'coral', 'indigo', 'gold', 'silver']
 
+        # Initialize series options storage
+        self.series_options = {}
+        
         for idx, plot_data in enumerate(self.selected_plots):
             title = f"Plot {idx + 1}: Wavelength (nm) vs {plot_data['dataset']} ({plot_data['datatype']})"
             default_color = colors[idx % len(colors)]
             default_label = f"{plot_data['dataset']}-{plot_data['datatype']}"
-            self._create_series_row(self.series_container, title, default_color, default_label)
+            self.series_options[idx] = self._create_series_row(self.series_container, title, default_color, default_label)
 
     def _create_series_row(self, parent, title, default_color, default_label):
         frame = ttk.Frame(parent)
@@ -573,14 +771,25 @@ class Specplottergui:
         e_norm.grid(row=1, column=9, padx=2)
         e_norm.insert(0, "1.0")
         
-        ttk.Checkbutton(frame, text="Scatter Graph").grid(row=1, column=10, padx=5)
+        var_scatter = tk.BooleanVar(value=False)
+        chk_scatter = ttk.Checkbutton(frame, text="Scatter Graph", variable=var_scatter)
+        chk_scatter.grid(row=1, column=10, padx=5)
         
         ttk.Label(frame, text="Point Size:").grid(row=1, column=11, padx=2)
         e_pt = ttk.Entry(frame, width=5)
         e_pt.grid(row=1, column=12, padx=2)
         e_pt.insert(0, "15")
         
-        ttk.Checkbutton(frame, text="Enable Fit").grid(row=1, column=13, padx=5)
+        # Return a dictionary of options for this series
+        return {
+            'line_thickness': e_thick,
+            'line_color': e_col,
+            'legend_label': e_leg,
+            'line_style': cb_style,
+            'normalize_point': e_norm,
+            'scatter_graph': var_scatter,
+            'point_size': e_pt
+        }
 
     def save_plot(self):
         """Save plot (placeholder)"""

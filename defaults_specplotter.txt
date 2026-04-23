@@ -1,0 +1,33 @@
+# Default settings for Spectra Plotter GUI
+# Format: key = value
+
+# Axes Limits
+x_min = Auto
+x_max = Auto
+y_min = Auto
+y_max = Auto
+
+# Tick spacing
+x_tick = 50
+y_tick = 100
+
+# Font sizes
+label_font_size = 24
+tick_font_size = 22
+legend_font_size = 22
+font_family = Arial
+
+# Axis labels
+x_label = Wavelength (nm)
+y_label = norm. Intensity
+title = Spectra Plot
+
+# Display options
+show_grid = True
+normalize_point = False
+normalize_max = False
+use_nm_to_ev = False
+
+# File settings
+save_path = C:\Users\volib\Desktop
+file_name = specs1
