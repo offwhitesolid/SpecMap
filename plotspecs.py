@@ -9,6 +9,10 @@ class Specplottergui:
         self.Specdata = Specdata
         self.Specdiffsets = Specdiffsets
         self.guiroot = guiroot
+        # clear guiroot before building to avoid duplicates when reloading data
+        if self.guiroot is not None:
+            for widget in self.guiroot.winfo_children():
+                widget.destroy()
         self.disspecs = disspecs
 
         if self.guiroot is not None:
@@ -34,10 +38,10 @@ class Specplottergui:
             'PL-BG', 'D1', 'D2', 'D1-N', 'D2-N', 'D1-NI', 'D2-NI', 'D1-NC', 'D2-NC'
         ]
         
-        # Determine dataset names (use dummy if dicts are empty for layout testing)
-        self.dataset_names = list(self.Specdata.keys())
+        self.dataset_names = list(self.disspecs.keys()) if self.disspecs else []
+
         if not self.dataset_names:
-            self.dataset_names = ['Dataset_1', 'Dataset_2', 'Dataset_3']
+            self.dataset_names = ['Dataset_1', 'Dataset_2']
 
         self.plot_vars = {}
 
@@ -58,33 +62,51 @@ class Specplottergui:
         for col, dtype in enumerate(self.specdatatypes):
             ttk.Label(self.matrix_frame, text=dtype.upper(), font=('Arial', 10, 'bold')).grid(row=0, column=col+1, padx=5, pady=5)
         
+        self.checkbox_widgets = []
         self.build_plot_checkbox()
     
     def build_plot_checkbox(self):
-        # Create checkbox matrix
+        # Destroy existing widgets before building new ones
+        self.destroy_plot_checkboxes()
+        
         for row, ds_name in enumerate(self.dataset_names):
-            ttk.Label(self.matrix_frame, text=ds_name).grid(row=row+1, column=0, sticky='w', padx=5, pady=2)
+            label = ttk.Label(self.matrix_frame, text=ds_name)
+            label.grid(row=row+1, column=0, sticky='w', padx=5, pady=2)
+            self.checkbox_widgets.append(label)
+            
             self.plot_vars[ds_name] = {}
             for col, dtype in enumerate(self.specdatatypes):
                 var = tk.BooleanVar()
                 chk = ttk.Checkbutton(self.matrix_frame, variable=var)
                 chk.grid(row=row+1, column=col+1, padx=5, pady=2)
                 self.plot_vars[ds_name][dtype] = var
+                self.checkbox_widgets.append(chk)
+
+    def destroy_plot_checkboxes(self):
+        """Destroy all checkbox and label widgets."""
+        for widget in self.checkbox_widgets:
+            widget.destroy()
+        self.checkbox_widgets = []
+
         
     def refresh_data(self):
-        """Refresh dataset names from self.disspecs and reset checkboxes"""
+        """Refresh dataset names from self.disspecs and rebuild the checkbox matrix."""
         if not self.disspecs:
             print("No spectral data available (disspecs is empty)")
-            # testing: print all keys of self.disspecs
-            print(f"Available datasets in disspecs: {list(self.disspecs.keys())}")
+            # even if empty, we should clear the old view
+            self.dataset_names = []
+            self.plot_vars = {}
+            self.build_plot_checkbox()
             return
         
-        # Reset all checkboxes to False
-        for ds in self.plot_vars:
-            for dtype in self.plot_vars[ds]:
-                self.plot_vars[ds][dtype].set(False)
+        # Update dataset names and reset plot variables
+        self.dataset_names = list(self.disspecs.keys())
+        self.plot_vars = {}
         
-        print(f"Data refreshed from {len(self.disspecs)} datasets")
+        # Rebuild the checkboxes
+        self.build_plot_checkbox()
+        
+        print(f"Data refreshed. Found {len(self.dataset_names)} datasets.")
 
     def select_all_specs(self):
         """Set all checkboxes to True"""
@@ -319,7 +341,7 @@ class Specplottergui:
             'y_min': tk.StringVar(value='Auto'),
             'y_max': tk.StringVar(value='Auto'),
             'x_tick': tk.StringVar(value='50'),
-            'y_tick': tk.StringVar(value='0.2'),
+            'y_tick': tk.StringVar(value='100'),
             'label_font_size': tk.StringVar(value='24'),
             'tick_font_size': tk.StringVar(value='22'),
             'legend_font_size': tk.StringVar(value='22'),

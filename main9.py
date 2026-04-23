@@ -828,12 +828,22 @@ class FileProcessorApp:
         # Load the state
         success = self.Nanomap.load_state(filename)
 
-        
         if success:
             print("Success", f"Data loaded successfully from:\n{filename}")
             # Update the entry field
             self.loadhsipath.set(filename)
             self.Nanomap.update_after_load()
+            
+            # Create Exporter
+            self.Exporter = xplib.Exportframe(self.nodeframes['HSI Plot'], self.Nanomap)
+            # build the Plot Spectra notebook
+            self.Specplotter = plotspecs.Specplottergui(
+                Specdata={}, 
+                Specdiffsets={}, 
+                guiroot=self.nodeframes['Plot Spectra'],
+                disspecs=self.Nanomap.disspecs
+                )
+
         else:
             print("Error", "Failed to load data. Check console for details.")
 
