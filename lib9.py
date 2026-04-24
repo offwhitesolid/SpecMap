@@ -24,6 +24,8 @@ import error_handler  # Centralized error handling and logging
 import hsi_normalization  # HSI normalization module
 import memory_tracker  # Memory tracking and logging
 import copy, roihandler
+import traceback
+
 
 SpectDataFloats = ['Slit Width (µm)', 'Central Wavelength (nm)',
                    'Cooling Temperature (°C)',
@@ -591,7 +593,7 @@ class XYMap:
         roivistypeselect.grid(row=8, column=0)
 
         # entry to enter, what roi (indicees 1,2,3 should be plotted at once, use colors 1,2,3 for that)
-        tk.Label(frame, text="Plot ROI indices (e.g. 1,2,3)").grid(row=9, column=0)
+        tk.Label(frame, text="Plot ROI indices (e.g. 0,1,2)").grid(row=9, column=0)
         self.roi_plot_indices_entry = tk.Entry(frame)
         self.roi_plot_indices_entry.grid(row=10, column=0)
         # button to plot multiple rois with different colors on selected HSI
@@ -763,20 +765,23 @@ class XYMap:
             # Get the PMclass object
             pm_obj = self.PMdict[hsi_name]
             pixmatrix = pm_obj.PixMatrix
-            
-            # Get ROI indices to plot
-            roi_indices_str = self.roi_plot_indices_entry.get().split(',')
-            if not roi_indices_str:
-                print('Error: No ROI indices entered. Please enter indices separated by commas (e.g., 1,2,3).')
-                return
-            
-            roi_indices = []
-            for i in range(len(roi_indices_str)):
-                try: 
-                    roi_indices.append(int(roi_indices_str[i].strip())) # split by comma and take first part, then convert to int
-                except Exception as e:
-                    print(f'Error parsing ROI index "{roi_indices[i]}": {e}. Skipping this index.')
-            roibynames = roihandler.roiindicees2roinames(self.roihandler, roi_indices)
+
+            if self.roi_plot_indices_entry.get().strip() == '': # if entry is empty, plot all rois
+                roibynames = list(self.roihandler.roilist.keys()) # if no indices entered, plot all rois
+            else:
+                # Get ROI indices to plot
+                roi_indices_str = self.roi_plot_indices_entry.get().split(',')
+                if not roi_indices_str:
+                    print('Error: No ROI indices entered. Please enter indices separated by commas (e.g., 1,2,3).')
+                    return
+                
+                roi_indices = []
+                for i in range(len(roi_indices_str)):
+                    try: 
+                        roi_indices.append(int(roi_indices_str[i].strip())) # split by comma and take first part, then convert to int
+                    except Exception as e:
+                        print(f'Error parsing ROI index "{roi_indices[i]}": {e}. Skipping this index.')
+                roibynames = roihandler.roiindicees2roinames(self.roihandler, roi_indices)
             
             # Get selected color for each ROI (cycle through colors if more ROIs than colors)
             color_options = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta']
@@ -796,12 +801,10 @@ class XYMap:
                 plotmodes,
                 colors,
                 fontsize=self.defentries.get('roi_plot_fontsize', 14), 
-                colormap=self.colormap.get()
             )
         
         except Exception as e:
             print(f'Error plotting multiple ROIs on HSI: {e}')
-            import traceback
             traceback.print_exc()
 
     def plot_hsi_with_options(self):

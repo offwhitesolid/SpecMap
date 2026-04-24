@@ -76,7 +76,6 @@ class Roihandler():
                 self.roi_points.clear()
                 self.clear_roi_lines()
                 # Keep roi_mode = True to allow immediate painting of next ROI
-                print(len(self.roilist))
                 plt.draw()
             else:
                 # Not enough points, just clear and stay in painting mode
@@ -255,7 +254,6 @@ def roiindicees2roinames(handler, indicees):
         if idx < len(handler.roilist):
             roinames.append(list(handler.roilist.keys())[idx])
     return roinames
-
 
 if __name__ == "__main__":
     test_roionpixmatrix()

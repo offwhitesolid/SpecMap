@@ -4,6 +4,8 @@ import numpy as np
 import tkinter as tk
 from tkinter import ttk
 import deflib1 as deflib
+import traceback
+
 
 class Specplottergui:
     # Fallback defaults in case file reading fails
@@ -223,8 +225,6 @@ class Specplottergui:
         # Rebuild the checkboxes
         self.build_plot_checkbox()
         
-        print(f"Data refreshed. Found {len(self.dataset_names)} datasets.")
-
     def select_all_specs(self):
         """Set all checkboxes to True"""
         for ds in self.plot_vars:
@@ -490,12 +490,9 @@ class Specplottergui:
             
             plt.tight_layout()
             plt.show()
-            
-            print(f"Plotted {len(self.selected_plots)} spectra")
-            
+                        
         except Exception as e:
             print(f"Error creating plot: {e}")
-            import traceback
             traceback.print_exc()
     
     
