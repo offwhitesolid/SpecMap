@@ -540,7 +540,7 @@ class XYMap:
 
     def build_roi_frame(self, parframe, PMname='HSI0'):
         if not hasattr(self, 'roihandler'):
-            self.roihandler = roihandler.Roihandler()#self)
+            self.roihandler = roihandler.Roihandler(cmap=self.colormap.get())#self)
         self.roisel = tk.StringVar()
 
         frame = tk.Frame(parframe, border=5, relief="raised")
@@ -561,11 +561,11 @@ class XYMap:
                 self.roiselgui.set(list(self.roihandler.roilist.keys())[-1])
 
         try:
-            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui, cmap=self.colormap.get()))
+            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
         except: # select first HSI
             print('HSI selection failed. Selecting first HSI.')
             self.hsiselect.set(str(list(self.PMdict.keys())[0]))
-            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui, cmap=self.colormap.get()))
+            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
         b1.grid(row=2, column=0)
         b2 = tk.Button(frame, text="plot ROI", command= lambda: self.roihandler.plotroi())
         b2.grid(row=3, column=0)
@@ -581,7 +581,6 @@ class XYMap:
             self.roisel.get(), 
             vis_type=roivistypeselect.get(), 
             color=roicolor.get(),
-            cmap=self.colormap.get(),
             title=self._get_hsi_title(self.hsiselect.get()))
             )
         b_roi_hsi.grid(row=6, column=0)

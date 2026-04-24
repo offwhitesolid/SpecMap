@@ -6,13 +6,16 @@ from matplotlib.colors import to_rgba
 import deflib1 as deflib
 
 class Roihandler():
-    def __init__(self, roilist={}, pixmatrix=[[]]):
+    def __init__(self, roilist={}, pixmatrix=[[]], cmap='viridis'):
         self.roi_mode = True
         self.roi_points = []
         self.roi_lines = []
         self.fig = None
         self.roilist = roilist
         self.pixmatrix = pixmatrix
+        if cmap not in plt.colormaps():
+            cmap = 'viridis' 
+        self.cmap = cmap
         self.pixmatrix = np.transpose(self.pixmatrix)
         # loading init
         self.construct_roiselgui()
@@ -21,15 +24,13 @@ class Roihandler():
         if roiselgui is not None:
             self.roiselgui = roiselgui
 
-    def construct(self, pixmatrix, roiselgui, cmap='viridis'):
+    def construct(self, pixmatrix, roiselgui):
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
         self.roiselgui = roiselgui
         self.fig, self.ax = plt.subplots()
         self.fig.subplots_adjust(right=0.89)# distance on right side for buttons
-        if cmap not in plt.colormaps():
-            cmap = 'viridis'
-        self.ax.imshow(pixmatrix, cmap=cmap)
+        self.ax.imshow(pixmatrix, cmap=self.cmap)
         # plt.axess([left, bottom, width, height])
         self.ax_button_toggle = plt.axes((0.89, 0.95, 0.1, 0.05))
         self.button_toggle = Button(self.ax_button_toggle, 'Save ROI')
@@ -64,7 +65,7 @@ class Roihandler():
                 newroi = deflib.highlight_roi(self.pixmatrix, self.roi_points)
                 # transpose newroi
                 self.roilist[new_roi_name] = newroi
-                cax = ax.imshow(newroi, cmap='viridis')
+                cax = ax.imshow(newroi, cmap=self.cmap)
                 # add colorbar to the plot
                 cbar = fig.colorbar(cax, ax=ax)
 
@@ -118,7 +119,7 @@ class Roihandler():
         # get selection of self.roiselgui
         roi = self.roilist[self.roiselgui.get()]
         fig, ax = plt.subplots()
-        cax = ax.imshow(roi, cmap='viridis')
+        cax = ax.imshow(roi, cmap=self.cmap)
         cbar = fig.colorbar(cax, ax=ax)
         cbar.set_label('ROI', fontsize=fontsize)
         cbar.ax.tick_params(labelsize=fontsize)
@@ -161,11 +162,11 @@ class Roihandler():
         
         # Create a custom colormap that goes from transparent to the specified color
         # Create colormap: 0 is transparent, any positive value is the color with alpha
-        cmap_colors = [rgba_color]
-        cmap = ListedColormap(cmap_colors)
+        ccmap_colors = [rgba_color]
+        ccmap = ListedColormap(ccmap_colors)
         
         # Normalize the ROI values to use the colormap
-        ax.imshow(masked_roi, cmap=cmap, alpha=alpha)
+        ax.imshow(masked_roi, cmap=ccmap, alpha=alpha)
 
     def _draw_cornerlines(self, ax, roi, color='red'):
         # Outline the exact shape of the ROI connecting its boundaries/corners
@@ -174,7 +175,7 @@ class Roihandler():
         Y, X = np.indices(clean_roi.shape)
         ax.contour(X, Y, clean_roi, levels=[0.5], colors=[color], linewidths=3)
 
-    def plot_roi_on_pixmatrix(self, pixmatrix, roiname, vis_type='overlay', color='red', fontsize=12, cmap='viridis', title=None):
+    def plot_roi_on_pixmatrix(self, pixmatrix, roiname, vis_type='overlay', color='red', fontsize=12, title=None):
         vis_funcs = {
             'overlay': self._draw_overlay,
             'cornerlines': self._draw_cornerlines
@@ -186,7 +187,7 @@ class Roihandler():
             
             # Display pixelmatrix as background using standard or passed colormap
             #img = ax.imshow(np.transpose(pixmatrix), cmap='viridis')
-            img = ax.imshow(pixmatrix, cmap=cmap)
+            img = ax.imshow(pixmatrix, cmap=self.cmap)
             fig.colorbar(img, ax=ax, label='Intensity')
             
             # Apply the selected visualization function
@@ -205,14 +206,14 @@ class Roihandler():
         else:
             print(f"ROI '{roiname}' not found.")
     
-    def plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14, colormap='viridis'):
+    def plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14):
         vis_funcs = {
             'overlay': self._draw_overlay,
             'cornerlines': self._draw_cornerlines
         }
         #display pixmatrix as background using standard colormap before plotting any rois, so it doesn't get overwritten by the rois
         fig, ax = plt.subplots()
-        img = ax.imshow(pixmatrix, cmap=colormap)
+        img = ax.imshow(pixmatrix, cmap=self.cmap)
         fig.colorbar(img, ax=ax, label='Intensity')
         for roiname, plotmode, color in zip(roinames, plotmodes, colors):
             if roiname in handler.roilist:
