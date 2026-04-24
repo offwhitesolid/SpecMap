@@ -1116,7 +1116,17 @@ class XYMap:
         # average all HSI to a single SpectrumData
         self.hsiselected = self.hsiselect.get()
         # get wlstart and wlend from self.hsiselected
-        self.updatewl()
+        meta = getattr(self.PMdict[self.hsiselected], 'metadata', {})
+        if not isinstance(meta, dict):
+            meta = {}
+            
+        if 'wlstart' in meta and 'wlend' in meta and 'aqpixstart' in meta and 'aqpixend' in meta:
+            self.wlstart = meta['wlstart']
+            self.wlend = meta['wlend']
+            self.aqpixstart = meta['aqpixstart']
+            self.aqpixend = meta['aqpixend']
+        else:
+            self.updatewl()
         
         # Get selected data source
         data_source_name = self.selectspecbox.get()
@@ -1211,7 +1221,17 @@ class XYMap:
         
         # Get current HSI selection
         self.hsiselected = self.hsiselect.get()
-        self.updatewl()
+        meta = getattr(self.PMdict[self.hsiselected], 'metadata', {})
+        if not isinstance(meta, dict):
+            meta = {}
+            
+        if 'wlstart' in meta and 'wlend' in meta and 'aqpixstart' in meta and 'aqpixend' in meta:
+            self.wlstart = meta['wlstart']
+            self.wlend = meta['wlend']
+            self.aqpixstart = meta['aqpixstart']
+            self.aqpixend = meta['aqpixend']
+        else:
+            self.updatewl()
         
         # Prepare metadata
         base_metadata = {
