@@ -21,13 +21,15 @@ class Roihandler():
         if roiselgui is not None:
             self.roiselgui = roiselgui
 
-    def construct(self, pixmatrix, roiselgui):
+    def construct(self, pixmatrix, roiselgui, cmap='viridis'):
         self.pixmatrix = pixmatrix
         self.pixmatrix = np.transpose(self.pixmatrix)
         self.roiselgui = roiselgui
         self.fig, self.ax = plt.subplots()
         self.fig.subplots_adjust(right=0.89)# distance on right side for buttons
-        self.ax.imshow(pixmatrix, cmap='viridis')
+        if cmap not in plt.colormaps():
+            cmap = 'viridis'
+        self.ax.imshow(pixmatrix, cmap=cmap)
         # plt.axess([left, bottom, width, height])
         self.ax_button_toggle = plt.axes((0.89, 0.95, 0.1, 0.05))
         self.button_toggle = Button(self.ax_button_toggle, 'Save ROI')
@@ -203,14 +205,14 @@ class Roihandler():
         else:
             print(f"ROI '{roiname}' not found.")
     
-    def plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14):
+    def plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14, colormap='viridis'):
         vis_funcs = {
             'overlay': self._draw_overlay,
             'cornerlines': self._draw_cornerlines
         }
         #display pixmatrix as background using standard colormap before plotting any rois, so it doesn't get overwritten by the rois
         fig, ax = plt.subplots()
-        img = ax.imshow(pixmatrix, cmap='viridis')
+        img = ax.imshow(pixmatrix, cmap=colormap)
         fig.colorbar(img, ax=ax, label='Intensity')
         for roiname, plotmode, color in zip(roinames, plotmodes, colors):
             if roiname in handler.roilist:

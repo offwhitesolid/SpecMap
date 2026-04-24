@@ -561,11 +561,11 @@ class XYMap:
                 self.roiselgui.set(list(self.roihandler.roilist.keys())[-1])
 
         try:
-            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
+            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui, cmap=self.colormap.get()))
         except: # select first HSI
             print('HSI selection failed. Selecting first HSI.')
             self.hsiselect.set(str(list(self.PMdict.keys())[0]))
-            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui))
+            b1 = tk.Button(frame, text="ROI Editing last Selection", command= lambda: self.roihandler.construct(self.PMdict[self.hsiselect.get()].PixMatrix, self.roiselgui, cmap=self.colormap.get()))
         b1.grid(row=2, column=0)
         b2 = tk.Button(frame, text="plot ROI", command= lambda: self.roihandler.plotroi())
         b2.grid(row=3, column=0)
@@ -796,7 +796,8 @@ class XYMap:
                 roibynames, 
                 plotmodes,
                 colors,
-                fontsize=self.defentries.get('roi_plot_fontsize', 14)
+                fontsize=self.defentries.get('roi_plot_fontsize', 14), 
+                colormap=self.colormap.get()
             )
         
         except Exception as e:
