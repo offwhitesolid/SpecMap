@@ -357,7 +357,18 @@ class XYMap:
         # average all HSI to a single SpectrumData
         self.hsiselected = self.hsiselect.get()
         # get wlstart and wlend from self.hsiselected
-        self.updatewl()
+        meta = getattr(self.PMdict[self.hsiselected], 'metadata', {})
+        if not isinstance(meta, dict):
+            meta = {}
+            
+        if 'wlstart' in meta and 'wlend' in meta and 'aqpixstart' in meta and 'aqpixend' in meta:
+            self.wlstart = meta['wlstart']
+            self.wlend = meta['wlend']
+            self.aqpixstart = meta['aqpixstart']
+            self.aqpixend = meta['aqpixend']
+        else:
+            self.updatewl()
+            
         # update wlstart and wlend entries on GUI
         metadata = {'wlstart': self.wlstart, 'wlend': self.wlend, 'countthresh': self.countthreshv, 'aqpixstart': self.aqpixstart, 'aqpixend': self.aqpixend}
         WL = self.WL[self.aqpixstart: self.aqpixend]
