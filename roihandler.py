@@ -252,9 +252,18 @@ def test_roionpixmatrix():
 
 def roiindicees2roinames(handler, indicees):
     roinames = []
+    # match ROIs by "roiX" substring dynamically
+    import re
     for idx in indicees:
-        if idx < len(handler.roilist):
-            roinames.append(list(handler.roilist.keys())[idx])
+        pattern = re.compile(rf"^roi{idx}(?:\s|\(|$)")
+        matched = False
+        for key in handler.roilist.keys():
+            if pattern.match(key):
+                roinames.append(key)
+                matched = True
+                break
+        if not matched:
+            print(f"Warning: No ROI found matching index '{idx}' (expected 'roi{idx}...')")
     return roinames
 
 if __name__ == "__main__":

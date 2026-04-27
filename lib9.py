@@ -593,7 +593,7 @@ class XYMap:
         roivistypeselect.grid(row=8, column=0)
 
         # entry to enter, what roi (indicees 1,2,3 should be plotted at once, use colors 1,2,3 for that)
-        tk.Label(frame, text="Plot ROI indices (e.g. 0,1,2)").grid(row=9, column=0)
+        tk.Label(frame, text="Plot ROI indices (e.g. 1,2,3)").grid(row=9, column=0)
         self.roi_plot_indices_entry = tk.Entry(frame)
         self.roi_plot_indices_entry.grid(row=10, column=0)
         # button to plot multiple rois with different colors on selected HSI
