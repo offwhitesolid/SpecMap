@@ -58,11 +58,13 @@ class Roihandler():
                                 max_n = n
                         except ValueError:
                             pass
-                new_roi_name = f'roi{max_n + 1}'
-                
                 for i in range(len(self.roi_points)):
                     self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
                 newroi = deflib.highlight_roi(self.pixmatrix, self.roi_points)
+                
+                num_pixels = int(np.nansum(newroi))
+                new_roi_name = f'roi{max_n + 1} ({num_pixels} px)'
+                
                 # transpose newroi
                 self.roilist[new_roi_name] = newroi
                 cax = ax.imshow(newroi, cmap=self.cmap)

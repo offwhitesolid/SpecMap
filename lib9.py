@@ -1401,8 +1401,12 @@ class XYMap:
                     print(f"Error calculating derivatives for averaged spectrum: {e}")
             
             # Create a descriptive name for this averaged spectrum
-            # Format: HSI0_PLB_avg, HSI0_Specdiff1_avg, etc.
-            spec_name = f"{self.hsiselected}_{data_key}_avg"
+            import re
+            match = re.search(r'(.*)(\(roi\d+\))(.*)$', self.hsiselected)
+            if match:
+                spec_name = f"{match.group(1)}_{data_key}_avg{match.group(2)}{match.group(3)}"
+            else:
+                spec_name = f"{self.hsiselected}_{data_key}_avg"
             
             # Store in disspecs
             self.disspecs[spec_name] = new_spec
@@ -1421,19 +1425,26 @@ class XYMap:
         return generated_spectra
     
     def createdisspecname(self): # create a new spectral data name
+        import re
         HSIname = self.hsiselect.get()
         if HSIname == '':
-            specname = 'SpectrumData'
+            base_name = 'SpectrumData'
+            roi_suffix = ''
         else: 
-            specname = HSIname
+            match = re.search(r'(.*)(\(roi\d+\))(.*)$', HSIname)
+            if match:
+                base_name = match.group(1)
+                roi_suffix = match.group(2) + match.group(3)
+            else:
+                base_name = HSIname
+                roi_suffix = ''
 
-        if len(self.disspecs) == 0:
-            specname = f'{specname}0'#'SpectrumData0'
-        else:
-            i = 0
-            while '{}{}'.format(specname, i) in self.disspecs.keys():
-                i += 1
-            specname = '{}{}'.format(specname, i)
+        i = 0
+        specname = f"{base_name}{i}{roi_suffix}"
+        while specname in self.disspecs.keys():
+            i += 1
+            specname = f"{base_name}{i}{roi_suffix}"
+            
         return specname 
     
     def saveSpectrum(self, specname):
@@ -3050,19 +3061,19 @@ class XYMap:
             print('No ROI found. Cannot create HSI.')
             return
         else: 
-            roi = self.roihandler.roilist[self.roiselgui.get()]
+            roi_key = self.roiselgui.get()
+            roi = self.roihandler.roilist[roi_key]
             
-            # Get suffix from selected data set (Select Data Set)
-            suffix = ""
-            if hasattr(self, 'selectspecpixbox'):
-                val = self.selectspecpixbox.get()
-                # Use short code from speckeys if available, else sanitize value
-                short_code = self.speckeys.get(val, val)
-                suffix = f"_{short_code}".replace(" ", "_").replace("(", "").replace(")", "")
+            roi_base = roi_key.split(' ')[0]
+            base_name = self.hsiselect.get()
+            new_hsi_name_base = f"{base_name}({roi_base})"
             
-            # Use counter to ensure unique HSI name for this ROI-based HSI
-            new_hsi_name = f"HSI{self._hsi_counter}{suffix}"
-            self._hsi_counter += 1
+            new_hsi_name = new_hsi_name_base
+            i = 1
+            while new_hsi_name in self.PMdict:
+                new_hsi_name = f"{new_hsi_name_base}_{i}"
+                i += 1
+                
         # Create new PixMatrix more efficiently - only copy the matrix data, not the entire object
         source_pm = self.PMdict[self.hsiselect.get()]
         # Create a copy of just the matrix data, apply ROI mask
