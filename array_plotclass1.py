@@ -507,8 +507,8 @@ class PlotHSI:
         wl0 = wl1 = None
         try:
             if self.metadata and 'wlstart' in self.metadata and 'wlend' in self.metadata:
-                wl0 = float(self.metadata['wlstart'])
-                wl1 = float(self.metadata['wlend'])
+                wl0 = round(float(self.metadata['wlstart']), 1)
+                wl1 = round(float(self.metadata['wlend']), 1)
                 extent = (wl0, wl1, 0, self.data.shape[0])
         except Exception:
             pass
@@ -1080,8 +1080,8 @@ def plot_HSI(data, metadata=None, cmap='twilight', vmin=None, vmax=None,
     wl0 = wl1 = None
     try:
         if metadata is not None and 'wlstart' in metadata and 'wlend' in metadata:
-            wl0 = float(metadata['wlstart'])
-            wl1 = float(metadata['wlend'])
+            wl0 = round(float(metadata['wlstart']), 1)
+            wl1 = round(float(metadata['wlend']), 1)
             ncols = data.shape[1]
             extent = (wl0, wl1, 0, data.shape[0])
     except Exception:

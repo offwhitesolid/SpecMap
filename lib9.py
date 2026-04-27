@@ -328,8 +328,8 @@ class XYMap:
         
         # Initialize data ranges
         if len(self.WL) > 0 and len(self.specs) > 0:
-            self.DataSpecMin = np.amin(self.WL)                             # Spectrum Start
-            self.DataSpecMax = np.amax(self.WL[-1])                         # Spectrum End
+            self.DataSpecMin = round(float(np.amin(self.WL)), 1)                             # Spectrum Start
+            self.DataSpecMax = round(float(np.amax(self.WL[-1])), 1)                         # Spectrum End
             self.DataSpecdL = self.specs[0].data['Delta Wavelength (nm)']   # delta Lambda
         else:
             self.DataSpecMin = 0
@@ -435,41 +435,41 @@ class XYMap:
     # Spectral Plot Input Update
     def updatewl(self):
         try:
-            self.wlstart = float(self.proc_spec_min.get())
-            self.wlend = float(self.proc_spec_max.get())
+            self.wlstart = round(float(self.proc_spec_min.get()), 1)
+            self.wlend = round(float(self.proc_spec_max.get()), 1)
         except Exception as e:
             print("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
         passt = False
         if self.wlstart > self.wlend:
             print('ERROR', 'Lowest Wavelength must be smaller than Highest Wavelength! Reconsider Input!')
-            self.wlstart = self.DataSpecMin
+            self.wlstart = round(float(self.DataSpecMin), 1)
             self.proc_spec_min.delete(0, tk.END)
-            self.proc_spec_min.insert(0, self.DataSpecMin)
-            self.wlend = self.DataSpecMax
+            self.proc_spec_min.insert(0, str(self.wlstart))
+            self.wlend = round(float(self.DataSpecMax), 1)
             self.proc_spec_max.delete(0, tk.END)
-            self.proc_spec_max.insert(0, self.DataSpecMax)
+            self.proc_spec_max.insert(0, str(self.wlend))
         elif self.wlstart < self.DataSpecMin:
             passt = True
             print('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
-            self.wlstart = self.DataSpecMin
+            self.wlstart = round(float(self.DataSpecMin), 1)
             self.proc_spec_min.delete(0, tk.END)
-            self.proc_spec_min.insert(0, self.DataSpecMin)
+            self.proc_spec_min.insert(0, str(self.wlstart))
             if self.wlend > self.DataSpecMax:
                 print('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
-                self.wlend = self.DataSpecMax
+                self.wlend = round(float(self.DataSpecMax), 1)
                 self.proc_spec_max.delete(0, tk.END)
-                self.proc_spec_max.insert(0, self.DataSpecMax)
+                self.proc_spec_max.insert(0, str(self.wlend))
         elif self.wlend > self.DataSpecMax:
             passt = True
             print('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
-            self.wlend = self.DataSpecMax
+            self.wlend = round(float(self.DataSpecMax), 1)
             self.proc_spec_max.delete(0, tk.END)
-            self.proc_spec_max.insert(0, self.DataSpecMax)
+            self.proc_spec_max.insert(0, str(self.wlend))
             if self.wlstart < self.DataSpecMin:
                 print('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
-                self.wlstart = self.DataSpecMin
+                self.wlstart = round(float(self.DataSpecMin), 1)
                 self.proc_spec_min.delete(0, tk.END)
-                self.proc_spec_min.insert(0, self.DataSpecMin)
+                self.proc_spec_min.insert(0, str(self.wlstart))
         else:
             passt = True
         if passt == True:
@@ -490,13 +490,13 @@ class XYMap:
     # min and max wl can be inserted here for preceed window
     def buildMinMaxSpec(self, frame):
         # ProcSpecMin input field
-        tk.Label(frame, text="Lowest wavelength \\ nm\nMinimum: {} nm".format(self.DataSpecMin)).grid(row=0, column=0)
+        tk.Label(frame, text="Lowest wavelength \\ nm\nMinimum: {:.1f} nm".format(float(self.DataSpecMin))).grid(row=0, column=0)
         self.proc_spec_min = tk.Entry(frame)
         self.proc_spec_min.grid(row=1, column=0)
         self.proc_spec_min.insert(0, self.defentries['lowest_wavelength'])
 
         # ProcSpecMax input field
-        tk.Label(frame, text="Highest wavelength \\ nm\nMaximum: {} nm".format(self.DataSpecMax)).grid(row=2, column=0)
+        tk.Label(frame, text="Highest wavelength \\ nm\nMaximum: {:.1f} nm".format(float(self.DataSpecMax))).grid(row=2, column=0)
         self.proc_spec_max = tk.Entry(frame)
         self.proc_spec_max.grid(row=3, column=0)
         self.proc_spec_max.insert(0, self.defentries['highest_wavelength'])
