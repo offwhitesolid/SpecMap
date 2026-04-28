@@ -328,8 +328,8 @@ class XYMap:
         
         # Initialize data ranges
         if len(self.WL) > 0 and len(self.specs) > 0:
-            self.DataSpecMin = np.amin(self.WL)                             # Spectrum Start
-            self.DataSpecMax = np.amax(self.WL[-1])                         # Spectrum End
+            self.DataSpecMin = round(float(np.amin(self.WL)), 1)                             # Spectrum Start
+            self.DataSpecMax = round(float(np.amax(self.WL[-1])), 1)                         # Spectrum End
             self.DataSpecdL = self.specs[0].data['Delta Wavelength (nm)']   # delta Lambda
         else:
             self.DataSpecMin = 0
@@ -435,41 +435,41 @@ class XYMap:
     # Spectral Plot Input Update
     def updatewl(self):
         try:
-            self.wlstart = float(self.proc_spec_min.get())
-            self.wlend = float(self.proc_spec_max.get())
+            self.wlstart = round(float(self.proc_spec_min.get()), 1)
+            self.wlend = round(float(self.proc_spec_max.get()), 1)
         except Exception as e:
             print("Error", '{} Insert valid spectral Borders of type float.'.format(str(e)))
         passt = False
         if self.wlstart > self.wlend:
             print('ERROR', 'Lowest Wavelength must be smaller than Highest Wavelength! Reconsider Input!')
-            self.wlstart = self.DataSpecMin
+            self.wlstart = round(float(self.DataSpecMin), 1)
             self.proc_spec_min.delete(0, tk.END)
-            self.proc_spec_min.insert(0, self.DataSpecMin)
-            self.wlend = self.DataSpecMax
+            self.proc_spec_min.insert(0, str(self.wlstart))
+            self.wlend = round(float(self.DataSpecMax), 1)
             self.proc_spec_max.delete(0, tk.END)
-            self.proc_spec_max.insert(0, self.DataSpecMax)
+            self.proc_spec_max.insert(0, str(self.wlend))
         elif self.wlstart < self.DataSpecMin:
             passt = True
             print('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
-            self.wlstart = self.DataSpecMin
+            self.wlstart = round(float(self.DataSpecMin), 1)
             self.proc_spec_min.delete(0, tk.END)
-            self.proc_spec_min.insert(0, self.DataSpecMin)
+            self.proc_spec_min.insert(0, str(self.wlstart))
             if self.wlend > self.DataSpecMax:
                 print('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
-                self.wlend = self.DataSpecMax
+                self.wlend = round(float(self.DataSpecMax), 1)
                 self.proc_spec_max.delete(0, tk.END)
-                self.proc_spec_max.insert(0, self.DataSpecMax)
+                self.proc_spec_max.insert(0, str(self.wlend))
         elif self.wlend > self.DataSpecMax:
             passt = True
             print('ERROR', 'Lowest Wavelength is below data WL. Set WL to highest datapoint.')
-            self.wlend = self.DataSpecMax
+            self.wlend = round(float(self.DataSpecMax), 1)
             self.proc_spec_max.delete(0, tk.END)
-            self.proc_spec_max.insert(0, self.DataSpecMax)
+            self.proc_spec_max.insert(0, str(self.wlend))
             if self.wlstart < self.DataSpecMin:
                 print('ERROR', 'Lowest Wavelength is below data WL. Set WL to lowest datapoint.')
-                self.wlstart = self.DataSpecMin
+                self.wlstart = round(float(self.DataSpecMin), 1)
                 self.proc_spec_min.delete(0, tk.END)
-                self.proc_spec_min.insert(0, self.DataSpecMin)
+                self.proc_spec_min.insert(0, str(self.wlstart))
         else:
             passt = True
         if passt == True:
@@ -490,13 +490,13 @@ class XYMap:
     # min and max wl can be inserted here for preceed window
     def buildMinMaxSpec(self, frame):
         # ProcSpecMin input field
-        tk.Label(frame, text="Lowest wavelength \\ nm\nMinimum: {} nm".format(self.DataSpecMin)).grid(row=0, column=0)
+        tk.Label(frame, text="Lowest wavelength \\ nm\nMinimum: {:.1f} nm".format(float(self.DataSpecMin))).grid(row=0, column=0)
         self.proc_spec_min = tk.Entry(frame)
         self.proc_spec_min.grid(row=1, column=0)
         self.proc_spec_min.insert(0, self.defentries['lowest_wavelength'])
 
         # ProcSpecMax input field
-        tk.Label(frame, text="Highest wavelength \\ nm\nMaximum: {} nm".format(self.DataSpecMax)).grid(row=2, column=0)
+        tk.Label(frame, text="Highest wavelength \\ nm\nMaximum: {:.1f} nm".format(float(self.DataSpecMax))).grid(row=2, column=0)
         self.proc_spec_max = tk.Entry(frame)
         self.proc_spec_max.grid(row=3, column=0)
         self.proc_spec_max.insert(0, self.defentries['highest_wavelength'])
@@ -593,7 +593,7 @@ class XYMap:
         roivistypeselect.grid(row=8, column=0)
 
         # entry to enter, what roi (indicees 1,2,3 should be plotted at once, use colors 1,2,3 for that)
-        tk.Label(frame, text="Plot ROI indices (e.g. 0,1,2)").grid(row=9, column=0)
+        tk.Label(frame, text="Plot ROI indices (e.g. 1,2,3)").grid(row=9, column=0)
         self.roi_plot_indices_entry = tk.Entry(frame)
         self.roi_plot_indices_entry.grid(row=10, column=0)
         # button to plot multiple rois with different colors on selected HSI
@@ -1401,8 +1401,12 @@ class XYMap:
                     print(f"Error calculating derivatives for averaged spectrum: {e}")
             
             # Create a descriptive name for this averaged spectrum
-            # Format: HSI0_PLB_avg, HSI0_Specdiff1_avg, etc.
-            spec_name = f"{self.hsiselected}_{data_key}_avg"
+            import re
+            match = re.search(r'(.*)(\(roi\d+\))(.*)$', self.hsiselected)
+            if match:
+                spec_name = f"{match.group(1)}_{data_key}_avg{match.group(2)}{match.group(3)}"
+            else:
+                spec_name = f"{self.hsiselected}_{data_key}_avg"
             
             # Store in disspecs
             self.disspecs[spec_name] = new_spec
@@ -1421,19 +1425,26 @@ class XYMap:
         return generated_spectra
     
     def createdisspecname(self): # create a new spectral data name
+        import re
         HSIname = self.hsiselect.get()
         if HSIname == '':
-            specname = 'SpectrumData'
+            base_name = 'SpectrumData'
+            roi_suffix = ''
         else: 
-            specname = HSIname
+            match = re.search(r'(.*)(\(roi\d+\))(.*)$', HSIname)
+            if match:
+                base_name = match.group(1)
+                roi_suffix = match.group(2) + match.group(3)
+            else:
+                base_name = HSIname
+                roi_suffix = ''
 
-        if len(self.disspecs) == 0:
-            specname = f'{specname}0'#'SpectrumData0'
-        else:
-            i = 0
-            while '{}{}'.format(specname, i) in self.disspecs.keys():
-                i += 1
-            specname = '{}{}'.format(specname, i)
+        i = 0
+        specname = f"{base_name}{i}{roi_suffix}"
+        while specname in self.disspecs.keys():
+            i += 1
+            specname = f"{base_name}{i}{roi_suffix}"
+            
         return specname 
     
     def saveSpectrum(self, specname):
@@ -3050,19 +3061,19 @@ class XYMap:
             print('No ROI found. Cannot create HSI.')
             return
         else: 
-            roi = self.roihandler.roilist[self.roiselgui.get()]
+            roi_key = self.roiselgui.get()
+            roi = self.roihandler.roilist[roi_key]
             
-            # Get suffix from selected data set (Select Data Set)
-            suffix = ""
-            if hasattr(self, 'selectspecpixbox'):
-                val = self.selectspecpixbox.get()
-                # Use short code from speckeys if available, else sanitize value
-                short_code = self.speckeys.get(val, val)
-                suffix = f"_{short_code}".replace(" ", "_").replace("(", "").replace(")", "")
+            roi_base = roi_key.split(' ')[0]
+            base_name = self.hsiselect.get()
+            new_hsi_name_base = f"{base_name}({roi_base})"
             
-            # Use counter to ensure unique HSI name for this ROI-based HSI
-            new_hsi_name = f"HSI{self._hsi_counter}{suffix}"
-            self._hsi_counter += 1
+            new_hsi_name = new_hsi_name_base
+            i = 1
+            while new_hsi_name in self.PMdict:
+                new_hsi_name = f"{new_hsi_name_base}_{i}"
+                i += 1
+                
         # Create new PixMatrix more efficiently - only copy the matrix data, not the entire object
         source_pm = self.PMdict[self.hsiselect.get()]
         # Create a copy of just the matrix data, apply ROI mask

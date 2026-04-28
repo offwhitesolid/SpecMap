@@ -366,10 +366,80 @@ class Specplottergui:
             })
         
         # Plot each processed spectrum with configured options
-        for idx, plot_data in enumerate(processed_plots):
+        
+        # Sort plots by their configured order
+        if hasattr(self, 'series_options'):
+            for idx, plot_data in enumerate(processed_plots):
+                if idx in self.series_options:
+                    try:
+                        order_val = int(self.series_options[idx]['order'].get())
+                    except:
+                        order_val = idx + 1
+                    plot_data['order'] = order_val
+                else:
+                    plot_data['order'] = idx + 1
+                    
+            processed_plots.sort(key=lambda x: x['order'])
+            
+            # Create a lookup mapping from sorted position back to original idx
+            # so we can fetch the correct styles
+            # Wait, sorting processed_plots changes their indices but they correspond to original indices?
+            # Let's keep the original index inside the dict
+            for idx, plot_data in enumerate(self.selected_plots):
+                # add original index
+                pass
+                
+        # Re-populate processed plots with original indices
+        processed_plots = []
+        for orig_idx, plot_data in enumerate(self.selected_plots):
+            wl = np.array(plot_data['wl'])
+            data = np.array(plot_data['data'])
+            
+            # Apply normalization by point
+            if normalize_by_point:
+                # Find max point (or could be configurable)
+                max_idx = np.argmax(data)
+                norm_value = data[max_idx]
+                if norm_value != 0:
+                    data = data / norm_value
+            
+            # Apply normalization by max
+            elif normalize_by_max:
+                max_val = np.nanmax(np.abs(data))
+                if max_val != 0:
+                    data = data / max_val
+            
+            # Convert wavelength axis if needed
+            if use_nm_to_ev:
+                # Convert nm to eV using E = 1240 / lambda
+                wl = 1240.0 / wl
+                # Reverse the order since eV increases as nm decreases
+                wl = wl[::-1]
+                data = data[::-1]
+            
+            order_val = orig_idx + 1
+            if hasattr(self, 'series_options') and orig_idx in self.series_options:
+                try:
+                    order_val = int(self.series_options[orig_idx]['order'].get())
+                except:
+                    pass
+
+            processed_plots.append({
+                'orig_idx': orig_idx,
+                'order': order_val,
+                'wl': wl,
+                'data': data,
+                'dataset': plot_data['dataset'],
+                'datatype': plot_data['datatype']
+            })
+            
+        processed_plots.sort(key=lambda x: x['order'])
+
+        for plot_data in processed_plots:
+            orig_idx = plot_data['orig_idx']
             # Get custom options for this series
-            if hasattr(self, 'series_options') and idx in self.series_options:
-                options = self.series_options[idx]
+            if hasattr(self, 'series_options') and orig_idx in self.series_options:
+                options = self.series_options[orig_idx]
                 try:
                     line_thickness = float(options['line_thickness'].get())
                 except:
@@ -732,16 +802,25 @@ class Specplottergui:
         self.series_options = {}
         
         for idx, plot_data in enumerate(self.selected_plots):
-            title = f"Plot {idx + 1}: Wavelength (nm) vs {plot_data['dataset']} ({plot_data['datatype']})"
+            title = f"Plot "
             default_color = colors[idx % len(colors)]
             default_label = f"{plot_data['dataset']}-{plot_data['datatype']}"
-            self.series_options[idx] = self._create_series_row(self.series_container, title, default_color, default_label)
+            self.series_options[idx] = self._create_series_row(self.series_container, title, idx + 1, f": Wavelength (nm) vs {plot_data['dataset']} ({plot_data['datatype']})", default_color, default_label)
 
-    def _create_series_row(self, parent, title, default_color, default_label):
+    def _create_series_row(self, parent, title_prefix, plot_num, title_suffix, default_color, default_label):
         frame = ttk.Frame(parent)
         frame.pack(fill="x", pady=10)
         
-        ttk.Label(frame, text=title).grid(row=0, column=0, columnspan=16, sticky='w', pady=(0, 5))
+        title_frame = ttk.Frame(frame)
+        title_frame.grid(row=0, column=0, columnspan=16, sticky='w', pady=(0, 5))
+        
+        ttk.Label(title_frame, text=title_prefix).pack(side='left')
+        
+        e_order = ttk.Entry(title_frame, width=3)
+        e_order.pack(side='left')
+        e_order.insert(0, str(plot_num))
+        
+        ttk.Label(title_frame, text=title_suffix).pack(side='left')
         
         ttk.Label(frame, text="Line Thickness:").grid(row=1, column=0, padx=2)
         e_thick = ttk.Entry(frame, width=5)
@@ -779,6 +858,7 @@ class Specplottergui:
         
         # Return a dictionary of options for this series
         return {
+            'order': e_order,
             'line_thickness': e_thick,
             'line_color': e_col,
             'legend_label': e_leg,

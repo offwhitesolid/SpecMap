@@ -58,11 +58,13 @@ class Roihandler():
                                 max_n = n
                         except ValueError:
                             pass
-                new_roi_name = f'roi{max_n + 1}'
-                
                 for i in range(len(self.roi_points)):
                     self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
                 newroi = deflib.highlight_roi(self.pixmatrix, self.roi_points)
+                
+                num_pixels = int(np.nansum(newroi))
+                new_roi_name = f'roi{max_n + 1} ({num_pixels} px)'
+                
                 # transpose newroi
                 self.roilist[new_roi_name] = newroi
                 cax = ax.imshow(newroi, cmap=self.cmap)
@@ -250,9 +252,18 @@ def test_roionpixmatrix():
 
 def roiindicees2roinames(handler, indicees):
     roinames = []
+    # match ROIs by "roiX" substring dynamically
+    import re
     for idx in indicees:
-        if idx < len(handler.roilist):
-            roinames.append(list(handler.roilist.keys())[idx])
+        pattern = re.compile(rf"^roi{idx}(?:\s|\(|$)")
+        matched = False
+        for key in handler.roilist.keys():
+            if pattern.match(key):
+                roinames.append(key)
+                matched = True
+                break
+        if not matched:
+            print(f"Warning: No ROI found matching index '{idx}' (expected 'roi{idx}...')")
     return roinames
 
 if __name__ == "__main__":
