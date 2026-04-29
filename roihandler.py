@@ -50,14 +50,13 @@ class Roihandler():
                 
                 # Determine next available ROI index to avoid overwriting if ROIs were deleted
                 max_n = 0
+                import re
                 for k in self.roilist.keys():
-                    if k.startswith('roi'):
-                        try:
-                            n = int(k[3:])
-                            if n > max_n:
-                                max_n = n
-                        except ValueError:
-                            pass
+                    match = re.match(r'^roi(\d+)', k)
+                    if match:
+                        n = int(match.group(1))
+                        if n > max_n:
+                            max_n = n
                 for i in range(len(self.roi_points)):
                     self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
                 newroi = deflib.highlight_roi(self.pixmatrix, self.roi_points)
