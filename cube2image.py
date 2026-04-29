@@ -42,15 +42,29 @@ class Cube2ImageGUI:
         self.width_slider.grid(row=2, column=1, sticky='we')
         self.width_val_label = ttk.Label(main_frame, text='10.0', width=8)
         self.width_val_label.grid(row=2, column=2, sticky=tk.W)
+
+        # Manual wavelength bounds
+        manual_frame = ttk.Frame(main_frame)
+        manual_frame.grid(row=3, column=0, columnspan=3, sticky='we', pady=(4, 0))
+        ttk.Label(manual_frame, text='WL Start:').grid(row=0, column=0, sticky=tk.W)
+        self.manual_wlstart_var = tk.StringVar(value=f'{self.wlstart:.2f}')
+        self.manual_wlstart_entry = ttk.Entry(manual_frame, textvariable=self.manual_wlstart_var, width=10)
+        self.manual_wlstart_entry.grid(row=0, column=1, sticky=tk.W, padx=(4, 10))
+        ttk.Label(manual_frame, text='WL width:').grid(row=0, column=2, sticky=tk.W)
+        self.manual_wl_width_var = tk.StringVar(value='10.00')
+        self.manual_wlend_entry = ttk.Entry(manual_frame, textvariable=self.manual_wl_width_var, width=10)
+        self.manual_wlend_entry.grid(row=0, column=3, sticky=tk.W, padx=(4, 10))
+        self.set_wl_button = ttk.Button(manual_frame, text='Set WL', command=self.set_manual_wavelengths)
+        self.set_wl_button.grid(row=0, column=4, sticky=tk.W)
         
         # Plot button
-        ttk.Button(main_frame, text='Plot', command=self.update_plot).grid(row=3, column=0, columnspan=3)
-        ttk.Button(main_frame, text='Create HSI', command=self.createHSI).grid(row=5, column=0, columnspan=3)
+        ttk.Button(main_frame, text='Plot', command=self.update_plot).grid(row=4, column=0, columnspan=3)
+        ttk.Button(main_frame, text='Create HSI', command=self.createHSI).grid(row=6, column=0, columnspan=3)
         
         # Matplotlib canvas
         self.fig, self.ax = plt.subplots(figsize=(5, 4))
         self.canvas = FigureCanvasTkAgg(self.fig, master=main_frame)
-        self.canvas.get_tk_widget().grid(row=4, column=0, columnspan=3, sticky='nsew')
+        self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=3, sticky='nsew')
         
         self.datatype_map = {
             'Wavelength axis': 'WL', 'Background (BG)': 'BG', 'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB', 
@@ -130,6 +144,26 @@ class Cube2ImageGUI:
         self._clear_plot()
         self.ax.text(0.5, 0.5, 'No wavelength data available', ha='center', va='center')
         self.canvas.draw_idle()
+
+    def set_manual_wavelengths(self):
+        try:
+            wlstart = round(float(self.manual_wlstart_var.get()), 2)
+            wlwidth = round(float(self.manual_wl_width_var.get()), 2)
+        except Exception:
+            self._clear_plot()
+            self.ax.text(0.5, 0.5, 'Invalid wavelength bounds', ha='center', va='center')
+            self.canvas.draw_idle()
+            return
+
+        wlstart = max(self.wlstart, min(self.wlend, wlstart))
+        max_width = max(0.0, self.wlend - wlstart)
+        wlwidth = max(0.0, min(max_width, wlwidth))
+
+        self.manual_wlstart_var.set(f'{wlstart:.2f}')
+        self.manual_wl_width_var.set(f'{wlwidth:.2f}')
+        self.start_slider.set(wlstart)
+        self.width_slider.set(wlwidth)
+        self.update_plot()
     
     def createHSI(self):
 
@@ -184,6 +218,9 @@ class Cube2ImageGUI:
             self.datatype_cb.destroy()
             self.start_val_label.destroy()
             self.width_val_label.destroy()
+            self.manual_wlstart_entry.destroy()
+            self.manual_wlend_entry.destroy()
+            self.set_wl_button.destroy()
         except Exception:
             pass
         # clean up the matplotlib resources
