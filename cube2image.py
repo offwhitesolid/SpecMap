@@ -38,7 +38,7 @@ class Cube2ImageGUI:
         self.start_val_label.grid(row=1, column=2, sticky=tk.W)
         
         ttk.Label(main_frame, text='Wavelength Width (nm):').grid(row=2, column=0, sticky=tk.W)
-        self.width_slider = ttk.Scale(main_frame, from_=0.1, to=200, value=10, command=self.update_plot, length=self.zoomlen)
+        self.width_slider = ttk.Scale(main_frame, from_=0.0, to=200, value=10, command=self.update_plot, length=self.zoomlen)
         self.width_slider.grid(row=2, column=1, sticky='we')
         self.width_val_label = ttk.Label(main_frame, text='10.0', width=8)
         self.width_val_label.grid(row=2, column=2, sticky=tk.W)
@@ -64,6 +64,32 @@ class Cube2ImageGUI:
         
         self.datatype_cb['values'] = list(self.datatype_map.keys())
         self.datatype_cb.current(3) # Default to 'Spectrum (PL-BG)'
+        self.datatype_cb.bind('<<ComboboxSelected>>', self.update_plot)
+
+        self.image_artist = None
+        self.colorbar = None
+
+    def _clear_plot(self):
+        if self.image_artist is not None:
+            try:
+                self.image_artist.remove()
+            except Exception:
+                pass
+            self.image_artist = None
+        if self.colorbar is not None:
+            try:
+                self.colorbar.remove()
+            except Exception:
+                pass
+            self.colorbar = None
+        self.ax.clear()
+
+    def _draw_image(self, img, title=None):
+        self._clear_plot()
+        self.image_artist = self.ax.imshow(img, cmap='viridis')
+        if title:
+            self.ax.set_title(title)
+        self.canvas.draw_idle()
     
     def update_plot(self, *args):
         start = float(self.start_slider.get())
@@ -72,13 +98,16 @@ class Cube2ImageGUI:
         self.start_val_label.config(text=f"{start:.1f}")
         self.width_val_label.config(text=f"{width:.1f}")
 
-        if not self.Nanomap: return
+        if not self.Nanomap:
+            self._clear_plot()
+            self.canvas.draw_idle()
+            return
         dt_label = self.datatype_var.get()
         dt = self.datatype_map.get(dt_label)
-        if not dt: return
-        
-        # Dummy integration logic for plot
-        self.ax.clear()
+        if not dt:
+            self._clear_plot()
+            self.canvas.draw_idle()
+            return
         
         try:
             wl = getattr(self.Nanomap.SpecDataMatrix[0][0], 'WL', None)
@@ -90,11 +119,17 @@ class Cube2ImageGUI:
                         data = getattr(self.Nanomap.SpecDataMatrix[i][j], dt, np.zeros_like(wl))
                         img[i, j] = np.sum(data[idx])
                 
-                self.ax.imshow(img, cmap='viridis')
+                self._draw_image(img, title=f'{dt_label}: {start:.1f} - {start + width:.1f} nm')
+                return
         except Exception as e:
+            self._clear_plot()
             self.ax.text(0.5, 0.5, f'Error: {e}', ha='center', va='center')
-        
-        self.canvas.draw()
+            self.canvas.draw_idle()
+            return
+
+        self._clear_plot()
+        self.ax.text(0.5, 0.5, 'No wavelength data available', ha='center', va='center')
+        self.canvas.draw_idle()
     
     def createHSI(self):
 
@@ -104,28 +139,34 @@ class Cube2ImageGUI:
         if not self.Nanomap: return
         dt_label = self.datatype_var.get()
         dt = self.datatype_map.get(dt_label)
-        self.datatype_cb['values'] = list(self.datatype_map.keys())
-        self.datatype_cb.current(3) # Default to 'Spectrum (PL-BG)'
         if not dt: return
 
-        self.wlstart = start
-        self.wlend = start + width
-        self.Nanomap.wlstart = self.wlstart
-        self.Nanomap.wlend = self.wlend
+        wlstart = start
+        wlend = start + width
 
         if hasattr(self.Nanomap, 'selectspecbox'):
             try:
                 self.Nanomap.selectspecbox.set(dt_label)
             except Exception:
                 pass
+        
+        if hasattr(self.Nanomap, 'proc_spec_min') and hasattr(self.Nanomap, 'proc_spec_max'):
+            try:
+                self.Nanomap.proc_spec_min.delete(0, tk.END)
+                self.Nanomap.proc_spec_min.insert(0, str(round(wlstart, 2)))
+                self.Nanomap.proc_spec_max.delete(0, tk.END)
+                self.Nanomap.proc_spec_max.insert(0, str(round(wlend, 2)))
+            except Exception:
+                pass
 
         if hasattr(self.Nanomap, 'buildandPlotIntCmap'):
             try:
                 self.Nanomap.buildandPlotIntCmap(savetoimage='False', plot=False)
+                self.update_plot()
             except Exception as e:
-                self.ax.clear()
+                self._clear_plot()
                 self.ax.text(0.5, 0.5, f'Error: {e}', ha='center', va='center')
-                self.canvas.draw()
+                self.canvas.draw_idle()
                 return
     
     def update_bounds(self, wlstart, wlend):
@@ -137,25 +178,44 @@ class Cube2ImageGUI:
     
     def destroy(self):
         # clean up the GUI resources
-        self.start_slider.destroy()
-        self.width_slider.destroy()
-        self.datatype_cb.destroy()
+        try:
+            self.start_slider.destroy()
+            self.width_slider.destroy()
+            self.datatype_cb.destroy()
+            self.start_val_label.destroy()
+            self.width_val_label.destroy()
+        except Exception:
+            pass
         # clean up the matplotlib resources
-        self.canvas.get_tk_widget().destroy()
-        plt.close(self.fig)
+        try:
+            self.canvas.get_tk_widget().destroy()
+            plt.close(self.fig)
+        except Exception:
+            pass
+        # break references so tkinter can close cleanly
+        self.Nanomap = None
+        self.root = None
 
 class Cube2Image:
     def __init__(self, Nanomap=None, guiroot=None):
         self.gui = Cube2ImageGUI(guiroot, Nanomap)
     
+    def destroy(self):
+        if hasattr(self, 'gui') and self.gui is not None:
+            self.gui.destroy()
+            self.gui = None
+
+    # Backward-compatible typo alias
     def destory(self):
-        self.gui.destroy()
-    
+        self.destroy()
     def update_bounds(self):
+        if not hasattr(self, 'gui') or self.gui is None:
+            print("Cube2Image GUI is not available.")
+            return
         nanomap = getattr(self.gui, 'Nanomap', None)
-        if nanomap is not None and hasattr(nanomap, 'wlstart') and hasattr(nanomap, 'wlend'):
-            self.gui.update_bounds(nanomap.wlstart, nanomap.wlend)
-            print(f"Updated Cube2Image bounds to wlstart={nanomap.wlstart}, wlend={nanomap.wlend}")
+        if nanomap is not None and hasattr(nanomap, 'DataSpecMax') and hasattr(nanomap, 'DataSpecMin'):
+            self.gui.update_bounds(nanomap.DataSpecMin, nanomap.DataSpecMax)
+            print(f"Updated Cube2Image bounds to wlstart={nanomap.DataSpecMin}, wlend={nanomap.DataSpecMax}")
         else:
             print("Nanomap does not have wlstart and wlend attributes.")
 
@@ -183,7 +243,8 @@ def testgui():
     # bind the close event to ensure proper cleanup
     def on_closing():
         print("Closing Cube2Image GUI...")
-        cube2image_gui.destory()
+        cube2image_gui.destroy()
+        root.quit()
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_closing)
