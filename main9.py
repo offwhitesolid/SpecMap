@@ -695,7 +695,11 @@ class FileProcessorApp:
                 guiroot=self.nodeframes['Plot Spectra'],
                 disspecs=self.Nanomap.disspecs
                 )
-                
+
+            # self.Cube2Imager: update 
+            if hasattr(self, 'Cube2Imager'):
+                self.Cube2Imager.update_bounds()
+
         else:
             print("No files found with the specified name.")
 
@@ -829,6 +833,10 @@ class FileProcessorApp:
                 disspecs=self.Nanomap.disspecs
                 )
         
+            # self.Cube2Imager: updte 
+            if hasattr(self, 'Cube2Imager'):
+                self.Cube2Imager.update_bounds()
+
         # Load the state
         success = self.Nanomap.load_state(filename)
 
@@ -847,6 +855,10 @@ class FileProcessorApp:
                 guiroot=self.nodeframes['Plot Spectra'],
                 disspecs=self.Nanomap.disspecs
                 )
+            
+            # self.Cube2Imager: updte 
+            if hasattr(self, 'Cube2Imager'):
+                self.Cube2Imager.update_bounds()      
 
         else:
             print("Error", "Failed to load data. Check console for details.")
@@ -1302,8 +1314,8 @@ def pressclose(root, app):
             # Set daemon to True so thread terminates when main program exits
             thread.daemon = True
     
-    if hasattr(app, 'Cube2Imager') and app.Cube2Imager is not None:
-        app.Cube2Imager.destory()  # Close the Cube2Imager if it exists
+    #if hasattr(app, 'Cube2Imager') and app.Cube2Imager is not None:
+    #    app.Cube2Imager.destory()  # Close the Cube2Imager if it exists
     # Destroy the root window
     root.destroy()
     app.on_closing()

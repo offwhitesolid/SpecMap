@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class Cube2ImageGUI:
-    def __init__(self, root, Nanomap=None, wlstart=0.0, wlend=1000.0, zoomlen=500.0):
+    def __init__(self, root, Nanomap=None, wlstart=0.0, wlend=1000.0, zoomlen=700.0):
         try: 
             self.wlstart = float(wlstart)
         except:
@@ -17,7 +17,7 @@ class Cube2ImageGUI:
         try:
             self.zoomlen = float(zoomlen)
         except:
-            self.zoomlen = 500.0
+            self.zoomlen = 700.0
         self.root = root
         self.Nanomap = Nanomap
         
@@ -95,9 +95,21 @@ class Cube2ImageGUI:
         
         self.canvas.draw()
     
+    def update_bounds(self, wlstart, wlend):
+        self.wlstart = wlstart
+        self.wlend = wlend
+        self.start_slider.config(from_=self.wlstart, to=self.wlend, length=self.zoomlen)
+        self.start_slider.set((self.wlend - self.wlstart) / 2)
+        self.update_plot()
+    
     def destroy(self):
+        # clean up the GUI resources
+        self.start_slider.destroy()
+        self.width_slider.destroy()
+        self.datatype_cb.destroy()
+        # clean up the matplotlib resources
         self.canvas.get_tk_widget().destroy()
-        self.fig.clf()
+        plt.close(self.fig)
 
 class Cube2Image:
     def __init__(self, Nanomap=None, guiroot=None):
@@ -105,11 +117,18 @@ class Cube2Image:
     
     def destory(self):
         self.gui.destroy()
+    
+    def update_bounds(self):
+        if hasattr(self.gui.Nanomap, 'wlstart') and hasattr(self.gui.Nanomap, 'wlend'):
+            self.gui.update_bounds(self.gui.Nanomap.wlstart, self.gui.Nanomap.wlend)
+            print(f"Updated Cube2Image bounds to wlstart={self.gui.Nanomap.wlstart}, wlend={self.gui.Nanomap.wlend}")
+        else:
+            print("Nanomap does not have wlstart and wlend attributes.")
 
 def testgui():
     root = tk.Tk()
     root.title('Cube2Image Test')
-    root.protocol("WM_DELETE_WINDOW", root.destroy)
+    #root.protocol("WM_DELETE_WINDOW", root.destroy)
     
     # Create a dummy Nanomap with necessary attributes for testing
     class DummySpec:
@@ -127,6 +146,14 @@ def testgui():
     
     cube2image_gui = Cube2Image(Nanomap=nanomap, guiroot=root)
     
+    # bind the close event to ensure proper cleanup
+    def on_closing():
+        print("Closing Cube2Image GUI...")
+        cube2image_gui.destory()
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", on_closing)
+
     root.mainloop()
 
 if __name__ == '__main__':
