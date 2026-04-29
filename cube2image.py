@@ -1,0 +1,133 @@
+import tkinter as tk
+from tkinter import ttk
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+class Cube2ImageGUI:
+    def __init__(self, root, Nanomap=None, wlstart=0.0, wlend=1000.0, zoomlen=500.0):
+        try: 
+            self.wlstart = float(wlstart)
+        except:
+            self.wlstart = 0.0
+        try:
+            self.wlend = float(wlend)
+        except:
+            self.wlend = 1000.0
+        try:
+            self.zoomlen = float(zoomlen)
+        except:
+            self.zoomlen = 500.0
+        self.root = root
+        self.Nanomap = Nanomap
+        
+        main_frame = ttk.Frame(self.root, padding='10')
+        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Datatype combobox
+        ttk.Label(main_frame, text='Select spectral datatype:').grid(row=0, column=0, sticky=tk.W)
+        self.datatype_var = tk.StringVar()
+        self.datatype_cb = ttk.Combobox(main_frame, textvariable=self.datatype_var)
+        self.datatype_cb.grid(row=0, column=1, sticky=(tk.W, tk.E))
+        
+        # Start and Width sliders
+        ttk.Label(main_frame, text='Integration Start (nm):').grid(row=1, column=0, sticky=tk.W)
+        self.start_slider = ttk.Scale(main_frame, from_=self.wlstart, to=self.wlend, value=(self.wlend-self.wlstart)/2, command=self.update_plot, length=self.zoomlen)
+        self.start_slider.grid(row=1, column=1, sticky=(tk.W, tk.E))
+        self.start_val_label = ttk.Label(main_frame, text='500.0', width=8)
+        self.start_val_label.grid(row=1, column=2, sticky=tk.W)
+        
+        ttk.Label(main_frame, text='Wavelength Width (nm):').grid(row=2, column=0, sticky=tk.W)
+        self.width_slider = ttk.Scale(main_frame, from_=0.1, to=200, value=10, command=self.update_plot, length=self.zoomlen)
+        self.width_slider.grid(row=2, column=1, sticky=(tk.W, tk.E))
+        self.width_val_label = ttk.Label(main_frame, text='10.0', width=8)
+        self.width_val_label.grid(row=2, column=2, sticky=tk.W)
+        
+        # Plot button
+        ttk.Button(main_frame, text='Plot', command=self.update_plot).grid(row=3, column=0, columnspan=3)
+        
+        # Matplotlib canvas
+        self.fig, self.ax = plt.subplots(figsize=(5, 4))
+        self.canvas = FigureCanvasTkAgg(self.fig, master=main_frame)
+        self.canvas.get_tk_widget().grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        self.datatype_map = {
+            'Wavelength axis': 'WL', 'Background (BG)': 'BG', 'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB', 
+            'first derivative': 'Specdiff1', 'second derivative': 'Specdiff2', 
+            'first derivative (normalized)': 'Specdiff1_norm', 'second derivative (normalized)': 'Specdiff2_norm', 
+            'first derivative (norm on intensity, then derive)': 'Specdiff1_norm_intensity', 
+            'second derivative (norm on intensity, then derive)': 'Specdiff2_norm_intensity', 
+            'first derivative (norm on counts, then derive)': 'Specdiff1_norm_counts', 
+            'second derivative (norm on counts, then derive)': 'Specdiff2_norm_counts'
+        }
+        
+        self.datatype_cb['values'] = list(self.datatype_map.keys())
+        self.datatype_cb.current(3) # Default to 'Spectrum (PL-BG)'
+    
+    def update_plot(self, *args):
+        start = float(self.start_slider.get())
+        width = float(self.width_slider.get())
+        
+        self.start_val_label.config(text=f"{start:.1f}")
+        self.width_val_label.config(text=f"{width:.1f}")
+
+        if not self.Nanomap: return
+        dt_label = self.datatype_var.get()
+        dt = self.datatype_map.get(dt_label)
+        if not dt: return
+        
+        # Dummy integration logic for plot
+        self.ax.clear()
+        
+        try:
+            wl = getattr(self.Nanomap.SpecDataMatrix[0][0], 'WL', None)
+            if wl is not None:
+                idx = np.where((wl >= start) & (wl <= start + width))[0]
+                img = np.zeros((len(self.Nanomap.SpecDataMatrix), len(self.Nanomap.SpecDataMatrix[0])))
+                for i in range(img.shape[0]):
+                    for j in range(img.shape[1]):
+                        data = getattr(self.Nanomap.SpecDataMatrix[i][j], dt, np.zeros_like(wl))
+                        img[i, j] = np.sum(data[idx])
+                
+                self.ax.imshow(img, cmap='viridis')
+        except Exception as e:
+            self.ax.text(0.5, 0.5, f'Error: {e}', ha='center', va='center')
+        
+        self.canvas.draw()
+    
+    def destroy(self):
+        self.canvas.get_tk_widget().destroy()
+        self.fig.clf()
+
+class Cube2Image:
+    def __init__(self, Nanomap=None, guiroot=None):
+        self.gui = Cube2ImageGUI(guiroot, Nanomap)
+    
+    def destory(self):
+        self.gui.destroy()
+
+def testgui():
+    root = tk.Tk()
+    root.title('Cube2Image Test')
+    root.protocol("WM_DELETE_WINDOW", root.destroy)
+    
+    # Create a dummy Nanomap with necessary attributes for testing
+    class DummySpec:
+        def __init__(self):
+            self.WL = np.linspace(400, 700, 100)
+            self.Spectrum1 = np.random.rand(100)
+            self.Spectrum2 = np.random.rand(100)
+    
+    class DummyNanomap:
+        def __init__(self):
+            self.speckeys = ['Spectrum1', 'Spectrum2']
+            self.SpecDataMatrix = [[DummySpec() for _ in range(5)] for _ in range(5)]
+    
+    nanomap = DummyNanomap()
+    
+    cube2image_gui = Cube2Image(Nanomap=nanomap, guiroot=root)
+    
+    root.mainloop()
+
+if __name__ == '__main__':
+    testgui()

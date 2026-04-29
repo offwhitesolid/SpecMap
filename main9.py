@@ -19,6 +19,7 @@ import shutil, gc
 import error_handler  # Centralized error handling and logging
 import datetime as datet
 import plotspecs
+import cube2image
 
 class FileProcessorApp:
     def __init__(self, root, defaults):
@@ -96,6 +97,9 @@ class FileProcessorApp:
             guiroot=self.nodeframes['Plot Spectra'],
             disspecs=self.Nanomap.disspecs
             )
+        
+        # build the cube2image notebook
+        self.Cube2Imager = cube2image.Cube2Image(Nanomap=self.Nanomap, guiroot=self.nodeframes['Cube2Image'])
 
     def createmenue(self):
         # Create the menu bar
@@ -1297,6 +1301,9 @@ def pressclose(root, app):
         if thread is not thr.main_thread():
             # Set daemon to True so thread terminates when main program exits
             thread.daemon = True
+    
+    if hasattr(app, 'Cube2Imager') and app.Cube2Imager is not None:
+        app.Cube2Imager.destory()  # Close the Cube2Imager if it exists
     # Destroy the root window
     root.destroy()
     app.on_closing()
