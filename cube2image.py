@@ -22,34 +22,35 @@ class Cube2ImageGUI:
         self.Nanomap = Nanomap
         
         main_frame = ttk.Frame(self.root, padding='10')
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.grid(row=0, column=0, sticky='nsew')
         
         # Datatype combobox
         ttk.Label(main_frame, text='Select spectral datatype:').grid(row=0, column=0, sticky=tk.W)
         self.datatype_var = tk.StringVar()
         self.datatype_cb = ttk.Combobox(main_frame, textvariable=self.datatype_var)
-        self.datatype_cb.grid(row=0, column=1, sticky=(tk.W, tk.E))
+        self.datatype_cb.grid(row=0, column=1, sticky='we')
         
         # Start and Width sliders
         ttk.Label(main_frame, text='Integration Start (nm):').grid(row=1, column=0, sticky=tk.W)
         self.start_slider = ttk.Scale(main_frame, from_=self.wlstart, to=self.wlend, value=(self.wlend-self.wlstart)/2, command=self.update_plot, length=self.zoomlen)
-        self.start_slider.grid(row=1, column=1, sticky=(tk.W, tk.E))
+        self.start_slider.grid(row=1, column=1, sticky='we')
         self.start_val_label = ttk.Label(main_frame, text='500.0', width=8)
         self.start_val_label.grid(row=1, column=2, sticky=tk.W)
         
         ttk.Label(main_frame, text='Wavelength Width (nm):').grid(row=2, column=0, sticky=tk.W)
         self.width_slider = ttk.Scale(main_frame, from_=0.1, to=200, value=10, command=self.update_plot, length=self.zoomlen)
-        self.width_slider.grid(row=2, column=1, sticky=(tk.W, tk.E))
+        self.width_slider.grid(row=2, column=1, sticky='we')
         self.width_val_label = ttk.Label(main_frame, text='10.0', width=8)
         self.width_val_label.grid(row=2, column=2, sticky=tk.W)
         
         # Plot button
         ttk.Button(main_frame, text='Plot', command=self.update_plot).grid(row=3, column=0, columnspan=3)
+        ttk.Button(main_frame, text='Create HSI', command=self.createHSI).grid(row=5, column=0, columnspan=3)
         
         # Matplotlib canvas
         self.fig, self.ax = plt.subplots(figsize=(5, 4))
         self.canvas = FigureCanvasTkAgg(self.fig, master=main_frame)
-        self.canvas.get_tk_widget().grid(row=4, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.canvas.get_tk_widget().grid(row=4, column=0, columnspan=3, sticky='nsew')
         
         self.datatype_map = {
             'Wavelength axis': 'WL', 'Background (BG)': 'BG', 'Counts (PL)': 'PL', 'Spectrum (PL-BG)': 'PLB', 
@@ -95,6 +96,38 @@ class Cube2ImageGUI:
         
         self.canvas.draw()
     
+    def createHSI(self):
+
+        start = float(self.start_slider.get())
+        width = float(self.width_slider.get())
+
+        if not self.Nanomap: return
+        dt_label = self.datatype_var.get()
+        dt = self.datatype_map.get(dt_label)
+        self.datatype_cb['values'] = list(self.datatype_map.keys())
+        self.datatype_cb.current(3) # Default to 'Spectrum (PL-BG)'
+        if not dt: return
+
+        self.wlstart = start
+        self.wlend = start + width
+        self.Nanomap.wlstart = self.wlstart
+        self.Nanomap.wlend = self.wlend
+
+        if hasattr(self.Nanomap, 'selectspecbox'):
+            try:
+                self.Nanomap.selectspecbox.set(dt_label)
+            except Exception:
+                pass
+
+        if hasattr(self.Nanomap, 'buildandPlotIntCmap'):
+            try:
+                self.Nanomap.buildandPlotIntCmap(savetoimage='False', plot=False)
+            except Exception as e:
+                self.ax.clear()
+                self.ax.text(0.5, 0.5, f'Error: {e}', ha='center', va='center')
+                self.canvas.draw()
+                return
+    
     def update_bounds(self, wlstart, wlend):
         self.wlstart = wlstart
         self.wlend = wlend
@@ -119,9 +152,10 @@ class Cube2Image:
         self.gui.destroy()
     
     def update_bounds(self):
-        if hasattr(self.gui.Nanomap, 'wlstart') and hasattr(self.gui.Nanomap, 'wlend'):
-            self.gui.update_bounds(self.gui.Nanomap.wlstart, self.gui.Nanomap.wlend)
-            print(f"Updated Cube2Image bounds to wlstart={self.gui.Nanomap.wlstart}, wlend={self.gui.Nanomap.wlend}")
+        nanomap = getattr(self.gui, 'Nanomap', None)
+        if nanomap is not None and hasattr(nanomap, 'wlstart') and hasattr(nanomap, 'wlend'):
+            self.gui.update_bounds(nanomap.wlstart, nanomap.wlend)
+            print(f"Updated Cube2Image bounds to wlstart={nanomap.wlstart}, wlend={nanomap.wlend}")
         else:
             print("Nanomap does not have wlstart and wlend attributes.")
 

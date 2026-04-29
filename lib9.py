@@ -1795,7 +1795,7 @@ class XYMap:
         self.selectPixY.insert(0, str(self.newsely))
 
     # Max Counts Colormap
-    def buildandPlotIntCmap(self, savetoimage='False'):
+    def buildandPlotIntCmap(self, savetoimage='False', plot=True):
         hsi_name = self.hsiselect.get()
         if not hsi_name or hsi_name not in self.PMdict:
             print("No valid HSI selected to plot.")
@@ -1818,7 +1818,8 @@ class XYMap:
             )
         
         self.UpdateHSIselect()
-        self.plotPixelMatrix(self.hsiselect.get(), savetoimage=savetoimage)
+        if plot:
+            self.plotPixelMatrix(self.hsiselect.get(), savetoimage=savetoimage)
         
     # Spectral Maximum Colormap
     def buildandPlotSpecCmap(self):
