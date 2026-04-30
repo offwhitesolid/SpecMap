@@ -800,7 +800,8 @@ class XYMap:
                 roibynames, 
                 plotmodes,
                 colors,
-                fontsize=self.defentries.get('roi_plot_fontsize', 14), 
+                fontsize=self.defentries.get('roi_plot_fontsize', 14),
+                title=self._get_hsi_title(hsi_name)
             )
         
         except Exception as e:

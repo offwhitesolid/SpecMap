@@ -206,7 +206,7 @@ class Roihandler():
         else:
             print(f"ROI '{roiname}' not found.")
     
-    def plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14):
+    def plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14, title=None):
         vis_funcs = {
             'overlay': self._draw_overlay,
             'cornerlines': self._draw_cornerlines
@@ -225,7 +225,10 @@ class Roihandler():
                     vis_funcs['overlay'](ax, roi, color)
             else:
                 print(f"ROI '{roiname}' not found.")
-        ax.set_title(f'Regions of Interest', fontsize=fontsize)
+                
+        if title is None:
+            title = 'Regions of Interest'
+        ax.set_title(title, fontsize=fontsize)
         ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
         ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
         plt.show()
