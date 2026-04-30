@@ -570,8 +570,15 @@ class FileProcessorApp:
         
     # testcomment
     def spec_loadfiles(self):
-        # close all open matplotlib windows        # close all running threads
-        plt.close('all')
+        # Close pyplot-managed figures individually so a destroyed Tk toolbar
+        # cannot abort the load path with a TclError.
+        for fig_num in list(plt.get_fignums()):
+            try:
+                plt.close(fig_num)
+            except tk.TclError:
+                continue
+            except Exception:
+                continue
         
         # Stop managed threads safely
         self._stop_managed_threads()

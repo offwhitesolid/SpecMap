@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 class Cube2ImageGUI:
     def __init__(self, root, Nanomap=None, wlstart=0.0, wlend=1000.0, zoomlen=700.0):
@@ -72,12 +73,13 @@ class Cube2ImageGUI:
         # on colormap change, update self.colormap and redraw the plot
         self.colormap_cb.bind('<<ComboboxSelected>>', lambda e: self.change_colormap())
         
-        # Plot button
-        ttk.Button(main_frame, text='Plot', command=self.update_plot).grid(row=4, column=0, columnspan=3)
-        ttk.Button(main_frame, text='Create HSI', command=self.createHSI).grid(row=6, column=0, columnspan=3)
+        # Plot and Create HSI buttons in same row
+        ttk.Button(main_frame, text='Plot', command=self.update_plot).grid(row=4, column=0, columnspan=2, sticky='we')
+        ttk.Button(main_frame, text='Create HSI', command=self.createHSI).grid(row=4, column=2, columnspan=1, sticky='we')
         
         # Matplotlib canvas
-        self.fig, self.ax = plt.subplots(figsize=(5, 4))
+        self.fig = Figure(figsize=(5, 4))
+        self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.fig, master=main_frame)
         self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=3, sticky='nsew')
         
