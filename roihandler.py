@@ -50,14 +50,13 @@ class Roihandler():
                 
                 # Determine next available ROI index to avoid overwriting if ROIs were deleted
                 max_n = 0
+                import re
                 for k in self.roilist.keys():
-                    if k.startswith('roi'):
-                        try:
-                            n = int(k[3:])
-                            if n > max_n:
-                                max_n = n
-                        except ValueError:
-                            pass
+                    match = re.match(r'^roi(\d+)', k)
+                    if match:
+                        n = int(match.group(1))
+                        if n > max_n:
+                            max_n = n
                 for i in range(len(self.roi_points)):
                     self.roi_points[i] = [float(self.roi_points[i][0]), float(self.roi_points[i][1])]
                 newroi = deflib.highlight_roi(self.pixmatrix, self.roi_points)
@@ -207,7 +206,7 @@ class Roihandler():
         else:
             print(f"ROI '{roiname}' not found.")
     
-    def plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14):
+    def plot_multiple_rois_on_pixmatrix(self, handler, pixmatrix, roinames, plotmodes, colors, fontsize=14, title=None):
         vis_funcs = {
             'overlay': self._draw_overlay,
             'cornerlines': self._draw_cornerlines
@@ -226,7 +225,10 @@ class Roihandler():
                     vis_funcs['overlay'](ax, roi, color)
             else:
                 print(f"ROI '{roiname}' not found.")
-        ax.set_title(f'Regions of Interest', fontsize=fontsize)
+                
+        if title is None:
+            title = 'Regions of Interest'
+        ax.set_title(title, fontsize=fontsize)
         ax.set_xlabel('Nanostage X Axis in \u03bcm', fontsize=fontsize)
         ax.set_ylabel('Nanostage Y Axis in \u03bcm', fontsize=fontsize)
         plt.show()
