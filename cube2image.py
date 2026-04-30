@@ -225,6 +225,7 @@ class Cube2ImageGUI:
             pass
         # clean up the matplotlib resources
         try:
+            self.fig.clear()
             self.canvas.get_tk_widget().destroy()
             plt.close(self.fig)
         except Exception:

@@ -32,6 +32,7 @@ class FileProcessorApp:
         # Track threads with stop events for proper cleanup
         self.managed_threads = []
         self.derivative_polynomarray = [None, None, None, None]  # Placeholder for derivative settings
+        self._is_closing = False
         self.createmenue()
         self.windownotebook(deflib.Notebooks)
         # init XYMap GUI components
@@ -749,7 +750,30 @@ class FileProcessorApp:
             print("Error", "Could not load Clara image. {}".format(error))
     
     def on_closing(self):
-        pass
+        if self._is_closing:
+            return
+        self._is_closing = True
+
+        # Tear down Cube2Image first so embedded matplotlib/tk canvas does not outlive root.
+        if hasattr(self, 'Cube2Imager') and self.Cube2Imager is not None:
+            try:
+                self.Cube2Imager.destroy()
+            except Exception as e:
+                print(f"Cube2Image cleanup failed: {e}")
+
+        # Close Nanomap resources if available.
+        if hasattr(self, 'Nanomap') and self.Nanomap is not None:
+            try:
+                if hasattr(self.Nanomap, 'on_close'):
+                    self.Nanomap.on_close()
+            except Exception as e:
+                print(f"Nanomap cleanup failed: {e}")
+
+        # Cleanup tracked worker threads/events.
+        try:
+            self._stop_managed_threads()
+        except Exception as e:
+            print(f"Thread cleanup failed: {e}")
 
     def saveNanomap(self, filename):
         """
@@ -1314,11 +1338,14 @@ def pressclose(root, app):
             # Set daemon to True so thread terminates when main program exits
             thread.daemon = True
     
-    #if hasattr(app, 'Cube2Imager') and app.Cube2Imager is not None:
-    #    app.Cube2Imager.destory()  # Close the Cube2Imager if it exists
-    # Destroy the root window
-    root.destroy()
+    # Run app cleanup first so widgets/canvases are destroyed while Tk is still valid.
     app.on_closing()
+    # Then terminate tkinter loop and root window.
+    try:
+        root.quit()
+    except Exception:
+        pass
+    root.destroy()
 
 if __name__ == "__main__":
     # Initialize centralized error handling and logging
