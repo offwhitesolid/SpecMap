@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -20,6 +21,11 @@ class Cube2ImageGUI:
             self.zoomlen = 700.0
         self.root = root
         self.Nanomap = Nanomap
+        self.colormaps = ['viridis', 'plasma', 'inferno', 'magma', 'cividis', 'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds']
+        # overwrite colormaps with matplotlib's registered colormaps, but keep the default list order
+        self.colormaps = [cmap for cmap in self.colormaps if cmap in plt.colormaps()]
+        self.colormap = 'viridis'
+        self.default_colormap = 'viridis'
         
         main_frame = ttk.Frame(self.root, padding='10')
         main_frame.grid(row=0, column=0, sticky='nsew')
@@ -37,7 +43,7 @@ class Cube2ImageGUI:
         self.start_val_label = ttk.Label(main_frame, text='500.0', width=8)
         self.start_val_label.grid(row=1, column=2, sticky=tk.W)
         
-        ttk.Label(main_frame, text='Wavelength Width (nm):').grid(row=2, column=0, sticky=tk.W)
+        ttk.Label(main_frame, text='Wavelength Width (corresponding unit):').grid(row=2, column=0, sticky=tk.W)
         self.width_slider = ttk.Scale(main_frame, from_=0.0, to=200, value=10, command=self.update_plot, length=self.zoomlen)
         self.width_slider.grid(row=2, column=1, sticky='we')
         self.width_val_label = ttk.Label(main_frame, text='10.0', width=8)
@@ -56,6 +62,15 @@ class Cube2ImageGUI:
         self.manual_wlend_entry.grid(row=0, column=3, sticky=tk.W, padx=(4, 10))
         self.set_wl_button = ttk.Button(manual_frame, text='Set WL', command=self.set_manual_wavelengths)
         self.set_wl_button.grid(row=0, column=4, sticky=tk.W)
+
+        # add colormap selection next to Set WL button
+        ttk.Label(manual_frame, text='Colormap:').grid(row=0, column=5, sticky=tk.W, padx=(10, 0))
+        self.colormap_var = tk.StringVar(value=self.colormap)
+        # Use a Combobox for colormap selection
+        self.colormap_cb = ttk.Combobox(manual_frame, textvariable=self.colormap_var, values=self.colormaps, width=12)
+        self.colormap_cb.grid(row=0, column=6, sticky=tk.W, padx=(4, 0))
+        # on colormap change, update self.colormap and redraw the plot
+        self.colormap_cb.bind('<<ComboboxSelected>>', lambda e: self.change_colormap())
         
         # Plot button
         ttk.Button(main_frame, text='Plot', command=self.update_plot).grid(row=4, column=0, columnspan=3)
@@ -82,6 +97,15 @@ class Cube2ImageGUI:
 
         self.image_artist = None
         self.colorbar = None
+    
+    def change_colormap(self):
+        selected_cmap = self.colormap_var.get()
+        if selected_cmap in self.colormaps:
+            self.colormap = selected_cmap
+            self.update_plot()
+        else:
+            self.colormap = self.default_colormap
+            self.update_plot()
 
     def _clear_plot(self):
         if self.image_artist is not None:
@@ -100,7 +124,7 @@ class Cube2ImageGUI:
 
     def _draw_image(self, img, title=None):
         self._clear_plot()
-        self.image_artist = self.ax.imshow(img, cmap='viridis')
+        self.image_artist = self.ax.imshow(img, cmap=self.colormap)
         if title:
             self.ax.set_title(title)
         self.canvas.draw_idle()
